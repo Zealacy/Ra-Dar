@@ -11,13 +11,21 @@ It's a static site with no server, no build step and no API keys. Everything loa
 | **Snow stake** | Live West Village snow stake cam | Mt. Bachelor | Measured |
 | **Resort weather stations** | Temp and wind at the lift tops | Mt. Bachelor station graphic | Measured |
 | **Webcams** | 8 official cams, ordered by how useful they are for skiing, refreshed every 5 minutes | Mt. Bachelor | Live |
-| **Live readings** tab: snowpack | Depth, 24/48/72h change, SWE, % of median, new-snow density, temps, precip, 7-day chart | NRCS SNOTEL (3 stations) | Measured |
+| **Live readings** | 48-hour temperature and wind charts from the on-mountain stations, the resort's lift-top graphic, a station table, and the regional SNOTEL stations (labeled, not used in the score) | COAC, ODOT, OSU via NWS; Mt. Bachelor; NRCS SNOTEL | Measured |
 | **Hour by hour** | 96 hours of temp, wind chill, dewpoint, RH, wind, gusts, sky, precip chance and amount, snowfall, snow level, visibility | National Weather Service | Forecast |
 | **Base to summit** | 7-day hi/lo, snow, rain and gusts at base, mid and summit, plus freezing level | Open-Meteo | Forecast |
 | **Forecaster notes** | The NWS forecasters' written discussion, turned into readable sections: key messages up front, ski-relevant sentences highlighted, jargon explained on tap, and the original text kept at the bottom | NWS Pendleton | Forecast |
 | **Radar loop** | Latest precipitation radar | RainViewer | Measured |
 
 All values are in US units (°F, inches, mph, feet). Data refreshes every 10 minutes and webcams every 5.
+
+## Data quality rules
+
+- **On-mountain readings only.** "Right now" and The Call use live stations on or beside the ski area: COAC Moon Mountain (7,450 ft), ODOT Century Dr at the ski area (6,424 ft) and the OSU West Village snow pillow (6,375 ft). They come through the National Weather Service observation network.
+- **Stale data is dropped.** A station that hasn't reported within `stationMaxAgeHours` (3 hours) shows as offline and is ignored.
+- **Distant stations are not used for conditions.** The SNOTEL stations are 11–18 miles away and up to 1,500 ft below the base, so they appear only as a labeled regional reference.
+- **Estimates are labeled.** No public snow-depth sensor reports from the mountain, so new snow is a model estimate at the ski area's elevations, tagged *Model*, with the snow stake cam beside it as the real-world check.
+- Every value is tagged *Measured*, *Forecast* or *Model*, and the page lists every source in "Where the data comes from".
 
 ## Layout
 

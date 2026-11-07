@@ -13,7 +13,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SVGNS = 'http://www.w3.org/2000/svg';
 
 const $ = (id) => document.getElementById(id);
-const state = { snotel: null, nws: null, elev: null, call: null };
+const state = { stations: null, snotel: null, nws: null, elev: null, call: null };
 const charts = {};
 let activeTab = 'measured';
 
@@ -217,7 +217,69 @@ function renderSnotelTable(stations) {
       <td>${fmtTime(x.time, { month: 'short', day: 'numeric', hour: 'numeric' })}</td></tr>`;
   });
   $('snotel-table').innerHTML = `<thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody>`;
-  $('snotel-primary').textContent = `${stations[0].name}, ${ftFmt(stations[0].ft)} ft`;
+}
+
+// ================================================================ On-mountain stations (measured)
+// Observations from the National Weather Service network (api.weather.gov), which carries
+// stations run by the Central Oregon Avalanche Center, Oregon DOT and Oregon State University.
+async function loadStations() {
+  const start = new Date(Date.now() - 48 * 3600e3).toISOString().replace(/\.\d+Z$/, 'Z');
+  const results = await Promise.all(M.stations.map(async (cfg) => {
+    try {
+      const d = await getJSON(`https://api.weather.gov/stations/${cfg.id}/observations?start=${start}&limit=500`);
+      const obs = d.features.map((f) => f.properties).map((p) => ({
+        t: new Date(p.timestamp),
+        temp: toImperial(p.temperature?.value, p.temperature?.unitCode),
+        dew: toImperial(p.dewpoint?.value, p.dewpoint?.unitCode),
+        rh: p.relativeHumidity?.value ?? null,
+        wind: toImperial(p.windSpeed?.value, p.windSpeed?.unitCode),
+        gust: toImperial(p.windGust?.value, p.windGust?.unitCode),
+        dir: p.windDirection?.value ?? null,
+        chill: toImperial(p.windChill?.value, p.windChill?.unitCode),
+      })).filter((o) => o.temp != null || o.wind != null).sort((a, b) => a.t - b.t);
+      return { ...cfg, obs, stats: stationStats(obs) };
+    } catch (e) {
+      console.warn('station', cfg.id, e);
+      return { ...cfg, obs: [], stats: stationStats([]) };
+    }
+  }));
+  return results;
+}
+function stationStats(obs) {
+  const last = obs.at(-1) || null;
+  const ageH = last ? (Date.now() - last.t) / 3600e3 : null;
+  const fresh = ageH != null && ageH <= (M.stationMaxAgeHours || 3);
+  const in24 = obs.filter((o) => o.t >= Date.now() - 24 * 3600e3);
+  const temps = in24.map((o) => o.temp).filter((v) => v != null);
+  const gusts = in24.map((o) => o.gust ?? o.wind).filter((v) => v != null);
+  const lastHr = last ? obs.filter((o) => o.t >= last.t - 3600e3) : [];
+  const gustNow = Math.max(...lastHr.map((o) => o.gust ?? o.wind ?? 0), 0);
+  return {
+    last, ageH, fresh,
+    temp: last?.temp ?? null, wind: last?.wind ?? null, dir: last?.dir ?? null, rh: last?.rh ?? null,
+    gustNow: lastHr.length ? gustNow : null,
+    hasWind: obs.some((o) => o.wind != null),
+    hi24: temps.length ? Math.max(...temps) : null, lo24: temps.length ? Math.min(...temps) : null,
+    gust24: gusts.length ? Math.max(...gusts) : null,
+  };
+}
+function ageText(h) {
+  if (h == null) return 'no data';
+  if (h < 1) return `${Math.max(1, Math.round(h * 60))} min ago`;
+  if (h < 48) return `${Math.round(h)} hr ago`;
+  return `${Math.round(h / 24)} days ago`;
+}
+function renderStationTable(stations) {
+  const head = ['Station', 'Run by', 'Elev ft', 'Last report', 'Temp °F', '24h Hi/Lo', 'Wind mph', 'Gust (last hr)', '24h max gust', 'RH %', 'Status'];
+  const rows = stations.map((s) => {
+    const x = s.stats;
+    return `<tr><td>${esc(s.name)} <small>(${s.id})</small></td><td>${esc(s.operator)}</td><td>${ftFmt(s.ft)}</td>
+      <td>${x.last ? fmtTime(x.last.t, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '–'}</td>
+      <td>${r0(x.temp)}</td><td>${r0(x.hi24)} / ${r0(x.lo24)}</td><td>${x.hasWind ? `${compass(x.dir)} ${r0(x.wind)}` : 'n/a'}</td>
+      <td>${x.hasWind ? r0(x.gustNow) : 'n/a'}</td><td>${x.hasWind ? r0(x.gust24) : 'n/a'}</td><td>${r0(x.rh)}</td>
+      <td${x.fresh ? '' : ' class="warn"'}>${x.fresh ? 'Live' : x.last ? `Offline (${ageText(x.ageH)})` : 'Offline'}</td></tr>`;
+  });
+  $('station-table').innerHTML = `<thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody>`;
 }
 
 // ================================================================ NWS (forecast)
@@ -287,13 +349,21 @@ async function loadElevation() {
     + '&hourly=temperature_2m,apparent_temperature,snowfall,rain,freezing_level_height,wind_gusts_10m'
     + '&daily=temperature_2m_max,temperature_2m_min,snowfall_sum,rain_sum,wind_speed_10m_max,wind_gusts_10m_max'
     + `&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=${encodeURIComponent(TZ)}&forecast_days=7`;
-  const data = await getJSON(url);
+  // Model estimate of snow that already fell (last 3 days), at the same elevations.
+  const pastUrl = 'https://api.open-meteo.com/v1/forecast'
+    + `?latitude=${rep(M.lat)}&longitude=${rep(M.lon)}&elevation=${M.zones.map((z) => Math.round(z.ft / 3.28084)).join(',')}`
+    + `&hourly=snowfall&past_days=3&forecast_days=1&precipitation_unit=inch&timezone=${encodeURIComponent(TZ)}`;
+  const [data, pastData] = await Promise.all([getJSON(url), getJSON(pastUrl).catch(() => null)]);
+  const past = pastData ? (Array.isArray(pastData) ? pastData : [pastData]) : [];
   return (Array.isArray(data) ? data : [data]).map((d, i) => {
+    const pd = past[i];
+    const pOff = (pd?.utc_offset_seconds || 0) * 1000;
+    const pastSnow = pd ? pd.hourly.time.map((t, k) => ({ t: new Date(Date.parse(t + ':00Z') - pOff), v: pd.hourly.snowfall[k] ?? 0 })) : [];
     // Open-Meteo returns local wall-clock times for the requested zone; convert using its offset.
     const off = d.utc_offset_seconds * 1000;
     const times = d.hourly.time.map((t) => new Date(Date.parse(t + ':00Z') - off));
     const flFt = d.hourly_units?.freezing_level_height === 'm' ? d.hourly.freezing_level_height.map((v) => v * 3.28084) : d.hourly.freezing_level_height;
-    return { zone: M.zones[i], ...d, times, flFt };
+    return { zone: M.zones[i], ...d, times, flFt, pastSnow };
   });
 }
 function renderElevTable(zones) {
@@ -319,26 +389,30 @@ function skiWindow() {
 }
 
 function computeCall() {
-  const { snotel, nws, elev } = state;
+  const { nws, elev, stations } = state;
   const win = skiWindow();
   const inWindow = (t) => { const p = localParts(t); return p.date === win.date && p.hour >= 9 && p.hour < 16; };
   const c = { win, why: [], chips: [] };
   let score = 5;
 
-  // Fresh snow (measured)
-  const pri = snotel?.[0]?.stats;
-  if (pri) {
-    const d24 = pri.d24 != null ? Math.max(0, pri.d24) : null;
-    const d72 = pri.d72 != null ? Math.max(0, pri.d72) : null;
-    c.snow = { d24, d72, density: pri.density24 ?? pri.density72, station: snotel[0].name, others: snotel.slice(1).map((s) => ({ name: s.name, d24: s.stats.d24 })) };
-    score += Math.min(4, (d24 || 0) / 2) + Math.min(1.5, Math.max(0, (d72 || 0) - (d24 || 0)) / 6);
-    if (d24 >= 2) c.why.push(`${r0(d24)}" of new snow was measured in the last 24 hours`);
-    const med = snotel[0].daily.WTEQ?.last;
-    c.pack = { depth: pri.depth, swe: pri.swe, median: med?.median ?? null, peak: snotel[0].daily.WTEQ?.peak?.value ?? null, station: snotel[0].name, ft: snotel[0].ft };
-    c.pack.pct = c.pack.median > 0 ? Math.round((pri.swe / c.pack.median) * 100) : null;
-    c.pack.cls = pri.depth != null && pri.depth < 6 ? 'bad' : pri.depth >= 36 ? 'good' : 'ok';
-    if (c.pack.cls === 'bad') { score -= 2; c.why.push('the measured snowpack is still thin'); }
+  // Fresh snow: model estimate at the ski area's own elevations (no snow-depth sensor on the
+  // mountain is publicly available). The stake cam is shown beside it as the ground truth.
+  if (elev?.[0]?.pastSnow?.length) {
+    const now = Date.now();
+    const sum = (z, h) => z.pastSnow.filter((p) => p.t <= now && p.t > now - h * 3600e3).reduce((a, p) => a + p.v, 0);
+    const zi = Math.max(0, M.zones.findIndex((z) => z.key === M.snowZone));
+    const byZone = elev.map((z) => ({ name: z.zone.name, ft: z.zone.ft, d24: sum(z, 24), d72: sum(z, 72) }));
+    c.snow = { d24: byZone[zi].d24, d72: byZone[zi].d72, zone: byZone[zi], byZone };
+    const d24 = c.snow.d24;
+    score += Math.min(4, d24 / 2) + Math.min(1.5, Math.max(0, c.snow.d72 - d24) / 6);
+    if (d24 >= 2) c.why.push(`models estimate ${r0(d24)}" of new snow in the last 24 hours`);
   }
+
+  // Live station readings (measured), only from stations that reported recently.
+  const live = (stations || []).filter((s) => s.stats.fresh);
+  c.now = { stations: stations || [], live };
+  const windSt = live.find((s) => s.stats.hasWind && s.ft >= 7000);
+  if (win.today && windSt && windSt.stats.gustNow >= 45) { score -= 1; c.why.push(`${windSt.name} is measuring ${r0(windSt.stats.gustNow)} mph gusts right now`); }
 
   const winRows = nws?.rows.filter((r) => inWindow(r.t)) || [];
   if (nws && winRows.length) {
@@ -391,7 +465,7 @@ function computeCall() {
     const baseMax = c.temp.zones[0]?.max;
     if (chill <= -5) { Object.assign(c.temp, { cls: 'bad', text: 'Bitter wind chill. Cover exposed skin.' }); score -= 1; c.why.push('bitter cold'); }
     else if (baseMax != null && baseMax >= 40) { Object.assign(c.temp, { cls: 'ok', text: 'Warm down low. The snow will turn soft and slushy in the afternoon.' }); if (d24 < 2) score -= 0.5; }
-    else if (pri && pri.hi24 > 34 && (pri.lo24 ?? 99) < 30 && d24 < 2) { Object.assign(c.temp, { cls: 'ok', text: 'It thawed and refroze, so expect firm or icy snow early that softens later.' }); score -= 0.5; }
+    else if (live.some((s) => s.stats.hi24 > 34 && s.stats.lo24 < 30) && d24 < 2) { Object.assign(c.temp, { cls: 'ok', text: 'It thawed and refroze, so expect firm or icy snow early that softens later.' }); score -= 0.5; }
   }
 
   c.score = Math.round(clamp(score, 1, 10));
@@ -402,7 +476,6 @@ function computeCall() {
   else if (c.wind?.gust >= 55) c.headline = 'Wind hold risk';
   else if (d24 >= 3) c.headline = 'Fresh snow on top';
   else if (c.snow?.forecast >= 3) c.headline = 'Snow is on the way';
-  else if (c.pack?.cls === 'bad') c.headline = 'Early season, thin cover';
   else if (c.wind?.gust >= 40) c.headline = 'Windy up top';
   else if (c.sky?.cls === 'good') c.headline = 'Sunny groomer day';
 
@@ -437,7 +510,7 @@ function renderCall(c) {
   renderSnow(c);
   renderWind(c);
   renderSky(c);
-  renderPack(c);
+  renderNow(c);
 }
 
 // --- Mountain profile: temperatures at each elevation + snow line
@@ -561,15 +634,15 @@ function renderSnow(c) {
     grow(r, 'bottom', 1.3, i * 0.15);
   });
   svgEl('line', { x1: x - 8, x2: x + w + 8, y1: bot, y2: bot, stroke: cssVar('--text-2'), 'stroke-width': 1.5 }, svg);
-  bindTip(svg, `Solid: 24 hours (${r0(s.d24)}"). Light: 72 hours (${r0(s.d72)}"). Dashed: forecast before lifts close (${r1(s.forecast)}").`);
+  bindTip(svg, `Model estimate at ${s.zone ? ftFmt(s.zone.ft) + ' ft' : 'mid-mountain'}. Solid: 24 hours (${r1(s.d24)}"). Light: 72 hours (${r1(s.d72)}"). Dashed: forecast before lifts close (${r1(s.forecast)}").`);
 
-  countUp($('snow24'), s.d24 ?? null);
-  countUp($('snow72'), s.d72 ?? null);
+  countUp($('snow24'), s.d24 ?? null, s.d24 != null && s.d24 < 1 && s.d24 > 0 ? 1 : 0);
+  countUp($('snow72'), s.d72 ?? null, s.d72 != null && s.d72 < 1 && s.d72 > 0 ? 1 : 0);
   countUp($('snowF'), s.forecast ?? null, 1);
-  const dens = s.density;
-  const quality = dens == null ? '' : dens < 7 ? ' Light, dry powder.' : dens <= 12 ? ' Medium-density snow.' : ' Heavy, wet snow.';
-  const others = (s.others || []).map((o) => `${o.name} ${signed(o.d24)}"`).join(', ');
-  $('snow-cap').textContent = `Measured at the ${s.station || 'SNOTEL'} station.${quality}${others ? ` Others: ${others}.` : ''} Check the stake cam for the on-mountain total.`;
+  const zones = (s.byZone || []).map((z) => `${z.name.replace(' (mid)', '')} ${r1(z.d24)}"`).join(' · ');
+  $('snow-cap').textContent = s.zone
+    ? `Model estimate for ${s.zone.name.replace(' (mid)', '')} (${ftFmt(s.zone.ft)} ft). Last 24 hrs by elevation: ${zones}. There's no public snow sensor on the mountain, so check the stake cam to confirm.`
+    : 'Model estimate unavailable. Check the stake cam.';
 
   // Falling snowflakes when it is snowing or about to.
   const flakes = $('flakes');
@@ -663,21 +736,29 @@ function renderSky(c) {
   $('sky-cap').innerHTML = `<span class="st ${s.cls}"><i aria-hidden="true">${s.cls === 'good' ? '✓' : s.cls === 'ok' ? '!' : '✕'}</i>${s.cls === 'bad' ? 'Flat light' : s.cls === 'ok' ? 'Mixed light' : 'Good light'}</span> Darker blocks mean more cloud.`;
 }
 
-// --- Snowpack meter (SWE vs median peak)
-function renderPack(c) {
-  const p = c.pack;
-  if (!p) return;
-  countUp($('pack-depth'), p.depth ?? null);
-  $('pack-sub').textContent = `depth · ${r1(p.swe)}" water`;
-  const peak = p.peak || Math.max(p.swe || 0, 1);
-  requestAnimationFrame(() => {
-    $('pack-fill').style.width = `${clamp((p.swe || 0) / peak, 0, 1) * 100}%`;
-    $('pack-mark').style.left = `${clamp((p.median || 0) / peak, 0, 1) * 100}%`;
+// --- Right now: live readings from on-mountain stations
+function renderNow(c) {
+  const list = $('now-list');
+  const sts = c.now?.stations || [];
+  if (!sts.length) { list.innerHTML = '<div class="lbl">Station data unavailable right now.</div>'; return; }
+  list.innerHTML = sts.map((s, i) => {
+    const x = s.stats;
+    const arrow = x.hasWind && x.dir != null ? `<svg viewBox="0 0 16 16" aria-hidden="true" style="transform:rotate(${(x.dir + 180) % 360}deg)"><path d="M8 1 L12 7 H9 V15 H7 V7 H4 Z" fill="currentColor"/></svg>` : '';
+    const wind = !x.fresh ? '' : x.hasWind ? `${arrow}${compass(x.dir)} ${r0(x.wind)}${x.gustNow ? `, gust ${r0(x.gustNow)}` : ''} mph` : 'no wind sensor';
+    return `<div class="now-row ${x.fresh ? '' : 'offline'}" style="animation-delay:${i * 0.08}s" data-i="${i}">
+      <div class="nm">${esc(s.name)}<small>${esc(s.operator)} · ${ftFmt(s.ft)} ft · ${x.fresh ? ageText(x.ageH) : x.last ? `offline, last report ${ageText(x.ageH)}` : 'offline, no reports in 48 hrs'}</small></div>
+      <div class="tv">${x.fresh ? `${r0(x.temp)}°` : 'Offline'}</div>
+      <div class="wv">${wind}</div></div>`;
+  }).join('');
+  list.querySelectorAll('.now-row').forEach((row) => {
+    const s = sts[row.dataset.i];
+    const x = s.stats;
+    bindTip(row, x.fresh
+      ? `${s.name}, ${s.where}. 24 hrs: high ${r0(x.hi24)}°F, low ${r0(x.lo24)}°F${x.hasWind ? `, max gust ${r0(x.gust24)} mph` : ''}. Humidity ${r0(x.rh)}%.`
+      : `${s.name} hasn't reported since ${x.last ? fmtTime(x.last.t, { month: 'short', day: 'numeric', hour: 'numeric' }) : 'the start of the period'}, so it's left out.`);
   });
-  $('pack-peak').textContent = `${r1(peak)}" typical peak`;
-  bindTip($('pack-meter'), `Bar: water content now (${r1(p.swe)}"). Black mark: typical for this date (${r1(p.median)}"). Full width: typical seasonal peak (${r1(peak)}").`);
-  const pct = p.pct != null ? `${p.pct}% of normal for the date. ` : '';
-  $('pack-cap').innerHTML = `<span class="st ${p.cls}"><i aria-hidden="true">${p.cls === 'good' ? '✓' : p.cls === 'ok' ? '!' : '✕'}</i>${p.cls === 'bad' ? 'Thin' : p.cls === 'ok' ? 'Building' : 'Deep'}</span> ${pct}At ${esc(p.station)} (${ftFmt(p.ft)} ft, below the base).`;
+  const live = c.now.live.length;
+  $('now-cap').innerHTML = `<span class="st ${live ? 'good' : 'bad'}"><i aria-hidden="true">${live ? '✓' : '✕'}</i>${live} of ${sts.length} live</span> Stations on and next to the ski area. Tap a row for 24-hour highs and lows.`;
 }
 
 // hex + alpha -> rgba
@@ -752,25 +833,45 @@ function drawChart(id, config) {
 }
 
 function drawMeasuredCharts() {
+  const sts = (state.stations || []).filter((s) => s.obs.length >= 3 && s.stats.ageH != null && s.stats.ageH < 48);
+  if (sts.length) {
+    // Shared hourly time axis over the last 48 h; each station is bucketed to the hour.
+    const end = Math.floor(Date.now() / 3600e3) * 3600e3;
+    const hours = Array.from({ length: 49 }, (_, i) => end - (48 - i) * 3600e3);
+    const bucket = (obs, key) => {
+      const m = new Map();
+      obs.forEach((o) => { if (o[key] != null) m.set(Math.floor(o.t / 3600e3) * 3600e3, o[key]); });
+      return hours.map((h) => m.get(h) ?? null);
+    };
+    const bucketMax = (obs, key) => {
+      const m = new Map();
+      obs.forEach((o) => { const v = o[key] ?? null; if (v == null) return; const h = Math.floor(o.t / 3600e3) * 3600e3; m.set(h, Math.max(m.get(h) ?? 0, v)); });
+      return hours.map((h) => m.get(h) ?? null);
+    };
+    const labels = hours.map((h) => hourLabel(new Date(h)));
+    const vars = ['--s1', '--s2', '--s3'];
+    drawChart('c-stemp', { type: 'line', data: { labels, datasets: sts.map((s, k) => lineDs(`${s.name} (${ftFmt(s.ft)}′)`, bucket(s.obs, 'temp'), vars[k % 3])) }, options: chartOpts({ refLines: [{ y: 32, label: '32°F freezing' }] }) });
+    const ws = sts.filter((s) => s.stats.hasWind).sort((a, b) => b.ft - a.ft)[0];
+    if (ws) {
+      $('wind-station-name').textContent = `${ws.name} (${ftFmt(ws.ft)} ft)`;
+      drawChart('c-swind', { type: 'line', data: { labels, datasets: [lineDs('Sustained', bucket(ws.obs, 'wind'), '--s1', true), lineDs('Gusts', bucketMax(ws.obs, 'gust'), '--s2')] }, options: chartOpts({ yMin: 0, refLines: [{ y: 40, label: '40 mph hold risk' }] }) });
+    }
+  }
   const st = state.snotel;
-  if (!st) return;
-  const p = st[0];
-  const temps = p.series.TOBS || [];
-  const depth = p.series.SNWD || [];
-  drawChart('c-depth', { type: 'line', data: { labels: depth.map((x) => hourLabel(x.t)), datasets: [lineDs('Snow depth', depth.map((x) => x.v), '--s1', true)] }, options: chartOpts({ legend: false, yMin: 0 }) });
-  drawChart('c-temp7', { type: 'line', data: { labels: temps.map((x) => hourLabel(x.t)), datasets: [lineDs('Air temp', temps.map((x) => x.v), '--s2')] }, options: chartOpts({ legend: false, refLines: [{ y: 32, label: '32°F freezing' }] }) });
-  drawChart('c-newsnow', {
-    type: 'bar',
-    data: {
-      labels: st.map((s) => s.name),
-      datasets: [
-        barDs('24 hrs', st.map((s) => Math.max(0, s.stats.d24 ?? 0)), '--s1'),
-        barDs('48 hrs', st.map((s) => Math.max(0, s.stats.d48 ?? 0)), '--s2'),
-        barDs('72 hrs', st.map((s) => Math.max(0, s.stats.d72 ?? 0)), '--s3'),
-      ],
-    },
-    options: { ...chartOpts({ yMin: 0 }), interaction: { mode: 'nearest', intersect: true } },
-  });
+  if (st) {
+    drawChart('c-newsnow', {
+      type: 'bar',
+      data: {
+        labels: st.map((s) => s.name),
+        datasets: [
+          barDs('24 hrs', st.map((s) => Math.max(0, s.stats.d24 ?? 0)), '--s1'),
+          barDs('48 hrs', st.map((s) => Math.max(0, s.stats.d48 ?? 0)), '--s2'),
+          barDs('72 hrs', st.map((s) => Math.max(0, s.stats.d72 ?? 0)), '--s3'),
+        ],
+      },
+      options: { ...chartOpts({ yMin: 0 }), interaction: { mode: 'nearest', intersect: true } },
+    });
+  }
 }
 
 function drawForecastCharts() {
@@ -1067,6 +1168,7 @@ function showCam(i, fromUser) {
 }
 function renderCams() {
   swapImg($('stake'), camUrl(M.snowStake.src));
+  $('stake-thumb').src = camUrl(M.snowStake.src);
   $('stake-link').href = M.snowStake.src;
   $('stake-note').textContent = `${M.snowStake.name}, ${ftFmt(M.snowStake.ft)} ft. ${M.snowStake.note}`;
   $('stations').src = camUrl(M.stationGraphic);
@@ -1125,6 +1227,21 @@ function setupReveal() {
   els.forEach((e) => io.observe(e));
 }
 
+// ================================================================ Data sources
+function renderSources() {
+  const rows = [
+    ['Live station readings', M.stations.map((s) => `${s.name} (${s.operator}, ${ftFmt(s.ft)} ft)`).join('; '), 'Measured', 'On or beside the ski area. Read through the National Weather Service network. Offline stations are ignored.'],
+    ['Lift-top stations graphic', 'Mt. Bachelor', 'Measured', 'The resort\'s own summit, lift-top and base sensors. Image only.'],
+    ['Webcams & snow stake', 'Mt. Bachelor', 'Live image', 'Official resort cameras. The stake is the best on-mountain check of new snow.'],
+    ['Hourly forecast', `National Weather Service (${M.nws.office === 'PDT' ? 'Pendleton' : M.nws.office})`, 'Forecast', 'Official forecast for the 2.5 km grid cell over the ski area.'],
+    ['Base-to-summit forecast & new-snow estimate', 'Open-Meteo, blending NOAA and European models', 'Forecast / Model', 'Model data adjusted to each elevation. New-snow totals are estimates, not measurements.'],
+    ['Forecaster notes', 'National Weather Service', 'Forecast', 'The forecasters\' written discussion.'],
+    ['Radar', 'RainViewer, using NOAA NEXRAD radar', 'Measured', 'Radar coverage over the Cascades is limited by terrain, so light snow can be missed.'],
+    ['Regional snow stations', 'USDA NRCS SNOTEL', 'Measured', 'Reliable, but 11–18 mi away and up to 1,500 ft below the base. Regional trend only. Not used in the score.'],
+  ];
+  $('sources').innerHTML = `<thead><tr><th>What</th><th>Source</th><th>Type</th><th>Notes</th></tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td style="white-space:normal;text-align:left">${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+}
+
 // ================================================================ Main
 async function refreshData() {
   $('updated').textContent = 'Updating…';
@@ -1135,6 +1252,7 @@ async function refreshData() {
     catch (e) { errors.push(name); console.error(name, e); }
   };
   await Promise.all([
+    run('stations', loadStations, renderStationTable),
     run('snotel', loadSnotel, renderSnotelTable),
     run('nws', loadNws, renderNwsTable),
     run('elev', loadElevation, renderElevTable),
@@ -1143,7 +1261,7 @@ async function refreshData() {
   state.call = computeCall();
   renderCall(state.call);
   drawActiveTab();
-  const names = { snotel: 'SNOTEL', nws: 'NWS', elev: 'Open-Meteo' };
+  const names = { stations: 'stations', snotel: 'SNOTEL', nws: 'NWS', elev: 'Open-Meteo' };
   $('updated').textContent = `Updated ${fmtTime(new Date(), { hour: 'numeric', minute: '2-digit' })}` + (errors.length ? ` · no ${errors.map((e) => names[e]).join(', ')}` : '');
   setTimeout(() => $('refresh').classList.remove('spin'), 600);
 }
@@ -1154,6 +1272,8 @@ function init() {
   $('mtn-name').textContent = M.name;
   $('links').innerHTML = M.links.map((l) => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a></li>`).join('');
   setupReveal();
+  renderSources();
+  document.querySelectorAll('details.regional').forEach((d) => d.addEventListener('toggle', () => { if (d.open) drawMeasuredCharts(); }));
   setupTabs();
   renderCams();
   refreshData();

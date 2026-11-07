@@ -58,7 +58,7 @@
         </article>
 
         <article class="w w-snow">
-          <header><h3>Fresh snow</h3><span class="src m">Measured</span></header>
+          <header><h3>Fresh snow</h3><span class="src e">Model + cam</span></header>
           <div class="snow-body">
             <div class="flakes" id="flakes" aria-hidden="true"></div>
             <svg id="stake-svg" class="stake-svg" viewBox="0 0 120 170" aria-hidden="true"></svg>
@@ -68,6 +68,7 @@
               <div class="mid"><span id="snow72">–</span>" <span class="lbl">72 hrs</span></div>
               <div class="mid"><span id="snowF">–</span>" <span class="lbl">on the way</span></div>
             </div>
+            <a class="stake-thumb" id="stake-thumb-link" href="#cams" title="Snow stake cam: the on-mountain check"><img id="stake-thumb" alt="Snow stake cam"><span>Stake cam</span></a>
           </div>
           <p class="cap" id="snow-cap"></p>
         </article>
@@ -88,15 +89,13 @@
           <p class="cap" id="sky-cap"></p>
         </article>
 
-        <article class="w w-pack">
-          <header><h3>Snowpack</h3><span class="src m">Measured</span></header>
-          <div class="pack-nums"><div class="big"><span id="pack-depth">–</span><small>"</small></div><div class="lbl" id="pack-sub"></div></div>
-          <div class="meter" id="pack-meter"><div class="meter-fill" id="pack-fill"></div><div class="meter-mark" id="pack-mark"></div></div>
-          <div class="meter-scale"><span>0</span><span id="pack-peak"></span></div>
-          <p class="cap" id="pack-cap"></p>
+        <article class="w w-now">
+          <header><h3>Right now</h3><span class="src m">Measured</span></header>
+          <div class="now-list" id="now-list"><div class="lbl">Loading station readings…</div></div>
+          <p class="cap" id="now-cap"></p>
         </article>
       </div>
-      <p class="fine">Score out of 10, worked out from the cards. <span class="src m">Measured</span> means real sensor readings. <span class="src f">Forecast</span> means a prediction.</p>
+      <p class="fine">Score out of 10, worked out from the cards. <span class="src m">Measured</span> means live readings from stations on the mountain. <span class="src f">Forecast</span> means a National Weather Service or model prediction. <span class="src e">Model</span> means a model estimate of what already fell. Always check it against the stake cam.</p>
     </section>
 
     <!-- ================= CAMS ================= -->
@@ -126,16 +125,20 @@
       </div>
 
       <div class="tab-panel" data-panel="measured">
-        <p class="lead">Readings from the resort's lift-top weather stations and three federal SNOTEL snow stations. The SNOTEL stations sit below the base (5,700 ft or lower), so their snow totals are a minimum.</p>
+        <p class="lead">Live readings from weather stations on and right next to the ski area, plus the resort's own lift-top stations. A station is marked offline and ignored if it hasn't reported in the last few hours.</p>
         <div class="grid-2">
-          <figure class="chart-card"><figcaption>Snow depth, last 7 days · <span id="snotel-primary"></span> (in)</figcaption><div class="chart-box"><canvas id="c-depth"></canvas></div></figure>
-          <figure class="chart-card"><figcaption>Air temperature, last 7 days (°F)</figcaption><div class="chart-box"><canvas id="c-temp7"></canvas></div></figure>
-          <figure class="chart-card"><figcaption>New snow by station (in)</figcaption><div class="chart-box"><canvas id="c-newsnow"></canvas></div></figure>
-          <figure class="chart-card"><figcaption>Resort lift-top stations</figcaption><a id="stations-link" target="_blank" rel="noopener"><img id="stations" class="stations-img" alt="Mt. Bachelor lift-top weather station readings"></a></figure>
+          <figure class="chart-card"><figcaption>Temperature on the mountain, last 48 hours (°F)</figcaption><div class="chart-box"><canvas id="c-stemp"></canvas></div></figure>
+          <figure class="chart-card"><figcaption>Wind at <span id="wind-station-name">Moon Mountain</span>, last 48 hours (mph)</figcaption><div class="chart-box"><canvas id="c-swind"></canvas></div></figure>
+          <figure class="chart-card wide"><figcaption>Resort lift-top stations (Mt. Bachelor)</figcaption><a id="stations-link" target="_blank" rel="noopener"><img id="stations" class="stations-img" alt="Mt. Bachelor lift-top weather station readings"></a>
+            <p class="fine">Published by the resort as an image, so it isn't used in the score. Check the date on each box: some sensors stop updating in the off-season, and the West Village snow depth reading isn't reliable early in the season.</p></figure>
         </div>
         <p class="swipe-hint">Swipe for more charts →</p>
-        <details class="tbl"><summary>All SNOTEL numbers</summary><div class="table-wrap"><table id="snotel-table"></table></div>
-          <p class="fine">Snow depth can wobble by about an inch from hour to hour. SWE is snow water equivalent. Density is ΔSWE ÷ Δdepth: under 7% is light, dry powder, 7–12% is typical, and over 12% is heavy, wet snow.</p></details>
+        <details class="tbl"><summary>Station readings table</summary><div class="table-wrap"><table id="station-table"></table></div></details>
+        <details class="tbl regional"><summary>Regional snow stations (SNOTEL) · not used in the score</summary>
+          <p class="fine">These federal NRCS stations are reliable, but they are not at Mt. Bachelor. They sit 11–18 miles away, at 4,770–5,680 ft, in different drainages, so they often get far less snow than the ski area. Use them only for the regional trend.</p>
+          <div class="chart-card"><figcaption>New snow by station (in)</figcaption><div class="chart-box"><canvas id="c-newsnow"></canvas></div></div>
+          <div class="table-wrap"><table id="snotel-table"></table></div>
+          <p class="fine">SWE is snow water equivalent. Density is ΔSWE ÷ Δdepth: under 7% is light, dry powder, 7–12% is typical, and over 12% is heavy, wet snow.</p></details>
       </div>
 
       <div class="tab-panel" data-panel="forecast" hidden>
@@ -175,7 +178,8 @@
     </section>
 
     <section class="panel links-panel reveal">
-      <h2>Useful links</h2>
+      <h2>Sources &amp; links</h2>
+      <details class="tbl"><summary>Where the data comes from</summary><div class="table-wrap"><table id="sources"></table></div></details>
       <ul class="links" id="links"></ul>
     </section>
   </main>

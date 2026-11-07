@@ -15,8 +15,19 @@ const MOUNTAINS = {
     ],
     // National Weather Service forecast grid cell covering the ski area.
     nws: { office: 'PDT', x: 23, y: 40 },
-    // NRCS SNOTEL stations: automated, measured snow depth, snow water equivalent,
-    // air temperature and precipitation. First one is the primary station.
+    // On-mountain weather stations, read through the National Weather Service
+    // observation network (api.weather.gov). Only these feed "Right now" and The Call.
+    stations: [
+      { id: 'MOONM', name: 'Moon Mountain', operator: 'Central Oregon Avalanche Center', ft: 7450, where: 'about 5 mi N of the summit, near the Cascade crest' },
+      { id: 'OD131', name: 'Century Dr at the ski area', operator: 'Oregon DOT', ft: 6424, where: 'Century Drive at milepost 21, by the West Village entrance' },
+      { id: 'OSUSP', name: 'West Village snow pillow', operator: 'Oregon State University', ft: 6375, where: 'West Village base area' },
+    ],
+    // Readings older than this are treated as offline and ignored.
+    stationMaxAgeHours: 3,
+    // Elevation zone used for the modeled new-snow number in The Call.
+    snowZone: 'mid',
+    // NRCS SNOTEL stations. Reputable, but lower and 11-18 miles away in other
+    // drainages, so they are shown only as a regional reference and are NOT used in The Call.
     snotel: [
       { id: '815:OR:SNTL', name: 'Three Creeks Meadow', ft: 5680, mi: 11.6 },
       { id: '545:OR:SNTL', name: 'Irish Taylor', ft: 5540, mi: 17.7 },

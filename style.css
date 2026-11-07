@@ -12,7 +12,7 @@
   --accent: #2a78d6;
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
   --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
-  --m: #0f7b6c; --f: #6250d6;
+  --m: #0f7b6c; --f: #6250d6; --e: #a35200;
   --top-1: #0b1a2b; --top-2: #15385e;
   --snow: #ffffff; --rock: #8d97a3; --forest: #3f6d55; --sky-1: #cfe3fa; --sky-2: #f4f8fd;
   --shadow: 0 1px 2px rgba(15, 30, 50, .06), 0 8px 24px rgba(15, 30, 50, .06);
@@ -25,7 +25,7 @@
     --bg: #101113; --surface: #1a1a19; --surface-2: #232321; --text: #f0efec; --text-2: #c3c2b7; --muted: #8f8e88;
     --line: #2c2c2a; --grid: #2a2a28; --accent: #3987e5;
     --s1: #3987e5; --s2: #d95926; --s3: #199e70;
-    --m: #3cc7b3; --f: #9085e9;
+    --m: #3cc7b3; --f: #9085e9; --e: #f0a35e;
     --top-1: #05090f; --top-2: #0f2238;
     --snow: #e9eef5; --rock: #59626d; --forest: #2b4d3c; --sky-1: #1d2c40; --sky-2: #1a1a19;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px rgba(0, 0, 0, .25);
@@ -35,7 +35,7 @@
   color-scheme: dark;
   --bg: #101113; --surface: #1a1a19; --surface-2: #232321; --text: #f0efec; --text-2: #c3c2b7; --muted: #8f8e88;
   --line: #2c2c2a; --grid: #2a2a28; --accent: #3987e5;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --m: #3cc7b3; --f: #9085e9;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --m: #3cc7b3; --f: #9085e9; --e: #f0a35e;
   --top-1: #05090f; --top-2: #0f2238;
   --snow: #e9eef5; --rock: #59626d; --forest: #2b4d3c; --sky-1: #1d2c40; --sky-2: #1a1a19;
 }
@@ -77,6 +77,7 @@ main { padding-top: 16px; padding-bottom: 8px; }
 .src { display: inline-block; font-size: .66rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; letter-spacing: .03em; white-space: nowrap; }
 .src.m { background: color-mix(in srgb, var(--m) 15%, transparent); color: var(--m); }
 .src.f { background: color-mix(in srgb, var(--f) 15%, transparent); color: var(--f); }
+.src.e { background: color-mix(in srgb, var(--e) 15%, transparent); color: var(--e); }
 .updated-s { color: var(--muted); font-size: .78rem; }
 
 /* reveal on scroll */
@@ -138,6 +139,22 @@ main { padding-top: 16px; padding-bottom: 8px; }
 .ribbon-lbl { display: flex; justify-content: space-between; font-size: .62rem; color: var(--muted); margin-top: 2px; }
 @keyframes grow { from { transform: scaleY(.2); opacity: 0; } }
 
+/* stake thumbnail inside the snow card */
+.stake-thumb { margin-left: auto; align-self: flex-start; width: 92px; text-decoration: none; color: var(--text-2); font-size: .66rem; text-align: center; }
+.stake-thumb img { width: 92px; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; display: block; margin-bottom: 3px; }
+/* right-now station list */
+.now-list { display: flex; flex-direction: column; gap: 8px; }
+.now-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; padding: 8px 10px; background: var(--surface); border-radius: 10px; animation: fadein .5s var(--ease) both; }
+.now-row .nm { font-size: .8rem; font-weight: 700; min-width: 0; }
+.now-row .nm small { display: block; font-weight: 500; color: var(--text-2); font-size: .7rem; }
+.now-row .tv { font-size: 1.35rem; font-weight: 750; }
+.now-row .wv { grid-column: 1 / -1; font-size: .8rem; color: var(--text-2); display: flex; align-items: center; gap: 4px; }
+.now-row .wv:empty { display: none; }
+.now-row .wv svg { width: 16px; height: 16px; transition: transform 1.2s var(--ease); }
+.now-row.offline { opacity: .55; }
+.now-row.offline .tv { font-size: .8rem; font-weight: 600; color: var(--text-2); }
+details.regional > summary { color: var(--text-2); }
+.chart-card + .table-wrap, details .chart-card { margin: 10px 0; }
 /* snowpack meter */
 .pack-nums { display: flex; align-items: baseline; gap: 10px; }
 .meter { position: relative; height: 12px; border-radius: 999px; background: color-mix(in srgb, var(--s1) 18%, var(--surface)); margin-top: 14px; }
@@ -173,7 +190,7 @@ main { padding-top: 16px; padding-bottom: 8px; }
 .chart-card.wide { grid-column: 1 / -1; }
 .chart-card figcaption { font-size: .8rem; font-weight: 650; color: var(--text-2); margin-bottom: 6px; }
 .chart-box { position: relative; height: 230px; }
-.stations-img { width: 100%; aspect-ratio: 1150 / 880; object-fit: cover; object-position: top; border-radius: 8px; display: block; }
+.stations-img { width: 100%; max-width: 640px; margin: 0 auto; aspect-ratio: 1150 / 880; object-fit: cover; object-position: top; border-radius: 8px; display: block; }
 .pill { border: 1px solid var(--line); background: var(--surface-2); color: var(--text); border-radius: 999px; padding: 6px 14px; font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; }
 .radar-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 #map { height: 440px; border-radius: 12px; }
