@@ -436,10 +436,10 @@ function computeCall() {
     const gust = Math.max(...winRows.map((r) => r.gust ?? 0));
     const wind = Math.max(...winRows.map((r) => r.wind ?? 0));
     const dir = meanDir(winRows.map((r) => r.dir).filter((d) => d != null));
-    c.wind = { gust, wind, dir, elevFt: nws.elevFt, cls: 'good', text: 'Low wind risk for the lifts.' };
+    c.wind = { gust, wind, dir, elevFt: nws.elevFt, cls: 'good', text: 'Below typical lift-hold thresholds.' };
     if (gust >= 55) { Object.assign(c.wind, { cls: 'bad', text: 'Widespread wind holds are likely, especially Summit and Northwest.' }); score -= 3; c.why.push('strong gusts may close lifts'); }
     else if (gust >= 40) { Object.assign(c.wind, { cls: 'bad', text: 'Upper lifts (Summit, Northwest) could go on wind hold.' }); score -= 1.5; c.why.push('gusty wind up high'); }
-    else if (gust >= 25) { Object.assign(c.wind, { cls: 'ok', text: 'Breezy. Expect wind-affected snow up top.' }); score -= 0.5; }
+    else if (gust >= 25) { Object.assign(c.wind, { cls: 'ok', text: 'Gusts 25–40 mph up high.' }); score -= 0.5; }
 
     // Sky
     const sky = avg(winRows.map((r) => r.sky ?? 0));
@@ -453,7 +453,7 @@ function computeCall() {
 
     // Temperatures by zone during the window (Open-Meteo), plus NWS wind chill
     const chill = Math.min(...winRows.map((r) => r.chill ?? r.temp ?? 99));
-    c.temp = { chill, zones: [], cls: 'good', text: 'Comfortable, and the snow should stay wintry.' };
+    c.temp = { chill, zones: [], cls: 'good', text: '' };
     if (elev) {
       c.temp.zones = elev.map((z) => {
         const vals = z.times.map((t, i) => [t, z.hourly.temperature_2m[i]]).filter(([t]) => inWindow(t)).map(([, v]) => v);
@@ -463,9 +463,11 @@ function computeCall() {
       c.temp.freezing = avg(fl);
     }
     const baseMax = c.temp.zones[0]?.max;
-    if (chill <= -5) { Object.assign(c.temp, { cls: 'bad', text: 'Bitter wind chill. Cover exposed skin.' }); score -= 1; c.why.push('bitter cold'); }
-    else if (baseMax != null && baseMax >= 40) { Object.assign(c.temp, { cls: 'ok', text: 'Warm down low. The snow will turn soft and slushy in the afternoon.' }); if (d24 < 2) score -= 0.5; }
-    else if (live.some((s) => s.stats.hi24 > 34 && s.stats.lo24 < 30) && d24 < 2) { Object.assign(c.temp, { cls: 'ok', text: 'It thawed and refroze, so expect firm or icy snow early that softens later.' }); score -= 0.5; }
+    const topMax = c.temp.zones.at(-1)?.max;
+    c.temp.text = baseMax != null ? `Highs: base ${r0(baseMax)}°F, summit ${r0(topMax)}°F.` : '';
+    if (chill <= -5) { Object.assign(c.temp, { cls: 'bad', text: `Wind chill to ${r0(chill)}°F.` }); score -= 1; c.why.push('bitter cold'); }
+    else if (baseMax != null && baseMax >= 40) { Object.assign(c.temp, { cls: 'ok', text: `Above freezing on the lower mountain: base high ${r0(baseMax)}°F, summit ${r0(topMax)}°F.` }); if (d24 < 2) score -= 0.5; }
+    else if (live.some((s) => s.stats.hi24 > 34 && s.stats.lo24 < 30) && d24 < 2) { Object.assign(c.temp, { cls: 'ok', text: 'Freeze-thaw in the last 24 hrs: above freezing, then back below.' }); score -= 0.5; }
   }
 
   c.lifts = computeLifts(win, winRows);
@@ -652,97 +654,69 @@ function hourRange(rows) {
   return `${f(a)}–${f(b)}`;
 }
 function computeBriefing(c) {
-  const lines = [], pack = [];
+  // Facts and calculated values only (snow amounts, lift-hold risk). No advice, no gear lists:
+  // the audience is expert skiers who decide for themselves.
+  const lines = [];
   const add = (text, warn = false) => lines.push({ text, warn });
   const win = c.rows?.win || [], night = c.rows?.night || [];
   const z = c.temp?.zones || [];
   const base = z[0], summit = z[z.length - 1];
   const sky = c.sky, wind = c.wind, rain = c.rain, snow = c.snow || {};
+  const live = c.now?.live || [];
 
-  if (c.lifts && !c.lifts.season.open) add(`Lifts aren't running yet. Opening Day is scheduled for ${new Date(M.season.openingDay + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`, true);
+  if (c.lifts && !c.lifts.season.open) add(`Lifts not running. Opening Day scheduled for ${new Date(M.season.openingDay + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`, true);
 
-  // Right now (morning check only)
+  // Right now (morning-of check only)
   if (c.win.today) {
-    const st = (c.now?.live || []).filter((s) => s.stats.temp != null).sort((a, b) => b.ft - a.ft)[0];
-    if (st) add(`Right now: ${r0(st.stats.temp)}°F at ${st.name} (${ftFmt(st.ft)} ft)${st.stats.hasWind ? `, wind ${compass(st.stats.dir)} ${r0(st.stats.wind)} mph` : ''}.`);
+    const st = live.filter((s) => s.stats.temp != null).sort((a, b) => b.ft - a.ft)[0];
+    if (st) add(`Now: ${r0(st.stats.temp)}°F at ${st.name} (${ftFmt(st.ft)} ft)${st.stats.hasWind ? `, wind ${compass(st.stats.dir)} ${r0(st.stats.wind)} mph, gusts ${r0(st.stats.gustNow)}` : ''}.`);
   }
 
   // Precipitation
   const nightSnow = night.reduce((a, r) => a + (r.snow || 0), 0);
   const daySnowRows = win.filter((r) => (r.snow || 0) >= 0.05);
   const daySnow = win.reduce((a, r) => a + (r.snow || 0), 0);
-  if (nightSnow >= 0.5) add(`${r1(nightSnow)}" of snow forecast before lifts open.`);
+  if (nightSnow >= 0.5) add(`Snow before lifts open: ${r1(nightSnow)}" (NWS).`);
   if (rain && rain.cls !== 'good' && rain.wet) {
     const top = M.zones[M.zones.length - 1].ft;
-    const where = rain.snowLevel >= top ? 'Rain all the way to the summit' : `Rain likely below ${ftFmt(rain.snowLevel)} ft`;
-    add(`${where} during ski hours (${rain.wetIn.toFixed(2)}" of water). Expect heavy, wet snow and soaked gear${rain.cls === 'bad' ? ' even at mid-mountain' : ' at the base'}.`, true);
+    add(`${rain.snowLevel >= top ? 'Rain to the summit' : `Rain below ${ftFmt(rain.snowLevel)} ft`} during ski hours, ${rain.wetIn.toFixed(2)}" of water (NWS).`, true);
   } else if (daySnow >= 0.5) {
-    add(`Snow during ski hours: about ${r1(daySnow)}", mostly ${hourRange(daySnowRows)}.`);
+    add(`Snow during ski hours: ${r1(daySnow)}", mostly ${hourRange(daySnowRows)} (NWS). Snow level ${ftFmt(rain?.snowLevel)} ft.`);
   } else if (rain?.wet) {
-    add(`Light precipitation possible, as snow down to the base.`);
+    add(`Light precipitation, snow level ${ftFmt(rain.snowLevel)} ft (NWS).`);
   } else if (sky) {
-    add(`${sky.label}, dry.`);
+    add(`${sky.label}, ${r0(sky.avg)}% cloud, dry.`);
   }
 
-  // Temperatures
+  // Temperatures by elevation
   if (base?.avg != null && summit?.avg != null) {
     const chill = c.temp?.chill;
     const showChill = Number.isFinite(chill) && chill <= 32;
-    add(`Base ${r0(base.avg)}°F, summit ${r0(summit.avg)}°F during ski hours.${showChill ? ` Wind chill as low as ${r0(chill)}°F.` : ''}`, showChill && chill <= 0);
+    add(`Temps, ski hours: base ${r0(base.min)}–${r0(base.max)}°F, summit ${r0(summit.min)}–${r0(summit.max)}°F.${showChill ? ` Wind chill to ${r0(chill)}°F.` : ''} Freezing level ${ftFmt(c.temp?.freezing)} ft.`, showChill && chill <= -5);
   }
 
-  // Wind
+  // Wind, with calculated lift-hold risk
   if (wind) {
     const g = r0(wind.gust), d = compass(wind.dir);
-    if (wind.gust >= 55) add(`Gusts to ${g} mph from the ${d}. Expect upper lifts closed for wind, and possibly more.`, true);
-    else if (wind.gust >= 40) add(`Gusts to ${g} mph from the ${d}. Summit and Northwest could go on wind hold.`, true);
-    else if (wind.gust >= 25) add(`Breezy, gusts to ${g} mph from the ${d}. Wind-affected snow up high.`);
-    else add(`Light wind, gusts to ${g} mph.`);
+    const hold = wind.gust >= 55 ? ' Widespread wind holds likely.' : wind.gust >= 40 ? ' Summit and Northwest wind holds possible.' : '';
+    add(`Wind: ${d}, sustained to ${r0(wind.wind)} mph, gusts to ${g} mph at ~${ftFmt(wind.elevFt)} ft.${hold}`, wind.gust >= 40);
   }
 
-  // Snow surface
+  // Snow surface inputs: new snow (model) and freeze-thaw (measured)
   const d24 = snow.d24 ?? 0, d72 = snow.d72 ?? 0;
-  const baseMax = base?.max, summitMax = summit?.max;
-  let firm = false;
-  const raining = rain && rain.cls !== 'good' && rain.wet;
-  if (raining) { /* the rain line already describes the surface */ }
-  else if (d24 >= 6) add(`About ${r0(d24)}" of new snow in the last 24 hrs (model estimate). Check the stake cam to confirm.`);
-  else if (d24 >= 2) add(`About ${r0(d24)}" new in the last 24 hrs (model estimate). Thin refresh, not a powder day.`);
-  else if (d72 < 1) {
-    if (baseMax != null && baseMax >= 36) add(`No new snow in 3 days. Firm early, turning to slush by afternoon.`);
-    else { add(`No new snow in 3 days. Expect firm, hard-packed snow and scraped-off spots.`); firm = true; }
-    if (baseMax != null && baseMax >= 36 && (c.now?.live || []).some((s) => s.stats.lo24 != null && s.stats.lo24 < 30)) firm = true;
-  }
+  if (snow.zone) add(`New snow, model estimate at ${ftFmt(snow.zone.ft)} ft: ${r1(d24)}" in 24 hrs, ${r1(d72)}" in 72 hrs. No measured total available; see the stake cam.`);
+  const thaw = live.filter((s) => s.stats.hi24 != null && s.stats.lo24 != null).sort((a, b) => b.ft - a.ft)[0];
+  if (thaw) add(`Last 24 hrs at ${thaw.name} (${ftFmt(thaw.ft)} ft): high ${r0(thaw.stats.hi24)}°F, low ${r0(thaw.stats.lo24)}°F${thaw.stats.hi24 > 32 && thaw.stats.lo24 < 32 ? ' (freeze-thaw)' : ''}.`);
 
   // Visibility
-  if (sky && (sky.avg >= 80 || sky.vis < 1)) add(`Flat light likely${sky.vis < 1 ? `, visibility down to ${r1(sky.vis)} mi` : ''}.`, sky.vis < 1);
+  if (sky && (sky.avg >= 80 || sky.vis < 3)) add(`Visibility: ${r0(sky.avg)}% cloud, down to ${r1(sky.vis)} mi.`, sky.vis < 1);
 
-  // Bottom line
-  const verdict = c.score >= 8 ? 'Great day' : c.score >= 6 ? 'Decent day' : c.score >= 4 ? 'Mediocre day' : 'Poor day';
-  lines.push({ text: `Bottom line: ${verdict} (${c.score}/10). ${c.headline}.`, bottom: true });
+  // Road (Century Drive) — information only
+  const road = live.find((s) => s.id === 'OD131');
+  if (road && (road.stats.lo24 <= 32 || nightSnow + daySnow >= 0.3)) add(`Road: Century Dr sensor (${ftFmt(road.ft)} ft) low ${r0(road.stats.lo24)}°F in the last 24 hrs${nightSnow + daySnow >= 0.3 ? `; ${r1(nightSnow + daySnow)}" of snow forecast` : ''}.`);
 
-  // Pack list
-  const snowing = daySnow >= 0.3 || nightSnow >= 0.3;
-  if (sky) {
-    if (snowing || sky.avg >= 70 || sky.vis < 3) pack.push('Low-light goggle lens');
-    else if (sky.avg < 30) pack.push('Dark goggle lens');
-    else pack.push('All-round goggle lens');
-    if (sky.avg < 60) pack.push('Sunscreen');
-  }
-  const chill = c.temp?.chill;
-  if (Number.isFinite(chill) && chill <= 0) pack.push('Full face cover', 'Hand warmers');
-  else if (Number.isFinite(chill) && chill <= 15) pack.push('Neck gaiter / face cover');
-  if (summit?.avg != null && summit.avg <= 20) pack.push('Insulated mid-layer');
-  else if (base?.avg != null && base.avg >= 40) pack.push('Light layers');
-  if (rain && rain.cls !== 'good' && rain.wet) pack.push('Waterproof shell & pants', 'Spare gloves');
-  else if (snowing) pack.push('Waterproof shell');
-  if (wind && wind.gust >= 30) pack.push('Windproof layer');
-  if (firm) pack.push('Sharp edges');
-  if (d24 >= 6 || nightSnow >= 6) pack.push('Wider skis / powder board');
-  const baseMin = base?.min;
-  const roadIce = (nightSnow + daySnow) >= 0.3 || (baseMin != null && baseMin <= 32) || (c.now?.live || []).some((s) => s.id === 'OD131' && s.stats.lo24 != null && s.stats.lo24 <= 32);
-  if (roadIce) pack.push('Chains or traction tires (check TripCheck)');
-  return { lines, pack };
+  lines.push({ text: `Score ${c.score}/10: ${c.headline}.`, bottom: true });
+  return { lines };
 }
 
 function renderBriefing(c) {
@@ -750,7 +724,6 @@ function renderBriefing(c) {
   const day = new Date(c.win.date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   $('brief-when').textContent = `${c.win.today ? 'Today' : 'Tomorrow'}, ${day} · 9am–4pm · updated ${fmtTime(new Date(), { hour: 'numeric', minute: '2-digit' })}`;
   $('brief-lines').innerHTML = b.lines.map((l) => `<li class="${l.bottom ? 'bottom' : l.warn ? 'warn' : ''}">${esc(l.text)}</li>`).join('');
-  $('pack').innerHTML = b.pack.map((p) => `<span>${esc(p)}</span>`).join('') || '<span>Your usual kit</span>';
 }
 
 // ================================================================ The Call: visuals
@@ -906,8 +879,8 @@ function renderSnow(c) {
   countUp($('snowF'), s.forecast ?? null, 1);
   const zones = (s.byZone || []).map((z) => `${z.name.replace(' (mid)', '')} ${r1(z.d24)}"`).join(' · ');
   $('snow-cap').textContent = s.zone
-    ? `Model estimate for ${s.zone.name.replace(' (mid)', '')} (${ftFmt(s.zone.ft)} ft). Last 24 hrs by elevation: ${zones}. There's no public snow sensor on the mountain, so check the stake cam to confirm.`
-    : 'Model estimate unavailable. Check the stake cam.';
+    ? `Model estimate for ${s.zone.name.replace(' (mid)', '')} (${ftFmt(s.zone.ft)} ft). Last 24 hrs by elevation: ${zones}. No public snow sensor reports from the mountain; the stake cam is the measured check.`
+    : 'Model estimate unavailable. The stake cam is the measured check.';
 
   // Falling snowflakes when it is snowing or about to.
   const flakes = $('flakes');

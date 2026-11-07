@@ -181,12 +181,12 @@ function buildWeek() {
   const open = M.season?.openingDay;
   days.forEach((d) => { d.closed = open ? d.date < open : false; });
   const ranked = days.filter((d) => d.score != null).sort((a, b) => b.score - a.score || a.i - b.i);
-  // Only crown a best day if it beats every other day outright.
-  const top = ranked[0];
-  const tied = top ? ranked.filter((d) => d.score === top.score) : [];
-  const best = top && tied.length === 1 && ranked.length > 1 ? top : null;
-  if (best) best.best = true;
-  return { days, best, tied: best ? [] : tied };
+  // Flag the snowiest day only when it clearly leads (a calculated fact, not a recommendation).
+  const mid = (d) => d.ens?.p50 ?? d.snow ?? 0;
+  const bySnow = [...days].sort((a, b) => mid(b) - mid(a));
+  const snowiest = bySnow[0] && mid(bySnow[0]) >= 1 && mid(bySnow[0]) - mid(bySnow[1] || { snow: 0 }) >= 1 ? bySnow[0] : null;
+  if (snowiest) snowiest.mostSnow = true;
+  return { days, snowiest, ranked };
 }
 
 function dayScore(d) {
@@ -252,8 +252,8 @@ function renderWeekStrip(week) {
     const sc = d.score == null ? '' : d.score >= 7 ? 'good' : d.score >= 4 ? 'ok' : 'bad';
     const base = d.zones[0], top = d.zones[d.zones.length - 1];
     const dots = { high: 3, med: 2, low: 1 }[d.conf];
-    return `<button class="day ${d.best ? 'best' : ''}" type="button" data-i="${k}" style="animation-delay:${k * 0.05}s" aria-label="${esc(d.long)}: score ${d.score ?? 'n/a'} of 10, snow ${snowRangeText(d)}, ${confWord[d.conf]}">
-      ${d.best ? '<span class="best-tag">Best day</span>' : ''}
+    return `<button class="day ${d.mostSnow ? 'best' : ''}" type="button" data-i="${k}" style="animation-delay:${k * 0.05}s" aria-label="${esc(d.long)}: score ${d.score ?? 'n/a'} of 10, snow ${snowRangeText(d)}, ${confWord[d.conf]}">
+      ${d.mostSnow ? '<span class="best-tag">Most snow</span>' : ''}
       <span class="dn">${esc(d.name)}</span><span class="dd">${new Date(d.date + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
       <span class="di">${iconSvg(d.icon)}</span>
       <span class="ds ${sc}">${d.score ?? '–'}</span>
@@ -278,32 +278,28 @@ function renderWeekStrip(week) {
 }
 
 function weekSummary(week) {
+  // Facts only: scores, snow, rain, wind. The reader decides what's worth it.
   const ds = week.days.filter((d) => d.score != null);
   if (!ds.length) return '';
   const parts = [];
-  const best = week.best;
-  const worst = [...ds].sort((a, b) => a.score - b.score || a.i - b.i)[0];
-  const snowiest = [...ds].sort((a, b) => (b.ens?.p50 ?? b.snow ?? 0) - (a.ens?.p50 ?? a.snow ?? 0))[0];
-  const total = ds.reduce((a, d) => a + (d.ens?.p50 ?? d.snow ?? 0), 0);
-  if (best) parts.push(`Best bet: ${best.name === 'Today' ? 'today' : best.long.split(',')[0]} (${best.score}/10${best.conf === 'low' ? ', low confidence' : ''}).`);
-  else if (week.tied.length) parts.push(`No standout day: ${week.tied.map((d) => d.name).join(', ')} all score ${week.tied[0].score}/10.`);
-  if (worst && worst !== best && worst.score <= 4) {
-    const baseHi = worst.zones?.[0]?.hi;
-    const why = worst.rainCls === 'bad' ? 'rain on the mountain'
-      : worst.rainCls === 'ok' ? 'rain at the base'
-      : worst.gust >= 40 ? `gusts to ${r0(worst.gust)} mph`
-      : baseHi != null && baseHi >= 40 ? `warm (${r0(baseHi)}°F at the base) with nothing new, so slushy`
-      : worst.sky >= 80 ? 'flat light and nothing new'
-      : 'no new snow';
-    parts.push(`Worst: ${worst.long.split(',')[0]}, ${why}.`);
-  }
-  if (snowiest && (snowiest.ens?.p50 ?? snowiest.snow ?? 0) >= 1) parts.push(`Most snow: ${snowiest.long.split(',')[0]}, ${snowRangeText(snowiest)}.`);
+  const hi = Math.max(...ds.map((d) => d.score)), lo = Math.min(...ds.map((d) => d.score));
+  const names = (arr) => arr.map((d) => d.name).join(', ');
+  parts.push(hi === lo ? `Scores: ${hi}/10 every day.` : `Scores: ${hi}/10 ${names(ds.filter((d) => d.score === hi))}; ${lo}/10 ${names(ds.filter((d) => d.score === lo))}.`);
+  const mid = (d) => d.ens?.p50 ?? d.snow ?? 0;
+  const total = ds.reduce((a, d) => a + mid(d), 0);
+  const snowy = ds.filter((d) => mid(d) >= 1);
+  if (snowy.length) parts.push(`Snow: ${snowy.map((d) => `${d.name} ${snowRangeText(d)}`).join(', ')}.`);
   else {
-    const outside = [...ds].filter((d) => d.ens).sort((a, b) => b.ens.chance[3] - a.ens.chance[3])[0];
-    if (outside && outside.ens.chance[3] >= 10) parts.push(`No real snow expected. Outside chance ${outside.long.split(',')[0]}: ${outside.ens.chance[3]}% chance of 3"+.`);
-    else parts.push('No meaningful snow in the forecast this week.');
+    const outside = ds.filter((d) => d.ens).sort((a, b) => b.ens.chance[3] - a.ens.chance[3])[0];
+    parts.push(outside && outside.ens.chance[3] >= 10 ? `Snow: little expected; ${outside.name} has a ${outside.ens.chance[3]}% chance of 3"+.` : 'Snow: none of note.');
   }
-  parts.push(`Week total: about ${r0(total)}" (middle estimate).`);
+  parts.push(`Week total ~${r1(total)}" (middle estimate).`);
+  const rainy = ds.filter((d) => d.rainCls !== 'good');
+  if (rainy.length) parts.push(`Rain on the mountain: ${names(rainy)}.`);
+  const windy = ds.filter((d) => d.gust >= 40);
+  if (windy.length) parts.push(`Gusts 40+ mph: ${windy.map((d) => `${d.name} ${r0(d.gust)}`).join(', ')}.`);
+  const warm = ds.filter((d) => (d.zones?.[0]?.hi ?? 0) >= 40);
+  if (warm.length) parts.push(`Base above 40°F: ${names(warm)}.`);
   if (week.days.some((d) => d.closed)) parts.push(`Lifts open ${new Date(M.season.openingDay + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`);
   return parts.join(' ');
 }

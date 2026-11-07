@@ -19,7 +19,7 @@ Good data is the backbone of this site. These rules come from mistakes the owner
 - Currently approved sources, all of which allow browser requests (CORS):
   - NWS observations (`api.weather.gov/stations/{id}/observations`) for the on-mountain stations: COAC Moon Mountain `MOONM`, ODOT `OD131`, and the OSU snow pillow `OSUSP`.
   - The NWS gridpoint forecast (`PDT/23,40`) and NWS forecast discussions.
-  - Open-Meteo, for forecasts and new-snow estimates at each elevation, the 4-model comparison (GFS, ECMWF, GEM, ICON), and the ensembles (`ensemble-api.open-meteo.com`: GEFS 31 + ECMWF 51 runs) behind the 7-day ranges and confidence. Never show a single far-out snow number without its range and confidence, and only crown a "best day" if it beats every other day outright.
+  - Open-Meteo, for forecasts and new-snow estimates at each elevation, the 4-model comparison (GFS, ECMWF, GEM, ICON), and the ensembles (`ensemble-api.open-meteo.com`: GEFS 31 + ECMWF 51 runs) behind the 7-day ranges and confidence. Never show a single far-out snow number without its range and confidence, and don't pick a "best day" (that's the reader's call); flag facts like "Most snow" only when one day clearly leads.
   - NRCS SNOTEL, as a regional reference only.
   - RainViewer radar.
   - Mt. Bachelor webcams and the station graphic.
@@ -29,6 +29,13 @@ Good data is the backbone of this site. These rules come from mistakes the owner
 ## Units
 
 The owner asked for "empirical measurements". That's been read as **US imperial units** (°F, inches, mph, feet) **and** real measured data first. Keep both.
+
+## Audience: expert skiers
+
+- The site is a **one-stop source of information** for experienced skiers who aren't at the mountain yet. Give them the data and let them decide.
+- **Do calculate** things they can't easily work out themselves: snow amounts, lift-hold and closure risk, scores, ranges and confidence.
+- **Don't make decisions for them:** no gear or pack lists, no "best day to go", no verdicts like "mediocre day", and no instructions ("cover exposed skin", "bring chains"). State the facts, such as the road sensor's low temperature, and leave the conclusion to the reader.
+- *Correction from the owner:* a "Pack" list was added to the briefing and then removed for this reason.
 
 ## Design preferences
 
