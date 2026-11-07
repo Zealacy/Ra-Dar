@@ -468,6 +468,8 @@ function computeCall() {
     else if (live.some((s) => s.stats.hi24 > 34 && s.stats.lo24 < 30) && d24 < 2) { Object.assign(c.temp, { cls: 'ok', text: 'It thawed and refroze, so expect firm or icy snow early that softens later.' }); score -= 0.5; }
   }
 
+  c.lifts = computeLifts(win, winRows);
+
   c.score = Math.round(clamp(score, 1, 10));
   const d24 = c.snow?.d24 || 0;
   c.headline = 'Firm, mixed conditions';
@@ -488,6 +490,134 @@ function computeCall() {
   if (c.sky) push(c.sky.cls, c.sky.label);
   if (c.temp) push(c.temp.cls, c.temp.cls === 'good' ? 'Good temps' : c.temp.chill <= -5 ? 'Bitter cold' : 'Soft / icy snow');
   return c;
+}
+
+// ================================================================ Lifts (wind-hold estimate)
+// No public live lift-status feed exists, so each lift gets an hourly wind-hold risk from the
+// NWS forecast gust and the lift's exposure tier. Clearly labeled as an estimate.
+function seasonStatus(win) {
+  const open = M.season?.openingDay;
+  if (!open) return { open: true, label: 'In season · check official status' };
+  const today = localParts(new Date()).date;
+  const days = Math.round((Date.parse(open + 'T12:00:00Z') - Date.parse(today + 'T12:00:00Z')) / 864e5);
+  if (days > 0) {
+    const nice = new Date(open + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return { open: false, days, label: `Closed until winter · Opening Day ${nice} (scheduled), ${days} day${days === 1 ? '' : 's'} away` };
+  }
+  return { open: true, label: 'Ski season · check the official status for openings' };
+}
+function liftRisk(lift, gust) {
+  if (gust == null) return 'none';
+  const [watch, hold] = M.liftWind[lift.exposure] || M.liftWind.mid;
+  return gust >= hold ? 'bad' : gust >= watch ? 'ok' : 'good';
+}
+function computeLifts(win, winRows) {
+  if (!M.lifts?.length) return null;
+  const season = seasonStatus(win);
+  const hours = winRows.map((r) => ({ t: r.t, gust: r.gust }));
+  const lifts = M.lifts.map((l) => {
+    const perHour = hours.map((h) => ({ t: h.t, gust: h.gust, risk: liftRisk(l, h.gust) }));
+    const order = { good: 0, ok: 1, bad: 2, none: -1 };
+    const worst = perHour.reduce((w, h) => (order[h.risk] > order[w] ? h.risk : w), perHour.length ? 'good' : 'none');
+    const badHours = perHour.filter((h) => h.risk === 'bad').length;
+    return { ...l, perHour, worst, badHours };
+  });
+  const ok = lifts.filter((l) => l.worst === 'good').length;
+  return { season, lifts, hours, ok, total: lifts.length, peakGust: hours.length ? Math.max(...hours.map((h) => h.gust ?? 0)) : null };
+}
+
+function renderLiftsSummary(c) {
+  const L = c.lifts;
+  if (!L) return;
+  const se = $('season');
+  se.className = `season ${L.season.open ? 'open' : 'closed'}`;
+  se.innerHTML = `<i aria-hidden="true">${L.season.open ? '✓' : '❄'}</i>${esc(L.season.label)}`;
+  countUp($('lift-ok'), L.ok);
+  $('lift-total').textContent = L.total;
+
+  // Segmented ring: one arc per lift, colored by its worst risk during ski hours.
+  const svg = $('lift-ring');
+  svg.innerHTML = '';
+  const cx = 60, cy = 60, r = 50, gap = 3;
+  const per = 360 / L.total;
+  const order = { good: 0, ok: 1, bad: 2, none: 3 };
+  const sorted = [...L.lifts].sort((a, b) => order[a.worst] - order[b.worst]);
+  sorted.forEach((l, i) => {
+    const a0 = (-90 + i * per + gap / 2) * Math.PI / 180, a1 = (-90 + (i + 1) * per - gap / 2) * Math.PI / 180;
+    const d = `M${cx + r * Math.cos(a0)},${cy + r * Math.sin(a0)} A${r},${r} 0 0 1 ${cx + r * Math.cos(a1)},${cy + r * Math.sin(a1)}`;
+    const seg = svgEl('path', { d, fill: 'none', stroke: statusColor(l.worst === 'none' ? '' : l.worst), 'stroke-width': 12, 'stroke-linecap': 'butt', opacity: 0 }, svg);
+    seg.style.transition = `opacity .4s ease ${0.1 + i * 0.06}s`;
+    requestAnimationFrame(() => requestAnimationFrame(() => seg.setAttribute('opacity', 1)));
+    bindTip(seg, `${l.name}: ${l.worst === 'good' ? 'low wind-hold risk' : l.worst === 'ok' ? 'holds possible' : l.worst === 'bad' ? `holds likely (${l.badHours} hr)` : 'no forecast'}`);
+  });
+
+  const icon = { good: '✓', ok: '!', bad: '✕', none: '•' };
+  const tiers = [['high', 'Exposed, up high'], ['mid', 'Mid-mountain'], ['low', 'Base area']];
+  let k = 0;
+  $('lift-tiers').innerHTML = tiers.map(([key, label]) => {
+    const ls = L.lifts.filter((l) => l.exposure === key);
+    return `<div class="tier"><h4>${label}</h4><div class="pills">${ls.map((l) => `<span class="lp ${l.worst}" style="animation-delay:${0.2 + (k++) * 0.04}s" data-name="${esc(l.name)}"><i aria-hidden="true">${icon[l.worst]}</i>${esc(l.name.replace(' Express', ''))}</span>`).join('')}</div></div>`;
+  }).join('');
+  $('lift-tiers').querySelectorAll('.lp').forEach((el) => {
+    const l = L.lifts.find((x) => x.name === el.dataset.name);
+    const [w, h] = M.liftWind[l.exposure];
+    bindTip(el, `${l.name} (${l.type}${l.topFt ? `, top ${ftFmt(l.topFt)} ft` : ''}). Holds possible from about ${w} mph gusts, likely from ${h} mph. Forecast peak: ${r0(L.peakGust)} mph.`);
+  });
+  const bad = L.lifts.filter((l) => l.worst === 'bad').map((l) => l.name.replace(' Express', ''));
+  const watch = L.lifts.filter((l) => l.worst === 'ok').map((l) => l.name.replace(' Express', ''));
+  let cap = bad.length ? `Wind holds likely on ${bad.join(', ')}.` : watch.length ? `Holds possible on ${watch.join(', ')}.` : 'Forecast wind looks fine for every lift.';
+  if (!L.season.open) cap += ' The lifts aren\'t running yet, so this is a preview.';
+  $('lift-cap').innerHTML = `${esc(cap)} <a href="${esc(M.liftStatusUrl)}" target="_blank" rel="noopener">Official status ↗</a>`;
+}
+
+function drawLiftsTab() {
+  const L = state.call?.lifts;
+  $('lift-official').href = M.liftStatusUrl;
+  if (!L) return;
+  $('lift-day').textContent = `${state.call.win.today ? 'today' : 'tomorrow'}, ${new Date(state.call.win.date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
+  $('lifts-lead').textContent = `${L.season.open ? '' : L.season.label + '. '}There's no public live lift-status feed, so this estimates the chance of wind holds for each lift from the National Weather Service gust forecast and how exposed each lift top is. It isn't official status.`;
+
+  // Heatmap: lifts x hours
+  const heat = $('lift-heat');
+  const cols = L.hours.length;
+  heat.style.gridTemplateColumns = `minmax(150px, auto) repeat(${cols}, minmax(34px, 1fr))`;
+  const icon = { good: '✓', ok: '!', bad: '✕', none: '–' };
+  let html = '<div></div>' + L.hours.map((h) => `<div class="hl">${fmtTime(h.t, { hour: 'numeric' }).replace(' ', '').toLowerCase()}</div>`).join('');
+  L.lifts.forEach((l, i) => {
+    html += `<div class="ln">${esc(l.name)} <small>${l.exposure === 'high' ? 'exposed' : l.exposure === 'mid' ? 'mid' : 'base'}</small></div>`;
+    html += l.perHour.map((h, j) => `<div class="cell ${h.risk}" style="animation-delay:${(i * 0.03 + j * 0.02).toFixed(2)}s" data-i="${i}" data-j="${j}">${icon[h.risk]}</div>`).join('');
+  });
+  heat.innerHTML = html;
+  heat.querySelectorAll('.cell').forEach((el) => {
+    const l = L.lifts[el.dataset.i], h = l.perHour[el.dataset.j];
+    bindTip(el, `${l.name}, ${fmtTime(h.t, { hour: 'numeric' })}: forecast gusts ${r0(h.gust)} mph → ${h.risk === 'good' ? 'low risk' : h.risk === 'ok' ? 'holds possible' : 'holds likely'}.`);
+  });
+
+  // Gust chart with tier thresholds
+  const labels = L.hours.map((h) => fmtTime(h.t, { hour: 'numeric' }));
+  const W = M.liftWind;
+  // Set the axis range up front (changing it mid-animation misplaces the line).
+  const gustOpts = chartOpts({ legend: false, yMin: 0, xTicks: 8, refLines: [
+    { y: W.high[1], label: `Exposed lifts: holds likely ${W.high[1]}` },
+    { y: W.mid[1], label: `Mid-mountain: holds likely ${W.mid[1]}` },
+    { y: W.low[1], label: `Base area: holds likely ${W.low[1]}` },
+  ] });
+  gustOpts.scales.y.suggestedMax = W.low[1] + 5;
+  drawChart('c-liftgust', {
+    type: 'line',
+    data: { labels, datasets: [lineDs('Forecast gust', L.hours.map((h) => h.gust), '--s1', true)] },
+    options: gustOpts,
+  });
+
+  // Table
+  const head = ['Lift', 'Type', 'Length ft', 'Vertical ft', 'Top elev ft', 'Exposure', 'Holds possible / likely (mph gust)', 'Peak forecast gust', 'Estimate'];
+  const word = { good: 'Low risk', ok: 'Holds possible', bad: 'Holds likely', none: 'No forecast' };
+  $('lift-table').innerHTML = `<thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${L.lifts.map((l) => {
+    const pk = Math.max(...l.perHour.map((h) => h.gust ?? 0));
+    return `<tr><td>${esc(l.name)}</td><td>${esc(l.type)}</td><td>${ftFmt(l.lengthFt)}</td><td>${ftFmt(l.vertFt)}</td><td title="${esc(l.topNote || '')}">${l.topFt ? ftFmt(l.topFt) : '–'}</td>
+      <td>${l.exposure === 'high' ? 'Exposed' : l.exposure === 'mid' ? 'Mid-mountain' : 'Base area'}</td><td>${M.liftWind[l.exposure].join(' / ')}</td><td>${r0(pk)}</td>
+      <td${l.worst === 'bad' ? ' class="warn"' : ''}>${word[l.worst]}</td></tr>`;
+  }).join('')}</tbody>`;
 }
 
 // ================================================================ The Call: visuals
@@ -511,6 +641,7 @@ function renderCall(c) {
   renderWind(c);
   renderSky(c);
   renderNow(c);
+  renderLiftsSummary(c);
 }
 
 // --- Mountain profile: temperatures at each elevation + snow line
@@ -905,6 +1036,7 @@ function drawActiveTab() {
   if (activeTab === 'measured') drawMeasuredCharts();
   if (activeTab === 'forecast') drawForecastCharts();
   if (activeTab === 'elevation') drawElevationCharts();
+  if (activeTab === 'lifts') drawLiftsTab();
   if (activeTab === 'radar') { initRadar(); setTimeout(() => map?.invalidateSize(), 50); }
 }
 
@@ -1235,6 +1367,9 @@ function renderSources() {
     ['Webcams & snow stake', 'Mt. Bachelor', 'Live image', 'Official resort cameras. The stake is the best on-mountain check of new snow.'],
     ['Hourly forecast', `National Weather Service (${M.nws.office === 'PDT' ? 'Pendleton' : M.nws.office})`, 'Forecast', 'Official forecast for the 2.5 km grid cell over the ski area.'],
     ['Base-to-summit forecast & new-snow estimate', 'Open-Meteo, blending NOAA and European models', 'Forecast / Model', 'Model data adjusted to each elevation. New-snow totals are estimates, not measurements.'],
+    ['Lift list & stats', 'Mt. Bachelor (official Mountain Stats page)', 'Reference', 'Names, types, lengths, vertical rise.'],
+    ['Lift wind-hold risk', 'Ra-Dar estimate from NWS forecast gusts', 'Estimate', 'There\'s no public live lift-status feed. Rule-of-thumb thresholds by exposure, not official status.'],
+    ['Season status', 'Mt. Bachelor Lift & Trail Status page', 'Reference', `Opening Day ${M.season?.openingDay || 'n/a'}, checked ${M.season?.checked || 'n/a'}. Updated by hand.`],
     ['Forecaster notes', 'National Weather Service', 'Forecast', 'The forecasters\' written discussion.'],
     ['Radar', 'RainViewer, using NOAA NEXRAD radar', 'Measured', 'Radar coverage over the Cascades is limited by terrain, so light snow can be missed.'],
     ['Regional snow stations', 'USDA NRCS SNOTEL', 'Measured', 'Reliable, but 11–18 mi away and up to 1,500 ft below the base. Regional trend only. Not used in the score.'],

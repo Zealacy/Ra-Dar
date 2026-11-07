@@ -109,7 +109,7 @@ main { padding-top: 16px; padding-bottom: 8px; }
 .st.bad i, .chip.bad i { background: var(--critical); }
 .st.neutral i, .chip.neutral i { background: var(--muted); }
 
-.widgets { display: grid; grid-template-columns: 1.6fr 1fr 1fr; grid-template-rows: auto auto; gap: 12px; }
+.widgets { display: grid; grid-template-columns: 1.6fr 1fr 1fr; grid-auto-flow: row dense; gap: 12px; }
 .w { background: var(--surface-2); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; min-width: 0; position: relative; overflow: hidden; }
 .w > header { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 6px; }
 .w h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); }
@@ -138,6 +138,46 @@ main { padding-top: 16px; padding-bottom: 8px; }
 .ribbon div b { position: absolute; top: 3px; left: 0; right: 0; text-align: center; font-size: .7rem; color: var(--s1); }
 .ribbon-lbl { display: flex; justify-content: space-between; font-size: .62rem; color: var(--muted); margin-top: 2px; }
 @keyframes grow { from { transform: scaleY(.2); opacity: 0; } }
+
+/* lifts summary */
+.w-lifts { grid-column: 1 / -1; }
+.lifts-body { display: flex; gap: 18px; align-items: center; }
+.lift-ring-wrap { position: relative; width: 112px; flex: none; }
+.lift-ring { width: 100%; display: block; }
+.lift-ring-num { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; line-height: 1.05; }
+.lift-ring-num #lift-ok { font-size: 1.9rem; font-weight: 800; }
+.lift-ring-num small { font-size: .72rem; color: var(--text-2); font-weight: 600; }
+.lift-ring-num em { font-style: normal; font-size: .66rem; color: var(--text-2); }
+.lift-main { flex: 1; min-width: 0; }
+.season { display: inline-flex; align-items: center; gap: 8px; font-size: .82rem; font-weight: 650; padding: 4px 12px 4px 6px; border-radius: 999px; background: var(--surface); margin-bottom: 10px; }
+.season i { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: .68rem; color: #fff; }
+.season.closed i { background: var(--muted); }
+.season.open i { background: var(--good); }
+.tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.tier h4 { margin: 0 0 4px; font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-2); }
+.tier .pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.lp { display: inline-flex; align-items: center; gap: 4px; font-size: .72rem; font-weight: 600; padding: 3px 8px 3px 4px; border-radius: 999px; background: var(--surface); opacity: 0; transform: translateY(4px); animation: pop .45s var(--ease) forwards; }
+.lp i, .k { width: 15px; height: 15px; border-radius: 50%; display: inline-grid; place-items: center; font-style: normal; font-size: .58rem; color: #fff; flex: none; }
+.lp.good i, .k.good { background: var(--good); }
+.lp.ok i, .k.ok { background: var(--warning); color: #111; }
+.lp.bad i, .k.bad { background: var(--critical); }
+/* lifts tab */
+.lift-head { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px; }
+.lift-head .lead { margin: 0; flex: 1; min-width: 240px; }
+.pill.official { text-decoration: none; white-space: nowrap; background: var(--accent); color: #fff; border-color: transparent; }
+.heat-wrap { overflow-x: auto; }
+.heat { display: grid; gap: 3px; min-width: 520px; font-size: .74rem; }
+.heat .hl { color: var(--text-2); font-weight: 600; text-align: center; font-size: .68rem; }
+.heat .ln { font-weight: 650; white-space: nowrap; padding-right: 8px; display: flex; align-items: center; gap: 6px; }
+.heat .ln small { color: var(--text-2); font-weight: 500; }
+.heat .cell { height: 26px; border-radius: 5px; display: grid; place-items: center; color: #fff; font-size: .62rem; font-weight: 800; transform-origin: left; animation: grow-x .5s var(--ease) both; }
+.heat .cell.good { background: color-mix(in srgb, var(--good) 75%, var(--surface)); }
+.heat .cell.ok { background: var(--warning); color: #111; }
+.heat .cell.bad { background: var(--critical); }
+.heat .cell.none { background: var(--line); color: var(--text-2); }
+.heat-key { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-size: .74rem; color: var(--text-2); }
+.heat-key span { display: inline-flex; align-items: center; gap: 5px; }
+@keyframes grow-x { from { transform: scaleX(.3); opacity: 0; } }
 
 /* stake thumbnail inside the snow card */
 .stake-thumb { margin-left: auto; align-self: flex-start; width: 92px; text-decoration: none; color: var(--text-2); font-size: .66rem; text-align: center; }
@@ -242,6 +282,7 @@ footer { padding-bottom: 28px; }
 [data-device="tablet"] .w-mtn { grid-row: auto; grid-column: 1 / -1; }
 [data-device="tablet"] .cams-row { grid-template-columns: 1fr 1fr; }
 [data-device="tablet"] .chips { padding-left: 0; }
+[data-device="tablet"] .tiers { grid-template-columns: 1fr 1fr; }
 
 /* Phone */
 [data-device="mobile"] .wrap { padding: 0 12px; }
@@ -258,7 +299,15 @@ footer { padding-bottom: 28px; }
 [data-device="mobile"] .widgets { grid-template-columns: 1fr 1fr; gap: 8px; }
 [data-device="mobile"] .w { padding: 10px; }
 [data-device="mobile"] .w-mtn { grid-row: auto; grid-column: 1 / -1; }
-[data-device="mobile"] .w-sky, [data-device="mobile"] .w-pack { grid-column: span 1; }
+[data-device="mobile"] .w-sky { grid-column: 1 / -1; }
+[data-device="mobile"] .w-now { grid-column: 1 / -1; }
+[data-device="mobile"] .lifts-body { gap: 12px; align-items: flex-start; }
+[data-device="mobile"] .lift-ring-wrap { width: 92px; }
+[data-device="mobile"] .tiers { grid-template-columns: 1fr; gap: 8px; }
+[data-device="mobile"] .season { font-size: .74rem; border-radius: 12px; }
+[data-device="mobile"] .stake-thumb { display: none; }
+[data-device="mobile"] .snow-nums .lbl { white-space: nowrap; }
+[data-device="mobile"] .snow-nums .mid { font-size: .9rem; }
 [data-device="mobile"] .big { font-size: 2rem; }
 [data-device="mobile"] .w h3 { font-size: .68rem; letter-spacing: .04em; }
 [data-device="mobile"] .w > header { flex-wrap: wrap; gap: 4px; }

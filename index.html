@@ -89,6 +89,21 @@
           <p class="cap" id="sky-cap"></p>
         </article>
 
+        <article class="w w-lifts">
+          <header><h3>Lifts</h3><span class="src f">Wind estimate</span></header>
+          <div class="season" id="season"></div>
+          <div class="lifts-body">
+            <div class="lift-ring-wrap">
+              <svg id="lift-ring" class="lift-ring" viewBox="0 0 120 120" aria-hidden="true"></svg>
+              <div class="lift-ring-num"><span id="lift-ok">–</span><small>of <span id="lift-total">–</span></small><em>low risk</em></div>
+            </div>
+            <div class="lift-main">
+              <div class="tiers" id="lift-tiers"></div>
+            </div>
+          </div>
+          <p class="cap" id="lift-cap"></p>
+        </article>
+
         <article class="w w-now">
           <header><h3>Right now</h3><span class="src m">Measured</span></header>
           <div class="now-list" id="now-list"><div class="lbl">Loading station readings…</div></div>
@@ -119,6 +134,7 @@
         <button role="tab" data-tab="measured" aria-selected="true">Live readings</button>
         <button role="tab" data-tab="forecast">Hour by hour</button>
         <button role="tab" data-tab="elevation">Base to summit</button>
+        <button role="tab" data-tab="lifts">Lifts</button>
         <button role="tab" data-tab="radar">Radar loop</button>
         <button role="tab" data-tab="discussion">Forecaster notes</button>
         <span class="tab-ink" id="tab-ink"></span>
@@ -162,6 +178,22 @@
         </div>
         <p class="swipe-hint">Swipe for more charts →</p>
         <details class="tbl"><summary>7-day table by elevation</summary><div class="table-wrap"><table id="elev-table"></table></div></details>
+      </div>
+
+      <div class="tab-panel" data-panel="lifts" hidden>
+        <div class="lift-head">
+          <p class="lead" id="lifts-lead">There's no public live lift-status feed, so this estimates the chance of wind holds for each lift from the forecast gusts and how exposed each lift top is. It isn't official status.</p>
+          <a class="pill official" id="lift-official" target="_blank" rel="noopener">Official live lift status ↗</a>
+        </div>
+        <figure class="chart-card wide"><figcaption>Wind-hold risk by hour · <span id="lift-day"></span></figcaption>
+          <div class="heat-wrap"><div class="heat" id="lift-heat"></div></div>
+          <div class="heat-key"><span><i class="k good">✓</i>Low risk</span><span><i class="k ok">!</i>Holds possible</span><span><i class="k bad">✕</i>Holds likely</span></div>
+        </figure>
+        <div class="grid-2" style="margin-top:12px">
+          <figure class="chart-card wide"><figcaption>Forecast gusts during ski hours vs. hold thresholds (mph)</figcaption><div class="chart-box"><canvas id="c-liftgust"></canvas></div></figure>
+        </div>
+        <details class="tbl"><summary>Lift stats &amp; thresholds</summary><div class="table-wrap"><table id="lift-table"></table></div>
+          <p class="fine">Lift names, types, lengths and vertical rise are from Mt. Bachelor's official Mountain Stats page. Top elevations are shown only where an official figure exists. Hold thresholds are rules of thumb: the lift operators decide actual holds, which also depend on wind direction, icing and other factors.</p></details>
       </div>
 
       <div class="tab-panel" data-panel="radar" hidden>
