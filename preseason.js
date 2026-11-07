@@ -101,21 +101,36 @@ function renderPreseason() {
   if (!box || document.documentElement.dataset.mode !== 'preseason') return;
   const p = computePreseason();
   const openNice = new Date(M.season.openingDay + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  $('pre-count').textContent = p ? p.daysToOpen : '–';
+  // The countdown only needs the calendar, not the model data.
+  const daysToOpen = Math.round((Date.parse(M.season.openingDay) - Date.parse(localParts(new Date()).date)) / 864e5);
+  $('pre-count').textContent = daysToOpen;
   $('pre-open').textContent = `days to Opening Day · ${openNice} (scheduled)`;
   $('pre-stake').src = camUrl(M.snowStake.src);
+  // Right now: measured readings, so nobody mistakes a forecast for the current temperature.
+  const live = (state.stations || []).filter((st) => st.stats.fresh && st.stats.temp != null);
+  $('pre-now').innerHTML = live.length
+    ? `<span class="pn-h">Right now <span class="src m">Measured</span></span>${live.map((st) => `<span class="pn"><b>${r0(st.stats.temp)}°F</b> ${esc(st.name)} · ${ftFmt(st.ft)} ft · ${ageText(st.stats.ageH)}</span>`).join('')}`
+    : '<span class="pn-h">Right now</span><span class="pn">No live station readings available.</span>';
+  const fig = document.querySelector('.pre-fig');
   if (!p) {
     $('pre-depth-svg').innerHTML = '';
-    $('pre-tiles').innerHTML = '<div class="lbl">Snowpack model data unavailable right now. Refresh to try again.</div>';
+    fig.classList.add('empty');
+    fig.dataset.msg = "Snow-depth model data couldn't load right now. Refresh to try again. The stake cam is live.";
+    renderPreTiles(null);
     return;
   }
+  fig.classList.remove('empty');
   renderDepthStakes(p);
-  const w = p.week;
-  const sinceNice = new Date(p.start + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  renderPreTiles(p);
+}
+
+function renderPreTiles(p) {
+  const w = state.weekView?.weekEns || null;
+  const sinceNice = new Date(seasonStartDate() + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const tile = (k, v, s) => `<div class="pre-tile"><span class="pk">${k}</span><span class="pv">${v}</span><span class="ps">${s}</span></div>`;
   $('pre-tiles').innerHTML = [
-    tile(`Season snowfall since ${sinceNice} · summit`, `${r0(p.zones.at(-1).seasonSnow)}"`, `model · ${p.zones.slice(0, -1).map((z) => `${z.name.replace(' (mid)', '').replace('West Village base', 'Base')} ${r0(z.seasonSnow)}"`).join(' · ')}`),
-    tile('Snow next 7 days', w ? `${Math.floor(w.p10)}–${Math.ceil(w.p90)}"` : `~${r0(p.zones[1]?.next7)}"`, w ? `likely range at 7,800 ft (82 runs) · middle ${r1(w.p50)}"` : 'model, 7,800 ft'),
+    p ? tile(`Season snowfall since ${sinceNice} · summit`, `${r0(p.zones.at(-1).seasonSnow)}"`, `model · ${p.zones.slice(0, -1).map((z) => `${z.name.replace(' (mid)', '').replace('West Village base', 'Base')} ${r0(z.seasonSnow)}"`).join(' · ')}`) : tile(`Season snowfall since ${sinceNice}`, '–', 'model data unavailable right now'),
+    tile('Snow next 7 days', w ? `${Math.floor(w.p10)}–${Math.ceil(w.p90)}"` : p ? `~${r0(p.zones[1]?.next7)}"` : '–', w ? `likely range at 7,800 ft (82 runs) · middle ${r1(w.p50)}"` : p ? 'model, 7,800 ft' : 'forecast data unavailable right now'),
     tile('Chance this week', w ? `${w.chance[6]}% <small>≥6"</small> · ${w.chance[12]}% <small>≥12"</small>` : '–', w ? `${w.chance[1]}% chance of at least 1"` : ''),
   ].join('');
 }

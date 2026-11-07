@@ -46,7 +46,12 @@ function pct(sorted, p) {
   const i = (sorted.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i);
   return sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
 }
-const dayName = (date, i) => (i === 0 && date === localParts(new Date()).date ? 'Today' : new Date(date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short' }));
+const dayName = (date) => {
+  const today = localParts(new Date()).date;
+  if (date === today) return 'Today';
+  if (date === addDays(today, 1)) return 'Tomorrow';
+  return new Date(date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short' });
+};
 const dayLong = (date) => new Date(date + 'T12:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 const snowWindow = (date) => [`${addDays(date, -1)}T16:00`, `${date}T16:00`]; // [start, end)
 const inSki = (key, date) => key.slice(0, 10) === date && +key.slice(11, 13) >= 9 && +key.slice(11, 13) < 16;
@@ -69,7 +74,8 @@ function ensembleMembers(ens, variable) {
 function buildWeek() {
   const W = state.week;
   if (!W) return null;
-  const start = state.call?.win?.date || localParts(new Date()).date;
+  // Always start with today, so the first card can't be mistaken for current conditions.
+  const start = localParts(new Date()).date;
   const dates = Array.from({ length: WEEK_DAYS }, (_, i) => addDays(start, i));
   const nws = state.nws;
   const nwsByKey = new Map((nws?.rows || []).map((r) => [localKey(r.t), r]));
@@ -82,7 +88,7 @@ function buildWeek() {
 
   const days = dates.map((date, i) => {
     const [ws, we] = snowWindow(date);
-    const d = { date, i, name: dayName(date, i), long: dayLong(date) };
+    const d = { date, i, name: dayName(date), long: dayLong(date) };
 
     // Official NWS: hourly rows for this ski day + written periods
     const skiRows = [];

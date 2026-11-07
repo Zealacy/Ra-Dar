@@ -892,6 +892,11 @@ function renderMountain(c) {
     bindTip(fg, `NWS forecast for about ${ftFmt(c.wind.elevFt)} ft: sustained up to ${r0(c.wind.wind)} mph from the ${compass(c.wind.dir)}, gusts to ${r0(c.wind.gust)} mph. Arrow points the way the wind blows.`);
   }
 
+  // Which day and hours this picture shows (it switches to tomorrow after 3pm)
+  const dayLbl = `${c.win.today ? 'Today' : 'Tomorrow'} (${new Date(c.win.date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short' })}), 9am–4pm forecast`;
+  pill(4, H - 22, 196, 17);
+  T({ x: 10, y: H - 10, 'font-size': 10, 'font-weight': 700 }, dayLbl);
+
   // Zone markers: average temp, range, name and elevation
   const zones = c.temp?.zones?.length ? c.temp.zones : M.zones;
   zones.forEach((z, i) => {

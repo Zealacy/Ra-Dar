@@ -265,9 +265,14 @@ main { display: flex; flex-direction: column; }
 .pre-count small { font-size: .7rem; color: var(--text-2); text-align: center; margin-top: 4px; max-width: 140px; }
 .pre-title { flex: 1; }
 .pre-title h2 { font-size: 1.6rem; margin-top: 2px; }
+.pre-now { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 8px 12px; margin: 0 0 12px; border-radius: 12px; background: var(--surface-2); font-size: .82rem; color: var(--text-2); }
+.pre-now .pn-h { font-weight: 800; color: var(--text); display: inline-flex; align-items: center; gap: 6px; }
+.pre-now .pn b { color: var(--text); font-size: 1rem; }
 .pre-body { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; align-items: start; }
 .pre-fig { margin: 0; background: var(--surface-2); border-radius: 14px; padding: 10px; }
 .pre-fig svg { width: 100%; display: block; }
+.pre-fig.empty svg { display: none; }
+.pre-fig.empty::after { content: attr(data-msg); display: block; padding: 28px 16px; text-align: center; color: var(--text-2); font-size: .88rem; }
 .pre-side { display: flex; flex-direction: column; gap: 10px; }
 .pre-tiles { display: grid; gap: 8px; }
 .pre-tile { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 1px; }
@@ -440,7 +445,8 @@ footer { padding-bottom: 28px; }
 [data-device="mobile"] .pre-count { min-width: 96px; }
 [data-device="mobile"] .pre-count span { font-size: 2rem; }
 [data-device="mobile"] .pre-title h2 { font-size: 1.2rem; }
-[data-device="mobile"] .view-toggle { padding: 5px 9px; font-size: .7rem; }
+[data-device="mobile"] .view-toggle { padding: 4px 8px; font-size: .66rem; max-width: 92px; line-height: 1.2; }
+[data-device="mobile"] .brand span { display: none; }
 [data-device="mobile"] .w-snow, [data-device="mobile"] .w-wind { grid-column: 1 / -1; }
 [data-device="mobile"] .wind-svg { max-width: 220px; }
 [data-device="mobile"] .week-strip { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -14px; padding: 12px 14px 6px; gap: 8px; scrollbar-width: none; }
