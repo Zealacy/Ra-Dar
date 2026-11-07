@@ -1461,7 +1461,10 @@ async function loadAfd() {
 }
 
 // ================================================================ Webcams
-let camIndex = 0;
+// The carousel: the snow stake first, then the other cams in order of usefulness.
+const allCams = () => [{ name: M.snowStake.name, why: `${ftFmt(M.snowStake.ft)} ft. ${M.snowStake.note}`, src: M.snowStake.src }, ...M.cams];
+// Preseason already shows the stake large at the top, so its carousel opens on the next cam.
+let camIndex = null;
 const camUrl = (src) => `${src}${src.includes('?') ? '&' : '?'}t=${Math.floor(Date.now() / 60000)}`;
 function swapImg(img, src) {
   if (REDUCED) { img.src = src; return; }
@@ -1472,7 +1475,7 @@ function swapImg(img, src) {
 }
 function showCam(i, fromUser) {
   camIndex = i;
-  const cam = M.cams[i];
+  const cam = allCams()[i];
   swapImg($('cam-main'), camUrl(cam.src));
   $('cam-main').alt = `${cam.name} webcam`;
   $('cam-main-link').href = cam.src;
@@ -1482,18 +1485,16 @@ function showCam(i, fromUser) {
   if (fromUser) document.querySelectorAll('#thumbs button')[i]?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
 }
 function renderCams() {
-  swapImg($('stake'), camUrl(M.snowStake.src));
   $('stake-thumb').src = camUrl(M.snowStake.src);
-  $('stake-link').href = M.snowStake.src;
-  $('stake-note').textContent = `${M.snowStake.name}, ${ftFmt(M.snowStake.ft)} ft. ${M.snowStake.note}`;
   $('stations').src = camUrl(M.stationGraphic);
   $('stations-link').href = M.stationGraphic;
   const thumbs = $('thumbs');
   if (!thumbs.children.length) {
-    thumbs.innerHTML = M.cams.map((c, i) => `<button role="tab" type="button" aria-selected="${i === 0}" data-i="${i}"><img alt="" loading="lazy"><span>${esc(c.name)}</span></button>`).join('');
+    thumbs.innerHTML = allCams().map((c, i) => `<button role="tab" type="button" aria-selected="false" data-i="${i}"><img alt="" loading="lazy"><span>${esc(c.name)}</span></button>`).join('');
     thumbs.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => showCam(Number(b.dataset.i), true)));
   }
-  thumbs.querySelectorAll('button').forEach((b) => { b.querySelector('img').src = camUrl(M.cams[b.dataset.i].src); });
+  thumbs.querySelectorAll('button').forEach((b) => { b.querySelector('img').src = camUrl(allCams()[b.dataset.i].src); });
+  if (camIndex == null) camIndex = document.documentElement.dataset.mode === 'preseason' ? 1 : 0;
   showCam(camIndex);
   $('cams-updated').textContent = `Refreshed ${fmtTime(new Date(), { hour: 'numeric', minute: '2-digit' })}`;
 }
@@ -1605,6 +1606,7 @@ function init() {
   $('links').innerHTML = M.links.map((l) => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a></li>`).join('');
   setupReveal();
   renderSources();
+  document.querySelectorAll('a[href="#cams"].stake-thumb, a[href="#cams"].pre-stake').forEach((a) => a.addEventListener('click', () => showCam(0)));
   document.querySelectorAll('details.regional').forEach((d) => d.addEventListener('toggle', () => { if (d.open) drawMeasuredCharts(); }));
   setupTabs();
   if (mode === 'preseason') document.querySelector('[data-tab="snowpack"]')?.click();

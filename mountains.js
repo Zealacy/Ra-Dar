@@ -42,14 +42,17 @@ const MOUNTAINS = {
       note: 'Stake is in inches. It is cleared after lifts close, so the reading shows new snow since then.',
     },
     // Ordered by how useful each view is for judging ski conditions.
+    // Ordered by how useful each view is for judging ski conditions, highest camera first.
+    // Locations are checked against each camera's own on-image stamp (verified 2026-11-07):
+    // no camera is at the summit; the highest ones are at the top of Outback (mid-mountain).
     cams: [
-      { name: 'The Cone (summit)', why: 'Summit visibility, cloud cover and wind-blown snow up top', src: 'https://api.mtbachelor.com/api/v1/cams/mtn/3' },
-      { name: 'Tumalo Mtn & top of Pine Marten', why: 'Upper-mountain visibility and the inversion/cloud deck', src: 'https://api.mtbachelor.com/api/v1/cams/mtn/12' },
-      { name: 'Pine Marten Lodge', why: 'Mid-mountain snow surface and visibility', src: 'https://api.mtbachelor.com/api/v1/cams/mtn/9' },
-      { name: 'Outback lift line', why: 'Tree skiing and lift-line crowds on the north side', src: 'https://api.mtbachelor.com/api/v1/cams/mtn/11' },
-      { name: 'Sunrise base', why: 'Lower-mountain snow and Sunrise lodge conditions', src: 'https://api.mtbachelor.com/api/v1/cams/mtn/5' },
+      { name: 'Tumalo Mtn & top of Pine Marten', why: 'Mid-mountain camera at the top of Outback: upper-mountain visibility and the cloud deck', src: 'https://api.mtbachelor.com/api/v1/cams/mtn/12' },
+      { name: 'Pine Marten Lodge', why: 'Mid-mountain camera at the top of Outback: snow surface and visibility around the lodge', src: 'https://api.mtbachelor.com/api/v1/cams/mtn/9' },
+      { name: 'Outback lift line', why: 'Mid-mountain camera at the top of Outback: tree runs and the lift line', src: 'https://api.mtbachelor.com/api/v1/cams/mtn/11' },
+      { name: 'The Cone (from West Village)', why: 'Lower-mountain camera at West Village looking at The Cone', src: 'https://api.mtbachelor.com/api/v1/cams/mtn/3' },
+      { name: 'Sunrise base', why: 'Lower mountain: snow and conditions at Sunrise Lodge', src: 'https://api.mtbachelor.com/api/v1/cams/mtn/5' },
       { name: 'West Village base & parking', why: 'Base snow, crowds and how full the lots are', src: 'https://api.mtbachelor.com/api/v1/cams/mtn/13' },
-      { name: 'Base of Pine Marten lift', why: 'Base area and lift-line length', src: 'https://api.mtbachelor.com/api/v1/cams/mtn/1' },
+      { name: 'Base of Pine Marten lift', why: 'West Village base area and the Pine Marten lift line', src: 'https://api.mtbachelor.com/api/v1/cams/mtn/1' },
       { name: 'Nordic Center', why: 'Nordic trail conditions', src: 'https://api.mtbachelor.com/api/v1/cams/mtn/16' },
     ],
     // Season status, from the official Lift & Trail Status page (checked 2026-11-07):
