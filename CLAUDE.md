@@ -47,4 +47,18 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 - **Test in a real browser before pushing.** Use Playwright with `proxy: { server: process.env.HTTPS_PROXY, bypass: 'localhost,127.0.0.1' }` and serve the site with `python3 -m http.server`. Take screenshots on desktop and phone, and look at them.
 - This sandbox's connection sometimes drops requests (Open-Meteo especially). `getJSON` retries once. Don't mistake these sandbox failures for bugs in the site.
 - Cloud sessions should use the **Ra-Dar** environment, which allows the hosts listed above, in **Auto** mode.
-- GitHub Pages builds from the branch set in the repo's Settings → Pages, currently `claude/weather-tracker-github-v48153`. Pushing to that branch publishes the site. If a new session works on a different branch, tell the owner the Pages branch needs to change, or open a pull request to the Pages branch.
+## Publishing (standing permission from the owner)
+
+The owner wants finished changes to go live without extra approval steps, and has given permission for this rule.
+
+- GitHub Pages builds from the branch set in the repo's Settings → Pages, currently `claude/weather-tracker-github-v48153`. Pushing to that branch publishes the site.
+- **When a requested change is finished**, publish it without waiting to be asked:
+  1. Run the checks first: `node --check` on every JS file, then the Playwright browser test on desktop and phone, with no page errors and the screenshots looked at.
+  2. Commit with a clear message.
+  3. If the session's branch *is* the Pages branch, push it. If it's a different branch, push that branch, open a pull request into the Pages branch, and merge it once the checks above have passed.
+  4. Tell the owner what went live and give the site link: https://zealacy.github.io/Ra-Dar/
+- **Limits on this permission:**
+  - Never publish a change that failed its checks. Fix it, or tell the owner what's broken.
+  - Never force-push, rewrite history, or delete branches.
+  - Only merge pull requests this session opened for the owner's own requested changes. Never merge anyone else's.
+  - The permission covers this repository's website only.
