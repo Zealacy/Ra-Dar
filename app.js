@@ -436,7 +436,7 @@ function computeCall() {
     const gust = Math.max(...winRows.map((r) => r.gust ?? 0));
     const wind = Math.max(...winRows.map((r) => r.wind ?? 0));
     const dir = meanDir(winRows.map((r) => r.dir).filter((d) => d != null));
-    c.wind = { gust, wind, dir, elevFt: nws.elevFt, cls: 'good', text: 'Lifts should run normally.' };
+    c.wind = { gust, wind, dir, elevFt: nws.elevFt, cls: 'good', text: 'Low wind risk for the lifts.' };
     if (gust >= 55) { Object.assign(c.wind, { cls: 'bad', text: 'Widespread wind holds are likely, especially Summit and Northwest.' }); score -= 3; c.why.push('strong gusts may close lifts'); }
     else if (gust >= 40) { Object.assign(c.wind, { cls: 'bad', text: 'Upper lifts (Summit, Northwest) could go on wind hold.' }); score -= 1.5; c.why.push('gusty wind up high'); }
     else if (gust >= 25) { Object.assign(c.wind, { cls: 'ok', text: 'Breezy. Expect wind-affected snow up top.' }); score -= 0.5; }
@@ -486,7 +486,7 @@ function computeCall() {
   const push = (cls, label) => c.chips.push({ cls, label, icon: icon[cls] });
   if (c.snow) push(d24 >= 6 ? 'good' : d24 >= 2 ? 'ok' : 'neutral', d24 >= 2 ? `${r0(d24)}" new` : 'No new snow');
   if (c.rain) push(c.rain.cls, c.rain.cls === 'good' ? (c.rain.wet ? 'Snow to the base' : 'Dry') : 'Rain risk');
-  if (c.wind) push(c.wind.cls, c.wind.cls === 'good' ? 'Calm lifts' : c.wind.cls === 'ok' ? 'Breezy' : 'Wind holds');
+  if (c.wind) push(c.wind.cls, c.wind.cls === 'good' ? 'Light wind' : c.wind.cls === 'ok' ? 'Breezy' : 'Wind-hold risk');
   if (c.sky) push(c.sky.cls, c.sky.label);
   if (c.temp) push(c.temp.cls, c.temp.cls === 'good' ? 'Good temps' : c.temp.chill <= -5 ? 'Bitter cold' : 'Soft / icy snow');
   return c;
@@ -548,7 +548,7 @@ function renderLiftsSummary(c) {
     const seg = svgEl('path', { d, fill: 'none', stroke: statusColor(l.worst === 'none' ? '' : l.worst), 'stroke-width': 12, 'stroke-linecap': 'butt', opacity: 0 }, svg);
     seg.style.transition = `opacity .4s ease ${0.1 + i * 0.06}s`;
     requestAnimationFrame(() => requestAnimationFrame(() => seg.setAttribute('opacity', 1)));
-    bindTip(seg, `${l.name}: ${l.worst === 'good' ? 'low wind-hold risk' : l.worst === 'ok' ? 'holds possible' : l.worst === 'bad' ? `holds likely (${l.badHours} hr)` : 'no forecast'}`);
+    bindTip(seg, `${l.name}: ${l.worst === 'good' ? 'low wind risk' : l.worst === 'ok' ? 'wind holds possible' : l.worst === 'bad' ? `wind holds likely (${l.badHours} hr)` : 'no forecast'}. Not official status.`);
   });
 
   const icon = { good: '✓', ok: '!', bad: '✕', none: '•' };
@@ -561,21 +561,43 @@ function renderLiftsSummary(c) {
   $('lift-tiers').querySelectorAll('.lp').forEach((el) => {
     const l = L.lifts.find((x) => x.name === el.dataset.name);
     const [w, h] = M.liftWind[l.exposure];
-    bindTip(el, `${l.name} (${l.type}${l.topFt ? `, top ${ftFmt(l.topFt)} ft` : ''}). Holds possible from about ${w} mph gusts, likely from ${h} mph. Forecast peak: ${r0(L.peakGust)} mph.`);
+    bindTip(el, `${l.name} (${l.type}${l.topFt ? `, top ${ftFmt(l.topFt)} ft` : ''}). Wind holds possible from about ${w} mph gusts, likely from ${h} mph. Forecast peak: ${r0(L.peakGust)} mph. Not official status: check the official board.`);
   });
   const bad = L.lifts.filter((l) => l.worst === 'bad').map((l) => l.name.replace(' Express', ''));
   const watch = L.lifts.filter((l) => l.worst === 'ok').map((l) => l.name.replace(' Express', ''));
-  let cap = bad.length ? `Wind holds likely on ${bad.join(', ')}.` : watch.length ? `Holds possible on ${watch.join(', ')}.` : 'Forecast wind looks fine for every lift.';
-  if (!L.season.open) cap += ' The lifts aren\'t running yet, so this is a preview.';
-  $('lift-cap').innerHTML = `${esc(cap)} <a href="${esc(M.liftStatusUrl)}" target="_blank" rel="noopener">Official status ↗</a>`;
+  let cap = bad.length ? `Wind holds likely on ${bad.join(', ')}.` : watch.length ? `Wind holds possible on ${watch.join(', ')}.` : 'Low wind risk for every lift.';
+  cap += L.season.open ? ' This only covers wind. Lifts also close for maintenance, staffing and other reasons.' : ' The lifts aren\'t running yet, so this is a preview.';
+  $('lift-cap').textContent = cap;
+  $('lift-official-top').href = M.liftStatusUrl;
+}
+
+function embedOfficialBoard() {
+  const box = $('board-frame');
+  if (box.querySelector('iframe')) return;
+  const f = document.createElement('iframe');
+  f.src = M.liftStatusUrl;
+  f.title = 'Mt. Bachelor official lift and trail status';
+  f.loading = 'lazy';
+  f.referrerPolicy = 'strict-origin-when-cross-origin';
+  // Skip past the resort's banner so the frame opens at the lift list. The page can't be scrolled
+  // from here (it's another site), so the frame is shifted up by a measured offset with some slack.
+  box.style.setProperty('--board-offset', `${M.liftStatusOffsetPx || 0}px`);
+  f.addEventListener('load', () => { f.classList.add('ready'); box.querySelector('.board-loading')?.remove(); });
+  box.appendChild(f);
+  // If the resort ever blocks embedding, point people to the page instead.
+  setTimeout(() => {
+    const loading = box.querySelector('.board-loading');
+    if (loading) loading.innerHTML = `The official board is taking a while. <a href="${esc(M.liftStatusUrl)}" target="_blank" rel="noopener">Open it directly ↗</a>`;
+  }, 12000);
 }
 
 function drawLiftsTab() {
   const L = state.call?.lifts;
   $('lift-official').href = M.liftStatusUrl;
+  embedOfficialBoard();
   if (!L) return;
   $('lift-day').textContent = `${state.call.win.today ? 'today' : 'tomorrow'}, ${new Date(state.call.win.date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
-  $('lifts-lead').textContent = `${L.season.open ? '' : L.season.label + '. '}There's no public live lift-status feed, so this estimates the chance of wind holds for each lift from the National Weather Service gust forecast and how exposed each lift top is. It isn't official status.`;
+  $('lifts-lead').textContent = `${L.season.open ? '' : L.season.label + '. '}How likely wind is to stop each of the ${L.total} chairlifts (the official board also lists the surface carpets), from the National Weather Service gust forecast and how exposed each lift top is. It only covers wind. Lifts also close for maintenance, staffing and other reasons, so always check the official board above.`;
 
   // Heatmap: lifts x hours
   const heat = $('lift-heat');
@@ -590,7 +612,7 @@ function drawLiftsTab() {
   heat.innerHTML = html;
   heat.querySelectorAll('.cell').forEach((el) => {
     const l = L.lifts[el.dataset.i], h = l.perHour[el.dataset.j];
-    bindTip(el, `${l.name}, ${fmtTime(h.t, { hour: 'numeric' })}: forecast gusts ${r0(h.gust)} mph → ${h.risk === 'good' ? 'low risk' : h.risk === 'ok' ? 'holds possible' : 'holds likely'}.`);
+    bindTip(el, `${l.name}, ${fmtTime(h.t, { hour: 'numeric' })}: forecast gusts ${r0(h.gust)} mph → ${h.risk === 'good' ? 'low wind risk' : h.risk === 'ok' ? 'wind holds possible' : 'wind holds likely'}.`);
   });
 
   // Gust chart with tier thresholds
@@ -611,7 +633,7 @@ function drawLiftsTab() {
 
   // Table
   const head = ['Lift', 'Type', 'Length ft', 'Vertical ft', 'Top elev ft', 'Exposure', 'Holds possible / likely (mph gust)', 'Peak forecast gust', 'Estimate'];
-  const word = { good: 'Low risk', ok: 'Holds possible', bad: 'Holds likely', none: 'No forecast' };
+  const word = { good: 'Low wind risk', ok: 'Wind holds possible', bad: 'Wind holds likely', none: 'No forecast' };
   $('lift-table').innerHTML = `<thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${L.lifts.map((l) => {
     const pk = Math.max(...l.perHour.map((h) => h.gust ?? 0));
     return `<tr><td>${esc(l.name)}</td><td>${esc(l.type)}</td><td>${ftFmt(l.lengthFt)}</td><td>${ftFmt(l.vertFt)}</td><td title="${esc(l.topNote || '')}">${l.topFt ? ftFmt(l.topFt) : '–'}</td>
@@ -828,7 +850,7 @@ function renderWind(c) {
   const unit = svgEl('text', { x: cx, y: cy + 94, 'text-anchor': 'middle', 'font-size': 10, fill: cssVar('--text-2') }, svg);
   unit.textContent = 'mph gusts';
   bindTip(svg, `Peak gust ${r0(w.gust)} mph, sustained up to ${r0(w.wind)} mph from the ${compass(w.dir)}, at about ${ftFmt(w.elevFt)} ft. The black tick marks 40 mph, where upper lifts start to risk wind holds.`);
-  $('wind-cap').innerHTML = `<span class="st ${w.cls}"><i aria-hidden="true">${w.cls === 'good' ? '✓' : w.cls === 'ok' ? '!' : '✕'}</i>${w.cls === 'good' ? 'Lifts OK' : w.cls === 'ok' ? 'Breezy' : 'Hold risk'}</span> From the ${compass(w.dir)}, up to ${r0(w.wind)} mph. ${esc(w.text)}`;
+  $('wind-cap').innerHTML = `<span class="st ${w.cls}"><i aria-hidden="true">${w.cls === 'good' ? '✓' : w.cls === 'ok' ? '!' : '✕'}</i>${w.cls === 'good' ? 'Light wind' : w.cls === 'ok' ? 'Breezy' : 'Hold risk'}</span> From the ${compass(w.dir)}, up to ${r0(w.wind)} mph. ${esc(w.text)}`;
 }
 
 // --- Sky icon + hourly ribbon
@@ -1368,7 +1390,8 @@ function renderSources() {
     ['Hourly forecast', `National Weather Service (${M.nws.office === 'PDT' ? 'Pendleton' : M.nws.office})`, 'Forecast', 'Official forecast for the 2.5 km grid cell over the ski area.'],
     ['Base-to-summit forecast & new-snow estimate', 'Open-Meteo, blending NOAA and European models', 'Forecast / Model', 'Model data adjusted to each elevation. New-snow totals are estimates, not measurements.'],
     ['Lift list & stats', 'Mt. Bachelor (official Mountain Stats page)', 'Reference', 'Names, types, lengths, vertical rise.'],
-    ['Lift wind-hold risk', 'Ra-Dar estimate from NWS forecast gusts', 'Estimate', 'There\'s no public live lift-status feed. Rule-of-thumb thresholds by exposure, not official status.'],
+    ['Official lift status', 'Mt. Bachelor Lift & Trail Status page (embedded)', 'Live', 'Shown as published by the resort, including maintenance and staffing closures.'],
+    ['Lift wind-hold risk', 'Ra-Dar estimate from NWS forecast gusts', 'Estimate', 'Wind only. Rule-of-thumb thresholds by exposure. Not official status.'],
     ['Season status', 'Mt. Bachelor Lift & Trail Status page', 'Reference', `Opening Day ${M.season?.openingDay || 'n/a'}, checked ${M.season?.checked || 'n/a'}. Updated by hand.`],
     ['Forecaster notes', 'National Weather Service', 'Forecast', 'The forecasters\' written discussion.'],
     ['Radar', 'RainViewer, using NOAA NEXRAD radar', 'Measured', 'Radar coverage over the Cascades is limited by terrain, so light snow can be missed.'],

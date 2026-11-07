@@ -57,6 +57,10 @@ const MOUNTAINS = {
     // scheduled for December 4, 2026." Update this when the resort announces changes.
     season: { openingDay: '2026-12-04', checked: '2026-11-07' },
     liftStatusUrl: 'https://www.mtbachelor.com/the-mountain/lift-trail-report/',
+    // The lift list (legend: Open / Closed / On Hold / Expected) starts about 1,130-1,150 px down the
+    // official page (measured 2026-11-07, desktop and phone). The embed is shifted up by this much,
+    // leaving slack above the list so a slightly shorter header never cuts it off.
+    liftStatusOffsetPx: 1040,
     // Official lift stats (mtbachelor.com > Mountain Stats): name, type, length, vertical.
     // topFt only where an official figure exists or can be derived from official figures.
     // exposure: how wind-exposed the lift top is ('high' = alpine, 'mid' = mid-mountain, 'low' = base area).
