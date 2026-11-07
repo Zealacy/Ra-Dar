@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ra-Dar Weather</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Ra-Dar</h1>
+    <form id="search">
+      <input id="city" type="text" placeholder="Search a city…" autocomplete="off" required>
+      <button type="submit">Search</button>
+      <button type="button" id="locate" title="Use my location">📍</button>
+      <button type="button" id="units" title="Switch units">°C</button>
+    </form>
+  </header>
+
+  <main>
+    <p id="status"></p>
+
+    <section id="current" class="card" hidden>
+      <h2 id="place"></h2>
+      <div class="now">
+        <span id="icon" class="icon"></span>
+        <span id="temp" class="temp"></span>
+      </div>
+      <p id="desc"></p>
+      <ul class="details">
+        <li>Feels like <strong id="feels"></strong></li>
+        <li>Humidity <strong id="humidity"></strong></li>
+        <li>Wind <strong id="wind"></strong></li>
+      </ul>
+    </section>
+
+    <section id="forecast" class="forecast" hidden></section>
+
+    <section class="card">
+      <h2>Live radar</h2>
+      <div id="map"></div>
+    </section>
+  </main>
+
+  <footer>
+    Weather data: <a href="https://open-meteo.com/">Open-Meteo</a> ·
+    Radar: <a href="https://www.rainviewer.com/">RainViewer</a> ·
+    Map: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
