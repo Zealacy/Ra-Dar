@@ -329,7 +329,10 @@ footer { padding-bottom: 28px; }
 [data-device="mobile"] .w-sky { grid-column: 1 / -1; }
 [data-device="mobile"] .w-now { grid-column: 1 / -1; }
 [data-device="mobile"] .lifts-body { gap: 12px; align-items: flex-start; }
-[data-device="mobile"] .lift-ring-wrap { width: 92px; }
+[data-device="mobile"] .lift-ring-wrap { width: 108px; }
+[data-device="mobile"] .lift-ring-num #lift-ok { font-size: 1.5rem; }
+[data-device="mobile"] .lift-ring-num small { font-size: .6rem; }
+[data-device="mobile"] .lift-ring-num em { font-size: .54rem; max-width: 62px; }
 [data-device="mobile"] .tiers { grid-template-columns: 1fr; gap: 8px; }
 [data-device="mobile"] .season { font-size: .74rem; border-radius: 12px; }
 [data-device="mobile"] .stake-thumb { display: none; }
