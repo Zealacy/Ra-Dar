@@ -50,6 +50,12 @@
       </div>
       <div class="chips" id="call-chips"></div>
 
+      <div class="brief" id="brief" aria-live="polite">
+        <div class="brief-head"><h3>Briefing</h3><span class="brief-when" id="brief-when"></span></div>
+        <ul class="brief-lines" id="brief-lines"><li>Loading…</li></ul>
+        <div class="pack"><span class="pack-lbl">Pack</span><div class="pack-items" id="pack"></div></div>
+      </div>
+
       <div class="widgets">
         <article class="w w-mtn">
           <header><h3>On the mountain</h3><span class="src f">Forecast</span></header>
@@ -95,7 +101,7 @@
           <div class="lifts-body">
             <div class="lift-ring-wrap">
               <svg id="lift-ring" class="lift-ring" viewBox="0 0 120 120" aria-hidden="true"></svg>
-              <div class="lift-ring-num"><span id="lift-ok">–</span><small>of <span id="lift-total">–</span></small><em>chairlifts low wind risk</em></div>
+              <div class="lift-ring-num"><span id="lift-ok">–</span><small>of <span id="lift-total">–</span> chairs</small><em>low wind risk</em></div>
             </div>
             <div class="lift-main">
               <div class="tiers" id="lift-tiers"></div>

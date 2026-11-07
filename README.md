@@ -8,6 +8,7 @@ It's a static site with no server, no build step and no API keys. Everything loa
 | Section | What it shows | Source | Type |
 |---|---|---|---|
 | **The Call** | Animated score dial, headline and status chips, plus visual cards: a mountain profile with temperature at base/mid/summit and the freezing or snow line, a snow stake meter with falling snow, a wind compass with gust dial, a cloud-cover timeline, and a snowpack meter vs normal | Combines the sources below | Measured + forecast |
+| **Briefing** | A few blunt sentences for the morning-of or night-before check: overnight snow, snow or rain timing, base and summit temps, wind chill, wind and lift-hold risk, snow surface, visibility, a bottom line, and a **Pack** list (goggle lens, face cover, waterproofs, layers, sharp edges, chains) | Same data as the cards | Measured + forecast |
 | **Lifts** (summary) | Season status and Opening Day countdown, a ring of all 12 lifts, and lift pills grouped by exposure, colored by wind-hold risk during ski hours | Official lift list + NWS gust forecast | Estimate |
 | **Lifts** tab | Mt. Bachelor's official live lift board embedded at the top (Open / Closed / On Hold / Expected), then the wind-hold estimate: an hour-by-hour risk grid, forecast gusts vs. thresholds, and the official lift stats | Mt. Bachelor; NWS | Live + Estimate |
 | **Snow stake** | Live West Village snow stake cam | Mt. Bachelor | Measured |
