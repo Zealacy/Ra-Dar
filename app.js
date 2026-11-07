@@ -828,14 +828,220 @@ function setupTabs() {
   requestAnimationFrame(moveInk);
 }
 
-// ================================================================ Forecast discussion
+// ================================================================ Forecaster notes (NWS Area Forecast Discussion)
+// The raw product is teletype-era text: routing codes, ".SECTION..." headers,
+// "&&" / "$$" terminators and hard-wrapped lines. Parse it into readable sections.
+const AFD_GLOSSARY = {
+  'shortwave': 'A small, fast-moving disturbance in the upper atmosphere that can trigger clouds and precipitation.',
+  'short wave': 'A small, fast-moving disturbance in the upper atmosphere that can trigger clouds and precipitation.',
+  'trough': 'A dip in the jet stream. Usually brings cooler, unsettled weather and storms.',
+  'ridge': 'A bulge in the jet stream. Usually brings dry, stable and often warmer weather.',
+  'upper level low': 'A closed low-pressure system high in the atmosphere. Often slow-moving, with showers.',
+  'upper low': 'A closed low-pressure system high in the atmosphere. Often slow-moving, with showers.',
+  'zonal flow': 'West-to-east winds aloft. Weather systems move through quickly.',
+  'southwest flow': 'Winds aloft from the southwest. Often mild and moist, with high snow levels.',
+  'northwest flow': 'Winds aloft from the northwest. Often colder, with showery snow in the Cascades.',
+  'onshore flow': 'Wind from the ocean toward land, bringing moisture and clouds.',
+  'offshore flow': 'Wind from land toward the ocean. Usually dry and clear.',
+  'atmospheric river': 'A long, narrow plume of deep moisture from the tropics. Heavy precipitation, often with high snow levels.',
+  'pressure gradient': 'How quickly air pressure changes over a distance. A tighter gradient means stronger wind.',
+  'synoptic': 'Large-scale weather patterns, about 600 miles across or more.',
+  'mesoscale': 'Smaller-scale weather features, from a few miles to about 100 miles across.',
+  'inversion': 'Warm air sitting on top of cold air. It traps fog and cold in the valleys, and can be sunny and warmer up high.',
+  'orographic': 'Lift caused by air being forced up mountains. It squeezes out extra precipitation on the windward slopes.',
+  'upslope': 'Air pushed up a mountain slope, which boosts precipitation.',
+  'downslope': 'Air sinking down a mountain slope, which warms and dries it.',
+  'rain shadow': 'The drier area downwind of mountains.',
+  'advection': 'Air of a certain temperature or moisture being carried in by the wind.',
+  'cold front': 'The leading edge of colder air. Often brings a burst of precipitation and falling snow levels.',
+  'warm front': 'The leading edge of warmer air. Often brings steady precipitation and rising snow levels.',
+  'occluded front': 'Where a cold front catches up to a warm front.',
+  'snow level': 'The elevation where precipitation changes from rain to snow.',
+  'freezing level': 'The elevation where the temperature is 32°F.',
+  'instability': 'Air that rises easily once lifted, leading to showers or thunderstorms.',
+  'cape': 'Convective Available Potential Energy, a measure of instability. Higher means stronger storms.',
+  'qpf': 'Quantitative Precipitation Forecast: the forecast amount of rain or melted snow.',
+  'pops': 'Probability of precipitation.',
+  'pop': 'Probability of precipitation.',
+  'nbm': 'National Blend of Models: a weather service forecast blending many computer models.',
+  'refs': 'Rapid Ensemble Forecast System: a group of high-resolution model runs used to gauge forecast certainty.',
+  'href': 'High-Resolution Ensemble Forecast: a set of short-range high-detail models.',
+  'gfs': 'Global Forecast System, the main US global computer model.',
+  'ecmwf': 'The European global computer model, often called the Euro.',
+  'euro': 'The European (ECMWF) global computer model.',
+  'nam': 'North American Mesoscale model, a US regional computer model.',
+  'hrrr': 'High-Resolution Rapid Refresh, a detailed short-range US model updated hourly.',
+  'cams': 'Convection-allowing models: high-resolution models that can simulate individual storms.',
+  'ensemble': 'Many runs of a model with slightly different starting conditions, used to measure uncertainty.',
+  'ensembles': 'Many runs of a model with slightly different starting conditions, used to measure uncertainty.',
+  'deterministic': 'A single model run, as opposed to an ensemble.',
+  'clusters': 'Groups of ensemble runs that show similar outcomes.',
+  'wpc': 'Weather Prediction Center, the national center for precipitation forecasts.',
+  'cpc': 'Climate Prediction Center, which issues longer-range outlooks.',
+  'pwat': 'Precipitable water: the total moisture in the air column.',
+  'pw': 'Precipitable water: the total moisture in the air column.',
+  'ivt': 'Integrated vapor transport: how much moisture is flowing through, used to rate atmospheric rivers.',
+  'vfr': 'Visual Flight Rules: good flying weather (aviation).',
+  'mvfr': 'Marginal VFR: somewhat low clouds or visibility (aviation).',
+  'ifr': 'Instrument Flight Rules: low clouds or poor visibility (aviation).',
+  'lifr': 'Low IFR: very low clouds or very poor visibility (aviation).',
+  'cigs': 'Ceilings: the height of the lowest cloud layer (aviation).',
+  'taf': 'Terminal Aerodrome Forecast: an airport forecast.',
+  'tafs': 'Terminal Aerodrome Forecasts: airport forecasts.',
+  'kt': 'Knots. 1 knot is about 1.15 mph.',
+  'kts': 'Knots. 1 knot is about 1.15 mph.',
+  'mb': 'Millibars, a pressure unit. "500 mb" means about 18,000 ft up.',
+  'cwa': 'County Warning Area: the region this weather office covers.',
+  'wfo': 'Weather Forecast Office.',
+  'z': 'Zulu time (UTC). Subtract 8 hours for Pacific Standard Time, or 7 for daylight time.',
+};
+const AFD_HIGHLIGHT = /\b(cascades?|cascade crest|central oregon|deschutes|bend|mt\.? bachelor|bachelor|snow|snowfall|snow levels?|blizzard|wind advisory|high wind|winter storm|winter weather|avalanche|warning|watch|advisory)\b/i;
+
+const AFD_TERMS = Object.keys(AFD_GLOSSARY).sort((a, b) => b.length - a.length);
+const AFD_TERM_RE = new RegExp(`\\b(${AFD_TERMS.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '[\\s-]+')).join('|')})\\b`, 'gi');
+
+function afdInline(text) {
+  // text is already HTML-escaped; wrap glossary terms (short all-caps codes only when written in caps).
+  return text.replace(AFD_TERM_RE, (m) => {
+    const key = m.toLowerCase().replace(/[\s-]+/g, ' ');
+    const def = AFD_GLOSSARY[key];
+    if (!def) return m;
+    if (key.length <= 4 && m !== m.toUpperCase()) return m; // "pop", "z", "mb" in normal prose
+    if (key === 'z' && !/^\d/.test(m)) return m;
+    return `<abbr class="term" data-def="${esc(def)}">${m}</abbr>`;
+  });
+}
+
+function parseAfd(raw) {
+  const text = raw.replace(/\r/g, '');
+  const lines = text.split('\n');
+  const titleIdx = lines.findIndex((l) => /area forecast discussion/i.test(l));
+  const body = lines.slice(titleIdx >= 0 ? titleIdx + 1 : 0);
+  // First non-empty lines after the title: office, then issue time.
+  const meta = [];
+  while (body.length && meta.length < 2) { const l = body.shift().trim(); if (l) meta.push(l); }
+
+  const sections = [];
+  let cur = null;
+  for (const line of body) {
+    const head = /^\.([A-Za-z][A-Za-z0-9 /&,()'-]*?)\s*\.\.\.\s*(.*)$/.exec(line.trim());
+    if (head) {
+      // "SHORT TERM /Tonight through Sunday/" -> title + subtitle
+      let [title, sub = ''] = head[1].split(/\s+(?=\/)/);
+      sub = sub.replace(/^\/|\/$/g, '').trim();
+      cur = { title: title.trim(), sub, lines: [] };
+      const rest = head[2].trim();
+      // Short trailing text is a subtitle; anything longer is the start of the section body.
+      if (rest && rest.length <= 40 && !/[a-z]\.\s/.test(rest)) cur.sub = cur.sub || rest.replace(/\.\.\.$/, '').replace(/^\/|\/$/g, '');
+      else if (rest) cur.lines.push(rest);
+      sections.push(cur);
+      continue;
+    }
+    if (/^(&&|\$\$)\s*$/.test(line.trim())) { cur = null; continue; }
+    if (!cur) {
+      if (!line.trim()) continue;
+      cur = { title: '', sub: '', lines: [] };
+      sections.push(cur);
+    }
+    cur.lines.push(line);
+  }
+  return { meta, sections: sections.filter((s) => s.lines.some((l) => l.trim())) };
+}
+
+// Turn hard-wrapped lines into paragraphs, bullet lists and (for numeric tables) preformatted blocks.
+function afdBlocks(lines) {
+  const blocks = [];
+  let para = [], list = null;
+  const flushPara = () => { if (para.length) blocks.push({ type: 'p', text: para.join(' ') }); para = []; };
+  const flushList = () => { if (list) blocks.push(list); list = null; };
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/, '');
+    if (!line.trim()) { flushPara(); flushList(); continue; }
+    const bullet = /^\s*[-*•]\s+(.*)$/.exec(line);
+    if (bullet) { flushPara(); if (!list) list = { type: 'ul', items: [] }; list.items.push(bullet[1]); continue; }
+    if (list && /^\s{2,}\S/.test(line)) { list.items[list.items.length - 1] += ' ' + line.trim(); continue; }
+    flushList();
+    para.push(line.trim());
+  }
+  flushPara(); flushList();
+  return blocks;
+}
+function isTable(lines) {
+  const content = lines.filter((l) => l.trim());
+  if (content.length < 2) return false;
+  const tabular = content.filter((l) => /\S\s{2,}\S/.test(l) && (l.match(/\d+/g) || []).length >= 3);
+  return tabular.length / content.length > 0.5;
+}
+
+const AFD_NAMES = {
+  'KEY MESSAGES': 'Key messages', 'SYNOPSIS': 'Big picture', 'DISCUSSION': 'Discussion', 'UPDATE': 'Latest update',
+  'SHORT TERM': 'Short term', 'LONG TERM': 'Long term', 'AVIATION': 'Aviation', 'MARINE': 'Marine', 'FIRE WEATHER': 'Fire weather',
+  'HYDROLOGY': 'Rivers & flooding', 'CLIMATE': 'Climate', 'PRELIMINARY POINT TEMPS/POPS': 'Preliminary temps & precip chances',
+  'PREV DISCUSSION': 'Previous discussion', 'NEAR TERM': 'Near term', 'EQUIPMENT': 'Equipment',
+};
+const AFD_OPEN = /^(KEY MESSAGES|SYNOPSIS|UPDATE|DISCUSSION|SHORT TERM)/;
+
+function renderAfd(prod) {
+  const { meta, sections } = parseAfd(prod.productText);
+  const issued = fmtTime(new Date(prod.issuanceTime), { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  $('afd-summary').textContent = `The forecasters' own write-up of what they expect and why, from ${meta[0] || 'the National Weather Service'}. Issued ${issued}. It's technical: start with the key messages.`;
+
+  const html = sections.map((sec) => {
+    const upper = sec.title.toUpperCase();
+    if (!sec.title) {
+      const content = sec.lines.map((l) => l.trim()).filter(Boolean);
+      const credits = content.every((l) => /\.{2,}\s*\S+$|www\.|https?:|interact with us|^\S+$/i.test(l));
+      if (credits) {
+        const who = content.filter((l) => /\.{2,}/.test(l)).map((l) => l.replace(/^(.+?)\.{2,}\s*(.*)$/, (_m, role, id) => `${role.charAt(0).toUpperCase()}${role.slice(1).toLowerCase()}: ${id}`));
+        return who.length ? `<p class="fine afd-credits">Written by forecaster IDs: ${esc(who.join(' · '))}</p>` : '';
+      }
+      return `<div class="afd-intro">${afdBlocks(sec.lines).map((b) => (b.type === 'ul' ? `<ul>${b.items.map((i) => `<li>${afdInline(esc(i))}</li>`).join('')}</ul>` : `<p>${afdInline(esc(b.text))}</p>`)).join('')}</div>`;
+    }
+    const isAlerts = /WATCHES|WARNINGS|ADVISORIES/.test(upper);
+    const name = isAlerts ? 'Watches, warnings & advisories' : AFD_NAMES[upper] || (sec.title ? sec.title.charAt(0) + sec.title.slice(1).toLowerCase() : 'Notes');
+    let inner;
+    if (isTable(sec.lines)) {
+      inner = `<pre class="afd-table">${esc(sec.lines.join('\n').replace(/^\n+|\n+$/g, ''))}</pre>`;
+    } else if (isAlerts) {
+      const items = sec.lines.map((l) => l.trim()).filter(Boolean);
+      inner = `<ul class="afd-alerts">${items.map((l) => `<li>${afdInline(esc(l.replace(/\.\.\./g, ' · ')))}</li>`).join('')}</ul>`;
+    } else {
+      inner = afdBlocks(sec.lines).map((b) => {
+        // Highlight only the sentences that matter for skiing.
+        const sentences = (t) => {
+          // Split after . ! ? followed by a space; decimals like 0.01 stay intact. No text is dropped.
+          const parts = t.split(/([.!?]+\s+)/);
+          const out = [];
+          for (let i = 0; i < parts.length; i += 2) out.push(parts[i] + (parts[i + 1] || ''));
+          return out.filter(Boolean);
+        };
+        const fmt = (t) => sentences(t).map((sent) => {
+          const h = afdInline(esc(sent));
+          return AFD_HIGHLIGHT.test(sent) ? `<mark>${h.trimEnd()}</mark> ` : h;
+        }).join('');
+        return b.type === 'ul' ? `<ul>${b.items.map((i) => `<li>${fmt(i)}</li>`).join('')}</ul>` : `<p>${fmt(b.text)}</p>`;
+      }).join('');
+    }
+    const sub = sec.sub ? `<span class="afd-sub">${esc(sec.sub)}</span>` : '';
+    if (upper === 'KEY MESSAGES') return `<section class="afd-key"><h3>${esc(name)}</h3>${inner}</section>`;
+    const alertCount = isAlerts && !/no watches|none/i.test(sec.lines.join(' ')) ? ' afd-has-alerts' : '';
+    return `<details class="afd-sec${alertCount}"${(AFD_OPEN.test(upper) && !isMobile()) || alertCount ? ' open' : ''}><summary>${esc(name)}${sub}</summary><div class="afd-body">${inner}</div></details>`;
+  }).join('');
+  const box = $('afd');
+  box.innerHTML = html + `<details class="afd-sec"><summary>Original text</summary><pre class="afd-table">${esc(prod.productText)}</pre></details>`;
+  box.querySelectorAll('abbr.term').forEach((a) => {
+    bindTip(a, a.dataset.def);
+    a.tabIndex = 0;
+    a.addEventListener('click', (e) => { e.preventDefault(); });
+  });
+}
+
 async function loadAfd() {
   const list = await getJSON(`https://api.weather.gov/products/types/AFD/locations/${M.nws.office}`);
   const first = list['@graph']?.[0];
   if (!first) return;
   const prod = await getJSON(first['@id']);
-  $('afd-summary').textContent = `Area Forecast Discussion from NWS ${M.nws.office === 'PDT' ? 'Pendleton' : M.nws.office}, issued ${fmtTime(new Date(prod.issuanceTime), { weekday: 'short', hour: 'numeric', minute: '2-digit' })}. This is the forecasters' own write-up of what they expect and why.`;
-  $('afd').textContent = prod.productText;
+  renderAfd(prod);
 }
 
 // ================================================================ Webcams

@@ -11,11 +11,11 @@ It's a static site with no server, no build step and no API keys. Everything loa
 | **Snow stake** | Live West Village snow stake cam | Mt. Bachelor | Measured |
 | **Resort weather stations** | Temp and wind at the lift tops | Mt. Bachelor station graphic | Measured |
 | **Webcams** | 8 official cams, ordered by how useful they are for skiing, refreshed every 5 minutes | Mt. Bachelor | Live |
-| **Measured snowpack** | Depth, 24/48/72h change, SWE, % of median, new-snow density, temps, precip, 7-day chart | NRCS SNOTEL (3 stations) | Measured |
-| **Hourly forecast** | 96 hours of temp, wind chill, dewpoint, RH, wind, gusts, sky, precip chance and amount, snowfall, snow level, visibility | National Weather Service | Forecast |
-| **By elevation** | 7-day hi/lo, snow, rain and gusts at base, mid and summit, plus freezing level | Open-Meteo | Forecast |
-| **Discussion** | The NWS forecaster's written discussion | NWS Pendleton | Forecast |
-| **Radar** | Latest precipitation radar | RainViewer | Measured |
+| **Live readings** tab: snowpack | Depth, 24/48/72h change, SWE, % of median, new-snow density, temps, precip, 7-day chart | NRCS SNOTEL (3 stations) | Measured |
+| **Hour by hour** | 96 hours of temp, wind chill, dewpoint, RH, wind, gusts, sky, precip chance and amount, snowfall, snow level, visibility | National Weather Service | Forecast |
+| **Base to summit** | 7-day hi/lo, snow, rain and gusts at base, mid and summit, plus freezing level | Open-Meteo | Forecast |
+| **Forecaster notes** | The NWS forecasters' written discussion, turned into readable sections: key messages up front, ski-relevant sentences highlighted, jargon explained on tap, and the original text kept at the bottom | NWS Pendleton | Forecast |
+| **Radar loop** | Latest precipitation radar | RainViewer | Measured |
 
 All values are in US units (°F, inches, mph, feet). Data refreshes every 10 minutes and webcams every 5.
 
@@ -23,7 +23,7 @@ All values are in US units (°F, inches, mph, feet). Data refreshes every 10 min
 
 The page detects phone, tablet or desktop (`<html data-device>`) and adapts:
 desktop uses a dashboard grid, and phones get swipeable charts and a compact header.
-The technical data lives in tabs (Measured · Hourly forecast · By elevation · Radar · Discussion), so the page stays short.
+The technical data lives in tabs (Live readings · Hour by hour · Base to summit · Radar loop · Forecaster notes), so the page stays short.
 Animations turn off automatically for visitors who have reduced motion enabled.
 
 ## Files

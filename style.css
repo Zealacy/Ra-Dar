@@ -177,6 +177,24 @@ main { padding-top: 16px; padding-bottom: 8px; }
 .pill { border: 1px solid var(--line); background: var(--surface-2); color: var(--text); border-radius: 999px; padding: 6px 14px; font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; }
 .radar-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 #map { height: 440px; border-radius: 12px; }
+/* forecaster notes */
+.afd { display: flex; flex-direction: column; gap: 8px; max-width: 860px; }
+.afd p { margin: 0 0 10px; font-size: .9rem; line-height: 1.6; }
+.afd ul { margin: 0 0 10px; padding-left: 20px; font-size: .9rem; line-height: 1.55; }
+.afd li { margin: 4px 0; }
+mark, .afd mark { background: color-mix(in srgb, var(--warning) 26%, transparent); color: inherit; border-radius: 3px; padding: 0 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.afd abbr.term { text-decoration: underline dotted; text-underline-offset: 3px; text-decoration-color: var(--text-2); cursor: help; }
+.afd-key { background: color-mix(in srgb, var(--s1) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--s1) 35%, transparent); border-radius: 12px; padding: 12px 16px; }
+.afd-key h3 { font-size: .78rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-2); margin-bottom: 6px; }
+.afd-key ul { margin-bottom: 0; font-size: .95rem; font-weight: 550; }
+.afd-sec { background: var(--surface-2); border-radius: 12px; padding: 0 14px; }
+.afd-sec > summary { cursor: pointer; padding: 12px 0; font-weight: 700; font-size: .92rem; list-style-position: outside; }
+.afd-sub { font-weight: 500; color: var(--text-2); margin-left: 8px; font-size: .82rem; }
+.afd-body { padding-bottom: 4px; }
+.afd-has-alerts { border-left: 4px solid var(--critical); }
+.afd-alerts { list-style: none; padding: 0 !important; }
+.afd-alerts li { padding: 6px 10px; background: var(--surface); border-radius: 8px; }
+.afd-table { margin: 0 0 12px; white-space: pre; overflow-x: auto; font-size: .74rem; }
 pre { white-space: pre-wrap; font-size: .78rem; max-height: 560px; overflow: auto; background: var(--surface-2); padding: 14px; border-radius: 10px; margin: 0; }
 
 /* tables */

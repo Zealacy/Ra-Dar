@@ -116,12 +116,12 @@
 
     <!-- ================= DEEP DATA (tabs) ================= -->
     <section id="data" class="panel reveal">
-      <div class="tabs" role="tablist" aria-label="Technical data">
-        <button role="tab" data-tab="measured" aria-selected="true">Measured</button>
-        <button role="tab" data-tab="forecast">Hourly forecast</button>
-        <button role="tab" data-tab="elevation">By elevation</button>
-        <button role="tab" data-tab="radar">Radar</button>
-        <button role="tab" data-tab="discussion">Discussion</button>
+      <div class="tabs" role="tablist" aria-label="Detailed data">
+        <button role="tab" data-tab="measured" aria-selected="true">Live readings</button>
+        <button role="tab" data-tab="forecast">Hour by hour</button>
+        <button role="tab" data-tab="elevation">Base to summit</button>
+        <button role="tab" data-tab="radar">Radar loop</button>
+        <button role="tab" data-tab="discussion">Forecaster notes</button>
         <span class="tab-ink" id="tab-ink"></span>
       </div>
 
@@ -168,8 +168,9 @@
       </div>
 
       <div class="tab-panel" data-panel="discussion" hidden>
-        <p class="lead" id="afd-summary">Loading the forecaster discussion…</p>
-        <pre id="afd"></pre>
+        <p class="lead" id="afd-summary">Loading the forecaster notes…</p>
+        <div id="afd" class="afd"></div>
+        <p class="fine">Lines marked <mark>like this</mark> mention the Cascades, snow, wind or alerts. Terms with a dotted underline are jargon: tap or hover one to see what it means.</p>
       </div>
     </section>
 
