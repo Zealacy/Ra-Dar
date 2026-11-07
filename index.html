@@ -3,53 +3,128 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ra-Dar Weather</title>
+  <title>Ra-Dar Ski Weather</title>
+  <meta name="description" content="Ski weather for Mt. Bachelor: measured snow, forecasts by elevation, live webcams and a snow stake cam.">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>Ra-Dar</h1>
-    <form id="search">
-      <input id="city" type="text" placeholder="Search a city…" autocomplete="off" required>
-      <button type="submit">Search</button>
-      <button type="button" id="locate" title="Use my location">📍</button>
-      <button type="button" id="units" title="Switch units">°C</button>
-    </form>
+  <header class="top">
+    <div class="wrap top-row">
+      <div>
+        <div class="brand">Ra-Dar <span>ski weather</span></div>
+        <h1 id="mtn-name">Mt. Bachelor</h1>
+        <div class="sub" id="mtn-region"></div>
+      </div>
+      <div class="top-actions">
+        <button id="refresh" type="button">Refresh</button>
+        <div class="sub" id="updated">Loading…</div>
+      </div>
+    </div>
+    <nav class="wrap tabs">
+      <a href="#call">The Call</a>
+      <a href="#cams">Webcams</a>
+      <a href="#measured">Measured</a>
+      <a href="#forecast">Forecast</a>
+      <a href="#elevation">By elevation</a>
+      <a href="#discussion">Discussion</a>
+      <a href="#radar">Radar</a>
+    </nav>
   </header>
 
-  <main>
-    <p id="status"></p>
+  <main class="wrap">
 
-    <section id="current" class="card" hidden>
-      <h2 id="place"></h2>
-      <div class="now">
-        <span id="icon" class="icon"></span>
-        <span id="temp" class="temp"></span>
+    <!-- ===== SUMMARY ===== -->
+    <section id="call" class="card call">
+      <div class="call-head">
+        <div>
+          <div class="eyebrow" id="call-day">The Call</div>
+          <h2 id="call-headline">Crunching the numbers…</h2>
+          <p id="call-text" class="muted"></p>
+        </div>
+        <div class="score" id="call-score" aria-label="Ski score">–</div>
       </div>
-      <p id="desc"></p>
-      <ul class="details">
-        <li>Feels like <strong id="feels"></strong></li>
-        <li>Humidity <strong id="humidity"></strong></li>
-        <li>Wind <strong id="wind"></strong></li>
-      </ul>
+      <div class="factors" id="factors"></div>
+      <p class="fine">Score out of 10, worked out from the factors above. <span class="tag m">Measured</span> means real sensor readings. <span class="tag f">Forecast</span> means a prediction.</p>
     </section>
 
-    <section id="forecast" class="forecast" hidden></section>
+    <!-- ===== SNOW STAKE + KEY NUMBERS ===== -->
+    <section class="grid-2">
+      <div class="card">
+        <div class="card-title"><h2>Snow stake</h2><span class="tag m">Live cam</span></div>
+        <a id="stake-link" target="_blank" rel="noopener"><img id="stake" class="cam-img" alt="Snow stake webcam"></a>
+        <p class="fine" id="stake-note"></p>
+      </div>
+      <div class="card">
+        <div class="card-title"><h2>Resort weather stations</h2><span class="tag m">Measured</span></div>
+        <a id="stations-link" target="_blank" rel="noopener"><img id="stations" class="stations-img" alt="Mt. Bachelor lift-top weather station readings"></a>
+        <p class="fine">Temperature and wind measured at the resort's lift-top stations, as published by Mt. Bachelor. Times are when each sensor last reported.</p>
+      </div>
+    </section>
+
+    <!-- ===== WEBCAMS ===== -->
+    <section id="cams" class="card">
+      <div class="card-title"><h2>Webcams</h2><span class="sub" id="cams-updated"></span></div>
+      <div class="cams" id="cam-grid"></div>
+      <p class="fine">Images from Mt. Bachelor's official webcams, refreshed every 5 minutes. Tap one to open it full size.</p>
+    </section>
+
+    <!-- ===== MEASURED ===== -->
+    <section id="measured" class="card">
+      <div class="card-title"><h2>Measured snowpack</h2><span class="tag m">Measured · NRCS SNOTEL</span></div>
+      <p class="muted">Automated federal snow stations near the ski area, reporting hourly. They sit lower than the base (5,700 ft or below), so treat them as a minimum for what fell on the mountain.</p>
+      <div class="table-wrap"><table id="snotel-table"></table></div>
+      <h3>Last 7 days at <span id="snotel-primary"></span></h3>
+      <div class="chart-box"><canvas id="chart-snotel"></canvas></div>
+      <p class="fine">Snow depth from the sonic sensor can wobble by about an inch from hour to hour. Snow water equivalent (SWE) comes from a snow pillow that weighs the snowpack. New-snow density is ΔSWE ÷ Δdepth: under 7% is light, dry powder, 7–12% is typical, and over 12% is heavy, wet snow.</p>
+    </section>
+
+    <!-- ===== NWS FORECAST ===== -->
+    <section id="forecast" class="card">
+      <div class="card-title"><h2>Hourly forecast</h2><span class="tag f">Forecast · National Weather Service</span></div>
+      <p class="muted" id="nws-meta"></p>
+      <div class="chart-box"><canvas id="chart-nws"></canvas></div>
+      <div class="table-wrap tall"><table id="nws-table"></table></div>
+    </section>
+
+    <!-- ===== ELEVATION MODEL ===== -->
+    <section id="elevation" class="card">
+      <div class="card-title"><h2>By elevation</h2><span class="tag f">Forecast · Open-Meteo models</span></div>
+      <p class="muted">Model forecast adjusted to the base, mid-mountain and summit elevations.</p>
+      <div class="chart-box"><canvas id="chart-elev"></canvas></div>
+      <div class="table-wrap"><table id="elev-table"></table></div>
+    </section>
+
+    <!-- ===== DISCUSSION ===== -->
+    <section id="discussion" class="card">
+      <div class="card-title"><h2>Forecaster discussion</h2><span class="tag f">NWS Pendleton</span></div>
+      <details>
+        <summary id="afd-summary">Area Forecast Discussion (loading…)</summary>
+        <pre id="afd"></pre>
+      </details>
+    </section>
+
+    <!-- ===== RADAR ===== -->
+    <section id="radar" class="card">
+      <div class="card-title"><h2>Radar</h2><span class="tag m">Measured · RainViewer</span></div>
+      <div id="map"></div>
+    </section>
 
     <section class="card">
-      <h2>Live radar</h2>
-      <div id="map"></div>
+      <h2>Useful links</h2>
+      <ul class="links" id="links"></ul>
     </section>
   </main>
 
-  <footer>
-    Weather data: <a href="https://open-meteo.com/">Open-Meteo</a> ·
-    Radar: <a href="https://www.rainviewer.com/">RainViewer</a> ·
-    Map: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>
+  <footer class="wrap fine">
+    An unofficial fan site, not affiliated with Mt. Bachelor. Data: NRCS SNOTEL, National Weather Service,
+    Open-Meteo, RainViewer, OpenStreetMap. Webcams and station graphic © Mt. Bachelor.
+    Always check the official mountain report and the avalanche forecast before heading out.
   </footer>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="mountains.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

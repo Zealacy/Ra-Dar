@@ -1,33 +1,35 @@
-# Ra-Dar 🌦️
+# Ra-Dar: ski weather 🎿
 
-A simple weather tracker website that runs on **GitHub Pages** — no server and no API keys.
+A ski-focused weather tracker for **Mt. Bachelor, Oregon**, published with GitHub Pages.
+It's a static site with no server, no build step and no API keys. Everything loads live in the visitor's browser.
 
-- Current conditions (temperature, feels-like, humidity, wind)
-- 7-day forecast
-- Live rain radar map
-- City search, "use my location", °C/°F toggle
+## What's on the page
 
-## How it works
+| Section | What it shows | Source | Type |
+|---|---|---|---|
+| **The Call** | A 1–10 ski score, a headline, and color-coded factors: new snow, snow forecast, rain/snow line, wind and lift-hold risk, visibility, temperature and snow surface, snowpack | Combines the sources below | Measured + forecast |
+| **Snow stake** | Live West Village snow stake cam | Mt. Bachelor | Measured |
+| **Resort weather stations** | Temp and wind at the lift tops | Mt. Bachelor station graphic | Measured |
+| **Webcams** | 8 official cams, ordered by how useful they are for skiing, refreshed every 5 minutes | Mt. Bachelor | Live |
+| **Measured snowpack** | Depth, 24/48/72h change, SWE, % of median, new-snow density, temps, precip, 7-day chart | NRCS SNOTEL (3 stations) | Measured |
+| **Hourly forecast** | 96 hours of temp, wind chill, dewpoint, RH, wind, gusts, sky, precip chance and amount, snowfall, snow level, visibility | National Weather Service | Forecast |
+| **By elevation** | 7-day hi/lo, snow, rain and gusts at base, mid and summit, plus freezing level | Open-Meteo | Forecast |
+| **Discussion** | The NWS forecaster's written discussion | NWS Pendleton | Forecast |
+| **Radar** | Latest precipitation radar | RainViewer | Measured |
 
-It's a static site: `index.html` (layout), `style.css` (looks) and `app.js` (logic).
-When the page loads, the browser calls free public APIs directly:
+All values are in US units (°F, inches, mph, feet). Data refreshes every 10 minutes and webcams every 5.
 
-| What | Service |
-|---|---|
-| City name → coordinates | Open-Meteo Geocoding API |
-| Current weather + forecast | Open-Meteo Forecast API |
-| Radar images | RainViewer |
-| Map tiles | OpenStreetMap via Leaflet |
+## Files
 
-Because everything happens in the browser, GitHub Pages only needs to serve the files.
+- `index.html`: page layout
+- `style.css`: styling, with light/dark mode and phone layout
+- `mountains.js`: mountain settings (location, elevations, SNOTEL stations, cams). Add a new mountain here.
+- `app.js`: loads the data, does the calculations, and draws the charts and The Call
 
-## Publish it on GitHub Pages
-
-1. Merge these files into your default branch (e.g. `main`).
-2. On GitHub go to **Settings → Pages**.
-3. Under **Build and deployment**, choose **Deploy from a branch**, pick `main` and `/ (root)`, then **Save**.
-4. After a minute your site is live at `https://<your-username>.github.io/Ra-Dar/`.
+Open another mountain with `?mtn=<key>` once it's added to `mountains.js`.
 
 ## Run locally
 
-Open `index.html` in a browser, or run `python3 -m http.server` and visit http://localhost:8000.
+`python3 -m http.server`, then open http://localhost:8000.
+
+Unofficial fan site, not affiliated with Mt. Bachelor. Always check the official mountain report and the avalanche forecast.
