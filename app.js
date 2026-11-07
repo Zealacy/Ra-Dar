@@ -13,7 +13,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SVGNS = 'http://www.w3.org/2000/svg';
 
 const $ = (id) => document.getElementById(id);
-const state = { stations: null, snotel: null, nws: null, elev: null, call: null };
+const state = { stations: null, snotel: null, nws: null, elev: null, week: null, weekView: null, call: null };
 const charts = {};
 let activeTab = 'measured';
 
@@ -311,7 +311,7 @@ async function loadNws() {
   };
   const startHour = Math.floor(Date.now() / 3600e3) * 3600e3;
   const rows = [];
-  for (let i = 0; i < 96; i++) {
+  for (let i = 0; i < 192; i++) {
     const t = startHour + i * 3600e3;
     if (!L.temp.has(t)) continue;
     const g = (k) => L[k].get(t) ?? null;
@@ -327,7 +327,7 @@ function renderNwsTable(nws) {
   $('nws-meta').textContent = `National Weather Service forecast for the ski area. This forecast area averages ${ftFmt(nws.elevFt)} ft, so expect stronger wind at the summit. Issued ${fmtTime(nws.updated, { weekday: 'short', hour: 'numeric', minute: '2-digit' })}.`;
   const head = ['Time', 'Temp °F', 'Wind chill', 'Dewpt', 'RH %', 'Wind', 'Gust mph', 'Sky %', 'Precip %', 'Precip "', 'Snow "', 'Snow level ft', 'Vis mi'];
   let lastDay = '';
-  const body = nws.rows.map((r) => {
+  const body = nws.rows.slice(0, 96).map((r) => {
     const day = localParts(r.t).date;
     const brk = lastDay && day !== lastDay ? ' class="day-break"' : '';
     lastDay = day;
@@ -346,9 +346,9 @@ async function loadElevation() {
   const rep = (v) => Array(n).fill(v).join(',');
   const url = 'https://api.open-meteo.com/v1/forecast'
     + `?latitude=${rep(M.lat)}&longitude=${rep(M.lon)}&elevation=${M.zones.map((z) => Math.round(z.ft / 3.28084)).join(',')}`
-    + '&hourly=temperature_2m,apparent_temperature,snowfall,rain,freezing_level_height,wind_gusts_10m'
+    + '&hourly=temperature_2m,apparent_temperature,snowfall,rain,freezing_level_height,wind_gusts_10m,cloud_cover'
     + '&daily=temperature_2m_max,temperature_2m_min,snowfall_sum,rain_sum,wind_speed_10m_max,wind_gusts_10m_max'
-    + `&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=${encodeURIComponent(TZ)}&forecast_days=7`;
+    + `&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=${encodeURIComponent(TZ)}&forecast_days=9`;
   // Model estimate of snow that already fell (last 3 days), at the same elevations.
   const pastUrl = 'https://api.open-meteo.com/v1/forecast'
     + `?latitude=${rep(M.lat)}&longitude=${rep(M.lon)}&elevation=${M.zones.map((z) => Math.round(z.ft / 3.28084)).join(',')}`
@@ -1171,6 +1171,7 @@ function drawActiveTab() {
   if (activeTab === 'forecast') drawForecastCharts();
   if (activeTab === 'elevation') drawElevationCharts();
   if (activeTab === 'lifts') drawLiftsTab();
+  if (activeTab === 'week') drawWeekTab();
   if (activeTab === 'radar') { initRadar(); setTimeout(() => map?.invalidateSize(), 50); }
 }
 
@@ -1500,6 +1501,7 @@ function renderSources() {
     ['Lift-top stations graphic', 'Mt. Bachelor', 'Measured', 'The resort\'s own summit, lift-top and base sensors. Image only.'],
     ['Webcams & snow stake', 'Mt. Bachelor', 'Live image', 'Official resort cameras. The stake is the best on-mountain check of new snow.'],
     ['Hourly forecast', `National Weather Service (${M.nws.office === 'PDT' ? 'Pendleton' : M.nws.office})`, 'Forecast', 'Official forecast for the 2.5 km grid cell over the ski area.'],
+    ['7-day forecast', 'NWS official forecast + GFS, ECMWF, GEM, ICON models + GEFS (31) and ECMWF (51) ensemble runs, via Open-Meteo', 'Forecast', 'Ranges show where 80% of the 82 ensemble runs land. Confidence comes from how much the runs and models disagree. Accuracy drops after about day 3.'],
     ['Base-to-summit forecast & new-snow estimate', 'Open-Meteo, blending NOAA and European models', 'Forecast / Model', 'Model data adjusted to each elevation. New-snow totals are estimates, not measurements.'],
     ['Lift list & stats', 'Mt. Bachelor (official Mountain Stats page)', 'Reference', 'Names, types, lengths, vertical rise.'],
     ['Official lift status', 'Mt. Bachelor Lift & Trail Status page (embedded)', 'Live', 'Shown as published by the resort, including maintenance and staffing closures.'],
@@ -1526,12 +1528,14 @@ async function refreshData() {
     run('snotel', loadSnotel, renderSnotelTable),
     run('nws', loadNws, renderNwsTable),
     run('elev', loadElevation, renderElevTable),
+    run('week', loadWeek),
     loadAfd().catch((e) => console.error('afd', e)),
   ]);
   state.call = computeCall();
   renderCall(state.call);
+  try { state.weekView = buildWeek(); renderWeekStrip(state.weekView); } catch (e) { console.error('week', e); renderWeekStrip(null); }
   drawActiveTab();
-  const names = { stations: 'stations', snotel: 'SNOTEL', nws: 'NWS', elev: 'Open-Meteo' };
+  const names = { stations: 'stations', snotel: 'SNOTEL', nws: 'NWS', elev: 'Open-Meteo', week: '7-day models' };
   $('updated').textContent = `Updated ${fmtTime(new Date(), { hour: 'numeric', minute: '2-digit' })}` + (errors.length ? ` · no ${errors.map((e) => names[e]).join(', ')}` : '');
   setTimeout(() => $('refresh').classList.remove('spin'), 600);
 }

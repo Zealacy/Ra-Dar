@@ -19,7 +19,7 @@ Good data is the backbone of this site. These rules come from mistakes the owner
 - Currently approved sources, all of which allow browser requests (CORS):
   - NWS observations (`api.weather.gov/stations/{id}/observations`) for the on-mountain stations: COAC Moon Mountain `MOONM`, ODOT `OD131`, and the OSU snow pillow `OSUSP`.
   - The NWS gridpoint forecast (`PDT/23,40`) and NWS forecast discussions.
-  - Open-Meteo, for forecasts and new-snow estimates at each elevation.
+  - Open-Meteo, for forecasts and new-snow estimates at each elevation, the 4-model comparison (GFS, ECMWF, GEM, ICON), and the ensembles (`ensemble-api.open-meteo.com`: GEFS 31 + ECMWF 51 runs) behind the 7-day ranges and confidence. Never show a single far-out snow number without its range and confidence, and only crown a "best day" if it beats every other day outright.
   - NRCS SNOTEL, as a regional reference only.
   - RainViewer radar.
   - Mt. Bachelor webcams and the station graphic.
@@ -38,7 +38,8 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 - **The layout must work on every device:** JS sets `<html data-device="mobile|tablet|desktop">`, and CSS and charts adapt to it. Test phone and desktop every time.
 - **Smooth animations are wanted**, but always respect `prefers-reduced-motion`.
 - **Always include a snow stake camera.** Pick other cams by how useful they are for judging ski conditions.
-- **Tab labels are plain words:** Live readings · Hour by hour · Base to summit · Radar loop · Forecaster notes.
+- **Tab labels are plain words:** Live readings · Hour by hour · Next 7 days · Base to summit · Lifts · Radar loop · Forecaster notes.
+- **Every feature gets two parts:** an easy-to-read summary with a visual near the top, and an in-depth version further down (usually its own tab).
 - **Forecaster notes can be technical but must be readable by people.** Never show raw teletype text (`000 FXUS66…`, `&&`, `$$`) as the main view. Parse it into sections, explain jargon, and keep the original at the bottom.
 - **Charts** follow the dataviz rules: one y-axis per chart (no dual axes), the validated palette (`--s1`, `--s2`, `--s3`), hairline grids, hover tooltips, and a table for every chart. Status colors always come with an icon and a label.
 - Support light and dark mode.

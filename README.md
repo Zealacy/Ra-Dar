@@ -11,6 +11,8 @@ It's a static site with no server, no build step and no API keys. Everything loa
 | **Briefing** | A few blunt sentences for the morning-of or night-before check: overnight snow, snow or rain timing, base and summit temps, wind chill, wind and lift-hold risk, snow surface, visibility, a bottom line, and a **Pack** list (goggle lens, face cover, waterproofs, layers, sharp edges, chains) | Same data as the cards | Measured + forecast |
 | **Lifts** (summary) | Season status and Opening Day countdown, a ring of all 12 lifts, and lift pills grouped by exposure, colored by wind-hold risk during ski hours | Official lift list + NWS gust forecast | Estimate |
 | **Lifts** tab | Mt. Bachelor's official live lift board embedded at the top (Open / Closed / On Hold / Expected), then the wind-hold estimate: an hour-by-hour risk grid, forecast gusts vs. thresholds, and the official lift stats | Mt. Bachelor; NWS | Live + Estimate |
+| **Week ahead** (summary) | 7 day cards: weather icon, 1–10 ski score, likely snow range, base and summit highs, gusts, a confidence rating, a "Best day" badge (only when one day clearly wins), and a blunt one-line week summary | NWS + 4 models + 82 ensemble runs | Forecast |
+| **Next 7 days** tab | Day picker with the NWS written forecast, chance of ≥1/3/6/12", per-model snow, temps by elevation, freezing level, gusts and hourly charts; plus week charts (ensemble snow range, total snow by model, base/summit lows–highs, gust ranges), a chance-of-snow grid, an accuracy guide and a full table | NWS; Open-Meteo (GFS, ECMWF, GEM, ICON; GEFS + ECMWF ensembles) | Forecast |
 | **Snow stake** | Live West Village snow stake cam | Mt. Bachelor | Measured |
 | **Resort weather stations** | Temp and wind at the lift tops | Mt. Bachelor station graphic | Measured |
 | **Webcams** | 8 official cams, ordered by how useful they are for skiing, refreshed every 5 minutes | Mt. Bachelor | Live |
@@ -42,6 +44,7 @@ Animations turn off automatically for visitors who have reduced motion enabled.
 - `index.html`: page layout
 - `style.css`: styling, with light/dark mode and phone layout
 - `mountains.js`: mountain settings (location, elevations, SNOTEL stations, cams). Add a new mountain here.
+- `week.js`: the 7-day forecast (Week ahead strip and Next 7 days tab)
 - `app.js`: loads the data, does the calculations, and draws the charts and The Call
 
 Open another mountain with `?mtn=<key>` once it's added to `mountains.js`.
