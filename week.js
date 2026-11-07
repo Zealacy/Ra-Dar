@@ -181,13 +181,24 @@ function buildWeek() {
 
   const open = M.season?.openingDay;
   days.forEach((d) => { d.closed = open ? d.date < open : false; });
+
+  // Whole-week snow per ensemble run (summing each run, not the daily ranges).
+  let weekEns = null;
+  if (ensSnow.length && dates.length) {
+    const ws = snowWindow(dates[0])[0], we = snowWindow(dates[dates.length - 1])[1];
+    const idx = []; ensTimes.forEach((t, k) => { if (t >= ws && t < we) idx.push(k); });
+    if (idx.length >= 24 * 5) {
+      const tot = ensSnow.map((m) => idx.reduce((a, k) => a + (m[k] || 0), 0)).sort((a, b) => a - b);
+      weekEns = { p10: pct(tot, 0.1), p50: pct(tot, 0.5), p90: pct(tot, 0.9), chance: Object.fromEntries([1, 3, 6, 12, 24].map((th) => [th, Math.round(100 * tot.filter((v) => v >= th).length / tot.length)])) };
+    }
+  }
   const ranked = days.filter((d) => d.score != null).sort((a, b) => b.score - a.score || a.i - b.i);
   // Flag the snowiest day only when it clearly leads (a calculated fact, not a recommendation).
   const mid = (d) => d.ens?.p50 ?? d.snow ?? 0;
   const bySnow = [...days].sort((a, b) => mid(b) - mid(a));
   const snowiest = bySnow[0] && mid(bySnow[0]) >= 1 && mid(bySnow[0]) - mid(bySnow[1] || { snow: 0 }) >= 1 ? bySnow[0] : null;
   if (snowiest) snowiest.mostSnow = true;
-  return { days, snowiest, ranked };
+  return { days, snowiest, ranked, weekEns };
 }
 
 function dayScore(d) {

@@ -13,7 +13,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SVGNS = 'http://www.w3.org/2000/svg';
 
 const $ = (id) => document.getElementById(id);
-const state = { stations: null, snotel: null, nws: null, elev: null, week: null, weekView: null, call: null };
+const state = { stations: null, snotel: null, nws: null, elev: null, week: null, weekView: null, pre: null, call: null };
 const charts = {};
 let activeTab = 'measured';
 
@@ -1214,6 +1214,7 @@ function drawActiveTab() {
   if (activeTab === 'elevation') drawElevationCharts();
   if (activeTab === 'lifts') drawLiftsTab();
   if (activeTab === 'week') drawWeekTab();
+  if (activeTab === 'snowpack') drawSnowpackTab();
   if (activeTab === 'radar') { initRadar(); setTimeout(() => map?.invalidateSize(), 50); }
 }
 
@@ -1543,6 +1544,7 @@ function renderSources() {
     ['Lift-top stations graphic', 'Mt. Bachelor', 'Measured', 'The resort\'s own summit, lift-top and base sensors. Image only.'],
     ['Webcams & snow stake', 'Mt. Bachelor', 'Live image', 'Official resort cameras. The stake is the best on-mountain check of new snow.'],
     ['Hourly forecast', `National Weather Service (${M.nws.office === 'PDT' ? 'Pendleton' : M.nws.office})`, 'Forecast', 'Official forecast for the 2.5 km grid cell over the ski area.'],
+    ['Preseason snowpack', 'Open-Meteo model snow depth and snowfall at each elevation', 'Model', 'No public sensor measures snow depth on the mountain. Model estimates, checked against the snow stake cam.'],
     ['7-day forecast', 'NWS official forecast + GFS, ECMWF, GEM, ICON models + GEFS (31) and ECMWF (51) ensemble runs, via Open-Meteo', 'Forecast', 'Ranges show where 80% of the 82 ensemble runs land. Confidence comes from how much the runs and models disagree. Accuracy drops after about day 3.'],
     ['Base-to-summit forecast & new-snow estimate', 'Open-Meteo, blending NOAA and European models', 'Forecast / Model', 'Model data adjusted to each elevation. New-snow totals are estimates, not measurements.'],
     ['Lift list & stats', 'Mt. Bachelor (official Mountain Stats page)', 'Reference', 'Names, types, lengths, vertical rise.'],
@@ -1571,13 +1573,15 @@ async function refreshData() {
     run('nws', loadNws, renderNwsTable),
     run('elev', loadElevation, renderElevTable),
     run('week', loadWeek),
+    ...(preseasonActive() ? [run('pre', loadPreseason)] : []),
     loadAfd().catch((e) => console.error('afd', e)),
   ]);
   state.call = computeCall();
   renderCall(state.call);
   try { state.weekView = buildWeek(); renderWeekStrip(state.weekView); } catch (e) { console.error('week', e); renderWeekStrip(null); }
+  try { renderPreseason(); } catch (e) { console.error('preseason', e); }
   drawActiveTab();
-  const names = { stations: 'stations', snotel: 'SNOTEL', nws: 'NWS', elev: 'Open-Meteo', week: '7-day models' };
+  const names = { stations: 'stations', snotel: 'SNOTEL', nws: 'NWS', elev: 'Open-Meteo', week: '7-day models', pre: 'snowpack model' };
   $('updated').textContent = `Updated ${fmtTime(new Date(), { hour: 'numeric', minute: '2-digit' })}` + (errors.length ? ` · no ${errors.map((e) => names[e]).join(', ')}` : '');
   setTimeout(() => $('refresh').classList.remove('spin'), 600);
 }
@@ -1589,6 +1593,7 @@ function tagTooltips() {
 
 function init() {
   detectDevice();
+  const mode = applyViewMode();
   tagTooltips();
   document.title = `${M.name} · Ra-Dar Ski Weather`;
   $('mtn-name').textContent = M.name;
@@ -1597,6 +1602,15 @@ function init() {
   renderSources();
   document.querySelectorAll('details.regional').forEach((d) => d.addEventListener('toggle', () => { if (d.open) drawMeasuredCharts(); }));
   setupTabs();
+  if (mode === 'preseason') document.querySelector('[data-tab="snowpack"]')?.click();
+  $('view-toggle').addEventListener('click', () => {
+    const next = document.documentElement.dataset.mode === 'preseason' ? 'season' : 'preseason';
+    setViewMode(next);
+    document.querySelector(`[data-tab="${next === 'preseason' ? 'snowpack' : 'measured'}"]`)?.click();
+    if (state.call) renderCall(state.call);
+    renderPreseason();
+    window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
+  });
   renderCams();
   refreshData();
   $('refresh').addEventListener('click', () => { renderCams(); refreshData(); });

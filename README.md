@@ -24,6 +24,10 @@ It's a static site with no server, no build step and no API keys. Everything loa
 
 All values are in US units (°F, inches, mph, feet). Data refreshes every 10 minutes and webcams every 5.
 
+## Preseason mode
+
+Before Opening Day (`season.openingDay` in `mountains.js`), the page leads with snowpack: modeled snow depth at the base, mid-mountain and summit now and 7 days out, season snowfall since Oct 1, the week's snow range and chances (82 ensemble runs), and the snow stake cam, plus a Snowpack tab with 30-day and 7-day charts. Ski-day cards are hidden. It turns off by itself on Opening Day, and visitors can switch views with the button in the header.
+
 ## Data quality rules
 
 - **On-mountain readings only.** "Right now" and The Call use live stations on or beside the ski area: COAC Moon Mountain (7,450 ft), ODOT Century Dr at the ski area (6,424 ft) and the OSU West Village snow pillow (6,375 ft). They come through the National Weather Service observation network.
@@ -44,6 +48,7 @@ Animations turn off automatically for visitors who have reduced motion enabled.
 - `index.html`: page layout
 - `style.css`: styling, with light/dark mode and phone layout
 - `mountains.js`: mountain settings (location, elevations, SNOTEL stations, cams). Add a new mountain here.
+- `preseason.js`: preseason mode (snowpack-first layout and the Snowpack tab)
 - `week.js`: the 7-day forecast (Week ahead strip and Next 7 days tab)
 - `app.js`: loads the data, does the calculations, and draws the charts and The Call
 

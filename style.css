@@ -246,6 +246,38 @@ details.regional > summary { color: var(--text-2); }
 .meter-mark { position: absolute; top: -5px; width: 3px; height: 22px; border-radius: 2px; background: var(--text); left: 0; transition: left 1.4s var(--ease); }
 .meter-scale { display: flex; justify-content: space-between; font-size: .68rem; color: var(--muted); margin-top: 4px; }
 
+/* ---------- Preseason mode ---------- */
+main { display: flex; flex-direction: column; }
+#pre { display: none; }
+[data-mode="preseason"] #pre { display: block; order: 1; }
+[data-mode="preseason"] #week { order: 2; }
+[data-mode="preseason"] #cams { order: 3; }
+[data-mode="preseason"] #data { order: 4; }
+[data-mode="preseason"] .links-panel { order: 5; }
+[data-mode="preseason"] #call { display: none; }
+.pre-only { display: none; }
+[data-mode="preseason"] .pre-only { display: inline-block; }
+.view-toggle { border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: #fff; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .78rem; font-weight: 600; cursor: pointer; }
+.view-toggle:hover { background: rgba(255,255,255,.16); }
+.pre-head { display: flex; align-items: center; gap: 18px; margin-bottom: 12px; }
+.pre-count { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 120px; padding: 10px 14px; border-radius: 14px; background: var(--surface-2); }
+.pre-count span { font-size: 2.6rem; font-weight: 800; line-height: 1; }
+.pre-count small { font-size: .7rem; color: var(--text-2); text-align: center; margin-top: 4px; max-width: 140px; }
+.pre-title { flex: 1; }
+.pre-title h2 { font-size: 1.6rem; margin-top: 2px; }
+.pre-body { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; align-items: start; }
+.pre-fig { margin: 0; background: var(--surface-2); border-radius: 14px; padding: 10px; }
+.pre-fig svg { width: 100%; display: block; }
+.pre-side { display: flex; flex-direction: column; gap: 10px; }
+.pre-tiles { display: grid; gap: 8px; }
+.pre-tile { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 1px; }
+.pre-tile .pk { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; font-weight: 700; color: var(--text-2); }
+.pre-tile .pv { font-size: 1.5rem; font-weight: 800; } .pre-tile .pv small { font-size: .75rem; font-weight: 600; color: var(--text-2); }
+.pre-tile .ps { font-size: .74rem; color: var(--text-2); }
+.pre-stake { display: block; text-decoration: none; color: var(--text-2); font-size: .72rem; }
+.pre-stake img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 12px; display: block; margin-bottom: 4px; background: var(--surface-2); }
+tr.fc td { color: var(--text-2); }
+
 /* ---------- Week ahead ---------- */
 .week-summary { margin: 0 0 10px; font-size: .92rem; font-weight: 550; }
 .week-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
@@ -376,6 +408,7 @@ footer { padding-bottom: 28px; }
 [data-device="tablet"] .chips { padding-left: 0; }
 [data-device="tablet"] .tiers { grid-template-columns: 1fr 1fr; }
 [data-device="tablet"] .wk-grid { grid-template-columns: 1fr 1fr; }
+[data-device="tablet"] .pre-body { grid-template-columns: 1fr 1fr; }
 
 /* Phone */
 [data-device="mobile"] .wrap { padding: 0 12px; }
@@ -402,6 +435,12 @@ footer { padding-bottom: 28px; }
 [data-device="mobile"] .tiers { grid-template-columns: 1fr; gap: 8px; }
 [data-device="mobile"] .season { font-size: .74rem; border-radius: 12px; }
 [data-device="mobile"] .stake-thumb { display: none; }
+[data-device="mobile"] .pre-body { grid-template-columns: 1fr; }
+[data-device="mobile"] .pre-head { gap: 10px; flex-wrap: wrap; }
+[data-device="mobile"] .pre-count { min-width: 96px; }
+[data-device="mobile"] .pre-count span { font-size: 2rem; }
+[data-device="mobile"] .pre-title h2 { font-size: 1.2rem; }
+[data-device="mobile"] .view-toggle { padding: 5px 9px; font-size: .7rem; }
 [data-device="mobile"] .w-snow, [data-device="mobile"] .w-wind { grid-column: 1 / -1; }
 [data-device="mobile"] .wind-svg { max-width: 220px; }
 [data-device="mobile"] .week-strip { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -14px; padding: 12px 14px 6px; gap: 8px; scrollbar-width: none; }
