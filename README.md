@@ -7,7 +7,7 @@ It's a static site with no server, no build step and no API keys. Everything loa
 
 | Section | What it shows | Source | Type |
 |---|---|---|---|
-| **The Call** | A 1–10 ski score, a headline, and color-coded factors: new snow, snow forecast, rain/snow line, wind and lift-hold risk, visibility, temperature and snow surface, snowpack | Combines the sources below | Measured + forecast |
+| **The Call** | Animated score dial, headline and status chips, plus visual cards: a mountain profile with temperature at base/mid/summit and the freezing or snow line, a snow stake meter with falling snow, a wind compass with gust dial, a cloud-cover timeline, and a snowpack meter vs normal | Combines the sources below | Measured + forecast |
 | **Snow stake** | Live West Village snow stake cam | Mt. Bachelor | Measured |
 | **Resort weather stations** | Temp and wind at the lift tops | Mt. Bachelor station graphic | Measured |
 | **Webcams** | 8 official cams, ordered by how useful they are for skiing, refreshed every 5 minutes | Mt. Bachelor | Live |
@@ -18,6 +18,13 @@ It's a static site with no server, no build step and no API keys. Everything loa
 | **Radar** | Latest precipitation radar | RainViewer | Measured |
 
 All values are in US units (°F, inches, mph, feet). Data refreshes every 10 minutes and webcams every 5.
+
+## Layout
+
+The page detects phone, tablet or desktop (`<html data-device>`) and adapts:
+desktop uses a dashboard grid, and phones get swipeable charts and a compact header.
+The technical data lives in tabs (Measured · Hourly forecast · By elevation · Radar · Discussion), so the page stays short.
+Animations turn off automatically for visitors who have reduced motion enabled.
 
 ## Files
 

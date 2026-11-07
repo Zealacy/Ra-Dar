@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1a2b">
   <title>Ra-Dar Ski Weather</title>
   <meta name="description" content="Ski weather for Mt. Bachelor: measured snow, forecasts by elevation, live webcams and a snow stake cam.">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -11,106 +12,168 @@
 <body>
   <header class="top">
     <div class="wrap top-row">
-      <div>
+      <div class="title">
         <div class="brand">Ra-Dar <span>ski weather</span></div>
         <h1 id="mtn-name">Mt. Bachelor</h1>
-        <div class="sub" id="mtn-region"></div>
       </div>
+      <nav class="jump" aria-label="Sections">
+        <a href="#call">Today</a>
+        <a href="#cams">Cams</a>
+        <a href="#data">Data</a>
+      </nav>
       <div class="top-actions">
-        <button id="refresh" type="button">Refresh</button>
-        <div class="sub" id="updated">Loading…</div>
+        <button id="refresh" type="button" class="icon-btn" aria-label="Refresh data">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="updated" id="updated">Loading…</div>
       </div>
     </div>
-    <nav class="wrap tabs">
-      <a href="#call">The Call</a>
-      <a href="#cams">Webcams</a>
-      <a href="#measured">Measured</a>
-      <a href="#forecast">Forecast</a>
-      <a href="#elevation">By elevation</a>
-      <a href="#discussion">Discussion</a>
-      <a href="#radar">Radar</a>
-    </nav>
   </header>
 
   <main class="wrap">
 
-    <!-- ===== SUMMARY ===== -->
-    <section id="call" class="card call">
-      <div class="call-head">
-        <div>
-          <div class="eyebrow" id="call-day">The Call</div>
-          <h2 id="call-headline">Crunching the numbers…</h2>
-          <p id="call-text" class="muted"></p>
+    <!-- ================= THE CALL (visual summary) ================= -->
+    <section id="call" class="panel call reveal">
+      <div class="call-hero">
+        <div class="gauge-wrap">
+          <svg class="gauge" viewBox="0 0 200 120" aria-hidden="true">
+            <path class="g-track" d="M20 110 A80 80 0 0 1 180 110" pathLength="100"/>
+            <path class="g-fill" id="g-fill" d="M20 110 A80 80 0 0 1 180 110" pathLength="100"/>
+          </svg>
+          <div class="gauge-num"><span id="score">–</span><small>/10</small></div>
         </div>
-        <div class="score" id="call-score" aria-label="Ski score">–</div>
+        <div class="call-words">
+          <div class="eyebrow" id="call-day">The Call</div>
+          <h2 id="call-headline">Reading the mountain…</h2>
+          <p id="call-text"></p>
+        </div>
       </div>
-      <div class="factors" id="factors"></div>
-      <p class="fine">Score out of 10, worked out from the factors above. <span class="tag m">Measured</span> means real sensor readings. <span class="tag f">Forecast</span> means a prediction.</p>
+      <div class="chips" id="call-chips"></div>
+
+      <div class="widgets">
+        <article class="w w-mtn">
+          <header><h3>On the mountain</h3><span class="src f">Forecast</span></header>
+          <svg id="mtn-svg" class="mtn-svg" viewBox="0 0 400 210" role="img" aria-label="Mountain temperatures and snow line"></svg>
+          <p class="cap" id="mtn-cap"></p>
+        </article>
+
+        <article class="w w-snow">
+          <header><h3>Fresh snow</h3><span class="src m">Measured</span></header>
+          <div class="snow-body">
+            <div class="flakes" id="flakes" aria-hidden="true"></div>
+            <svg id="stake-svg" class="stake-svg" viewBox="0 0 120 170" aria-hidden="true"></svg>
+            <div class="snow-nums">
+              <div class="big"><span id="snow24">–</span><small>"</small></div>
+              <div class="lbl">last 24 hrs</div>
+              <div class="mid"><span id="snow72">–</span>" <span class="lbl">72 hrs</span></div>
+              <div class="mid"><span id="snowF">–</span>" <span class="lbl">on the way</span></div>
+            </div>
+          </div>
+          <p class="cap" id="snow-cap"></p>
+        </article>
+
+        <article class="w w-wind">
+          <header><h3>Wind</h3><span class="src f">Forecast</span></header>
+          <svg id="wind-svg" class="wind-svg" viewBox="0 0 200 200" aria-hidden="true"></svg>
+          <p class="cap" id="wind-cap"></p>
+        </article>
+
+        <article class="w w-sky">
+          <header><h3>Sky &amp; light</h3><span class="src f">Forecast</span></header>
+          <div class="sky-top">
+            <svg id="sky-icon" class="sky-icon" viewBox="0 0 120 90" aria-hidden="true"></svg>
+            <div><div class="mid" id="sky-label">–</div><div class="lbl" id="sky-sub"></div></div>
+          </div>
+          <div class="ribbon" id="ribbon"></div>
+          <p class="cap" id="sky-cap"></p>
+        </article>
+
+        <article class="w w-pack">
+          <header><h3>Snowpack</h3><span class="src m">Measured</span></header>
+          <div class="pack-nums"><div class="big"><span id="pack-depth">–</span><small>"</small></div><div class="lbl" id="pack-sub"></div></div>
+          <div class="meter" id="pack-meter"><div class="meter-fill" id="pack-fill"></div><div class="meter-mark" id="pack-mark"></div></div>
+          <div class="meter-scale"><span>0</span><span id="pack-peak"></span></div>
+          <p class="cap" id="pack-cap"></p>
+        </article>
+      </div>
+      <p class="fine">Score out of 10, worked out from the cards. <span class="src m">Measured</span> means real sensor readings. <span class="src f">Forecast</span> means a prediction.</p>
     </section>
 
-    <!-- ===== SNOW STAKE + KEY NUMBERS ===== -->
-    <section class="grid-2">
-      <div class="card">
-        <div class="card-title"><h2>Snow stake</h2><span class="tag m">Live cam</span></div>
-        <a id="stake-link" target="_blank" rel="noopener"><img id="stake" class="cam-img" alt="Snow stake webcam"></a>
+    <!-- ================= CAMS ================= -->
+    <section id="cams" class="cams-row">
+      <div class="panel reveal">
+        <header class="ph"><h2>Snow stake</h2><span class="src m">Live</span></header>
+        <a id="stake-link" target="_blank" rel="noopener" class="img-frame"><img id="stake" alt="Snow stake webcam"></a>
         <p class="fine" id="stake-note"></p>
       </div>
-      <div class="card">
-        <div class="card-title"><h2>Resort weather stations</h2><span class="tag m">Measured</span></div>
-        <a id="stations-link" target="_blank" rel="noopener"><img id="stations" class="stations-img" alt="Mt. Bachelor lift-top weather station readings"></a>
-        <p class="fine">Temperature and wind measured at the resort's lift-top stations, as published by Mt. Bachelor. Times are when each sensor last reported.</p>
+      <div class="panel reveal">
+        <header class="ph"><h2 id="cam-title">Webcams</h2><span class="updated-s" id="cams-updated"></span></header>
+        <a id="cam-main-link" target="_blank" rel="noopener" class="img-frame"><img id="cam-main" alt=""></a>
+        <p class="fine" id="cam-why"></p>
+        <div class="thumbs" id="thumbs" role="tablist" aria-label="Choose a webcam"></div>
       </div>
     </section>
 
-    <!-- ===== WEBCAMS ===== -->
-    <section id="cams" class="card">
-      <div class="card-title"><h2>Webcams</h2><span class="sub" id="cams-updated"></span></div>
-      <div class="cams" id="cam-grid"></div>
-      <p class="fine">Images from Mt. Bachelor's official webcams, refreshed every 5 minutes. Tap one to open it full size.</p>
-    </section>
+    <!-- ================= DEEP DATA (tabs) ================= -->
+    <section id="data" class="panel reveal">
+      <div class="tabs" role="tablist" aria-label="Technical data">
+        <button role="tab" data-tab="measured" aria-selected="true">Measured</button>
+        <button role="tab" data-tab="forecast">Hourly forecast</button>
+        <button role="tab" data-tab="elevation">By elevation</button>
+        <button role="tab" data-tab="radar">Radar</button>
+        <button role="tab" data-tab="discussion">Discussion</button>
+        <span class="tab-ink" id="tab-ink"></span>
+      </div>
 
-    <!-- ===== MEASURED ===== -->
-    <section id="measured" class="card">
-      <div class="card-title"><h2>Measured snowpack</h2><span class="tag m">Measured · NRCS SNOTEL</span></div>
-      <p class="muted">Automated federal snow stations near the ski area, reporting hourly. They sit lower than the base (5,700 ft or below), so treat them as a minimum for what fell on the mountain.</p>
-      <div class="table-wrap"><table id="snotel-table"></table></div>
-      <h3>Last 7 days at <span id="snotel-primary"></span></h3>
-      <div class="chart-box"><canvas id="chart-snotel"></canvas></div>
-      <p class="fine">Snow depth from the sonic sensor can wobble by about an inch from hour to hour. Snow water equivalent (SWE) comes from a snow pillow that weighs the snowpack. New-snow density is ΔSWE ÷ Δdepth: under 7% is light, dry powder, 7–12% is typical, and over 12% is heavy, wet snow.</p>
-    </section>
+      <div class="tab-panel" data-panel="measured">
+        <p class="lead">Readings from the resort's lift-top weather stations and three federal SNOTEL snow stations. The SNOTEL stations sit below the base (5,700 ft or lower), so their snow totals are a minimum.</p>
+        <div class="grid-2">
+          <figure class="chart-card"><figcaption>Snow depth, last 7 days · <span id="snotel-primary"></span> (in)</figcaption><div class="chart-box"><canvas id="c-depth"></canvas></div></figure>
+          <figure class="chart-card"><figcaption>Air temperature, last 7 days (°F)</figcaption><div class="chart-box"><canvas id="c-temp7"></canvas></div></figure>
+          <figure class="chart-card"><figcaption>New snow by station (in)</figcaption><div class="chart-box"><canvas id="c-newsnow"></canvas></div></figure>
+          <figure class="chart-card"><figcaption>Resort lift-top stations</figcaption><a id="stations-link" target="_blank" rel="noopener"><img id="stations" class="stations-img" alt="Mt. Bachelor lift-top weather station readings"></a></figure>
+        </div>
+        <p class="swipe-hint">Swipe for more charts →</p>
+        <details class="tbl"><summary>All SNOTEL numbers</summary><div class="table-wrap"><table id="snotel-table"></table></div>
+          <p class="fine">Snow depth can wobble by about an inch from hour to hour. SWE is snow water equivalent. Density is ΔSWE ÷ Δdepth: under 7% is light, dry powder, 7–12% is typical, and over 12% is heavy, wet snow.</p></details>
+      </div>
 
-    <!-- ===== NWS FORECAST ===== -->
-    <section id="forecast" class="card">
-      <div class="card-title"><h2>Hourly forecast</h2><span class="tag f">Forecast · National Weather Service</span></div>
-      <p class="muted" id="nws-meta"></p>
-      <div class="chart-box"><canvas id="chart-nws"></canvas></div>
-      <div class="table-wrap tall"><table id="nws-table"></table></div>
-    </section>
+      <div class="tab-panel" data-panel="forecast" hidden>
+        <p class="lead" id="nws-meta"></p>
+        <div class="grid-2">
+          <figure class="chart-card"><figcaption>Snowfall per hour (in)</figcaption><div class="chart-box"><canvas id="c-snowfall"></canvas></div></figure>
+          <figure class="chart-card"><figcaption>Temperature &amp; wind chill (°F)</figcaption><div class="chart-box"><canvas id="c-ftemp"></canvas></div></figure>
+          <figure class="chart-card"><figcaption>Wind (mph)</figcaption><div class="chart-box"><canvas id="c-wind"></canvas></div></figure>
+          <figure class="chart-card"><figcaption>Snow level (ft)</figcaption><div class="chart-box"><canvas id="c-snowlevel"></canvas></div></figure>
+        </div>
+        <p class="swipe-hint">Swipe for more charts →</p>
+        <details class="tbl"><summary>Hour-by-hour table (96 hours)</summary><div class="table-wrap tall"><table id="nws-table"></table></div></details>
+      </div>
 
-    <!-- ===== ELEVATION MODEL ===== -->
-    <section id="elevation" class="card">
-      <div class="card-title"><h2>By elevation</h2><span class="tag f">Forecast · Open-Meteo models</span></div>
-      <p class="muted">Model forecast adjusted to the base, mid-mountain and summit elevations.</p>
-      <div class="chart-box"><canvas id="chart-elev"></canvas></div>
-      <div class="table-wrap"><table id="elev-table"></table></div>
-    </section>
+      <div class="tab-panel" data-panel="elevation" hidden>
+        <p class="lead">Model forecast adjusted to the base, mid-mountain and summit elevations.</p>
+        <div class="grid-2">
+          <figure class="chart-card"><figcaption>Temperature by elevation, next 72 hours (°F)</figcaption><div class="chart-box"><canvas id="c-etemp"></canvas></div></figure>
+          <figure class="chart-card"><figcaption>Daily snowfall by elevation (in)</figcaption><div class="chart-box"><canvas id="c-esnow"></canvas></div></figure>
+          <figure class="chart-card wide"><figcaption>Freezing level (ft)</figcaption><div class="chart-box"><canvas id="c-freeze"></canvas></div></figure>
+        </div>
+        <p class="swipe-hint">Swipe for more charts →</p>
+        <details class="tbl"><summary>7-day table by elevation</summary><div class="table-wrap"><table id="elev-table"></table></div></details>
+      </div>
 
-    <!-- ===== DISCUSSION ===== -->
-    <section id="discussion" class="card">
-      <div class="card-title"><h2>Forecaster discussion</h2><span class="tag f">NWS Pendleton</span></div>
-      <details>
-        <summary id="afd-summary">Area Forecast Discussion (loading…)</summary>
+      <div class="tab-panel" data-panel="radar" hidden>
+        <div class="radar-bar"><button id="radar-play" type="button" class="pill">Pause</button><span id="radar-time" class="updated-s"></span></div>
+        <div id="map"></div>
+        <p class="fine">The last 2 hours of radar on a loop.</p>
+      </div>
+
+      <div class="tab-panel" data-panel="discussion" hidden>
+        <p class="lead" id="afd-summary">Loading the forecaster discussion…</p>
         <pre id="afd"></pre>
-      </details>
+      </div>
     </section>
 
-    <!-- ===== RADAR ===== -->
-    <section id="radar" class="card">
-      <div class="card-title"><h2>Radar</h2><span class="tag m">Measured · RainViewer</span></div>
-      <div id="map"></div>
-    </section>
-
-    <section class="card">
+    <section class="panel links-panel reveal">
       <h2>Useful links</h2>
       <ul class="links" id="links"></ul>
     </section>
@@ -121,6 +184,8 @@
     Open-Meteo, RainViewer, OpenStreetMap. Webcams and station graphic © Mt. Bachelor.
     Always check the official mountain report and the avalanche forecast before heading out.
   </footer>
+
+  <div class="tip" id="tip" role="status"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
