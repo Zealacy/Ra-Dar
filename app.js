@@ -40,6 +40,25 @@ async function getJSON(url, timeoutMs = 20000, retries = 1) {
     return getJSON(url, timeoutMs, retries - 1);
   }
 }
+// Open-Meteo's free service allows a limited number of requests per visitor per day, and the
+// ensemble requests count heavily. Its forecasts only update every few hours, so keep a copy in
+// this browser for a while instead of re-downloading on every refresh. (Per-viewer cache only.)
+const OM_CACHE_MIN = 45;
+async function getJSONCached(url, timeoutMs = 20000, ttlMin = OM_CACHE_MIN) {
+  const key = 'radar-cache:' + url;
+  try {
+    const hit = JSON.parse(localStorage.getItem(key) || 'null');
+    if (hit && Date.now() - hit.t < ttlMin * 60e3) return hit.d;
+  } catch { /* storage unavailable */ }
+  const d = await getJSON(url, timeoutMs);
+  try {
+    localStorage.setItem(key, JSON.stringify({ t: Date.now(), d }));
+  } catch {
+    // Storage full: drop old copies and try once more.
+    try { Object.keys(localStorage).filter((k) => k.startsWith('radar-cache:')).forEach((k) => localStorage.removeItem(k)); localStorage.setItem(key, JSON.stringify({ t: Date.now(), d })); } catch { /* ignore */ }
+  }
+  return d;
+}
 async function fetchJSON(url, timeoutMs) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -353,7 +372,7 @@ async function loadElevation() {
   const pastUrl = 'https://api.open-meteo.com/v1/forecast'
     + `?latitude=${rep(M.lat)}&longitude=${rep(M.lon)}&elevation=${M.zones.map((z) => Math.round(z.ft / 3.28084)).join(',')}`
     + `&hourly=snowfall&past_days=3&forecast_days=1&precipitation_unit=inch&timezone=${encodeURIComponent(TZ)}`;
-  const [data, pastData] = await Promise.all([getJSON(url), getJSON(pastUrl).catch(() => null)]);
+  const [data, pastData] = await Promise.all([getJSONCached(url), getJSONCached(pastUrl).catch(() => null)]);
   const past = pastData ? (Array.isArray(pastData) ? pastData : [pastData]) : [];
   return (Array.isArray(data) ? data : [data]).map((d, i) => {
     const pd = past[i];
@@ -598,6 +617,7 @@ function drawLiftsTab() {
   const L = state.call?.lifts;
   $('lift-official').href = M.liftStatusUrl;
   embedOfficialBoard();
+  if (!M.features?.liftEstimate) return; // shelved
   if (!L) return;
   $('lift-day').textContent = `${state.call.win.today ? 'today' : 'tomorrow'}, ${new Date(state.call.win.date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`;
   $('lifts-lead').textContent = `${L.season.open ? '' : L.season.label + '. '}How likely wind is to stop each of the ${L.total} chairlifts (the official board also lists the surface carpets), from the National Weather Service gust forecast and how exposed each lift top is. It only covers wind. Lifts also close for maintenance, staffing and other reasons, so always check the official board above.`;
@@ -733,13 +753,9 @@ function renderCall(c) {
   const dayName = new Date(c.win.date + 'T12:00').toLocaleDateString('en-US', isMobile() ? { weekday: 'short', month: 'short', day: 'numeric' } : { weekday: 'long', month: 'short', day: 'numeric' });
   $('call-day').textContent = `${isMobile() ? '' : 'The Call · '}${c.win.today ? 'Today' : 'Tomorrow'}, ${dayName} · 9am–4pm`;
   $('call-headline').textContent = c.headline;
-  $('call-text').textContent = c.why.length ? `Mainly because ${c.why.join(', ')}.` : 'No single factor stands out. Tap any card for details.';
+  $('call-text').textContent = c.why.length ? `Mainly because ${c.why.join(', ')}.` : 'No single factor stands out.';
   $('call-chips').innerHTML = c.chips.map((ch, i) => `<span class="chip ${ch.cls}" style="animation-delay:${0.15 + i * 0.08}s"><i aria-hidden="true">${ch.icon}</i>${esc(ch.label)}</span>`).join('');
-
-  const scoreCls = c.score >= 7 ? 'good' : c.score >= 4 ? 'ok' : 'bad';
-  const fill = $('g-fill');
-  fill.style.stroke = statusColor(scoreCls);
-  requestAnimationFrame(() => { fill.style.strokeDashoffset = 100 - c.score * 10; });
+  renderGauge(c.score);
   countUp($('score'), c.score);
 
   renderMountain(c);
@@ -747,21 +763,43 @@ function renderCall(c) {
   renderWind(c);
   renderSky(c);
   renderNow(c);
-  renderLiftsSummary(c);
+  if (M.features?.liftEstimate) renderLiftsSummary(c);
   renderBriefing(c);
+}
+
+// --- Score dial with labeled bands (1-3 / 4-6 / 7-10) and a needle
+function renderGauge(score) {
+  const svg = $('gauge');
+  svg.innerHTML = '';
+  const cx = 100, cy = 108, r = 80;
+  const ang = (v) => Math.PI + (v / 10) * Math.PI; // 0 -> left, 10 -> right
+  const pt = (v, rr) => [cx + rr * Math.cos(ang(v)), cy + rr * Math.sin(ang(v))];
+  const arc = (v0, v1, rr) => { const [x0, y0] = pt(v0, rr), [x1, y1] = pt(v1, rr); return `M${x0},${y0} A${rr},${rr} 0 0 1 ${x1},${y1}`; };
+  [[0, 3.5, '--critical'], [3.5, 6.5, '--warning'], [6.5, 10, '--good']].forEach(([a0, a1, v], i) => {
+    svgEl('path', { d: arc(a0 + (i ? 0.08 : 0), a1 - (i < 2 ? 0.08 : 0), r), fill: 'none', stroke: cssVar(v), 'stroke-width': 14, opacity: 0.35 }, svg);
+  });
+  const fill = svgEl('path', { d: arc(0, 10, r), fill: 'none', stroke: statusColor(score >= 7 ? 'good' : score >= 4 ? 'ok' : 'bad'), 'stroke-width': 14, pathLength: 100, 'stroke-dasharray': 100, 'stroke-dashoffset': 100 }, svg);
+  fill.style.transition = 'stroke-dashoffset 1.4s cubic-bezier(.22,1,.36,1)';
+  requestAnimationFrame(() => requestAnimationFrame(() => fill.setAttribute('stroke-dashoffset', 100 - (score || 0) * 10)));
+  [0, 5, 10].forEach((v) => { const [x, y] = pt(v, r + 15); const t = svgEl('text', { x, y: y + 4, 'text-anchor': 'middle', 'font-size': 10, fill: cssVar('--text-2') }, svg); t.textContent = v; });
+  [['Poor', 1.6], ['OK', 5], ['Good', 8.4]].forEach(([w, v]) => { const [x, y] = pt(v, r - 22); const t = svgEl('text', { x, y: y + 3, 'text-anchor': 'middle', 'font-size': 9, 'font-weight': 700, fill: cssVar('--text-2') }, svg); t.textContent = w; });
 }
 
 // --- Mountain profile: temperatures at each elevation + snow line
 function renderMountain(c) {
   const svg = $('mtn-svg');
   svg.innerHTML = '';
-  const W = 400, H = 230, LO = 4500, HI = 10000;
-  const y = (ft) => H - 12 - ((ft - LO) / (HI - LO)) * (H - 30);
+  const W = 400, H = 250, LO = 4500, HI = 10200, R = 362; // R: right edge of the picture (scale sits beyond)
+  const y = (ft) => H - 14 - ((ft - LO) / (HI - LO)) * (H - 34);
   const summit = M.zones[M.zones.length - 1].ft;
-  const peak = { x: 228, y: y(summit) };
-  const leftFoot = { x: 6, y: H - 12 }, rightFoot = { x: 396, y: H - 22 };
+  const COL = 132; // left column for the temperature boxes
+  const sx = (x) => COL + ((x - 6) * (R - COL)) / (R - 6);
+  const peak = { x: sx(214), y: y(summit) };
+  const leftFoot = { x: COL, y: H - 14 }, rightFoot = { x: R, y: H - 24 };
   const onLeft = (ft) => { const yy = y(ft); return { x: leftFoot.x + ((leftFoot.y - yy) / (leftFoot.y - peak.y)) * (peak.x - leftFoot.x), y: yy }; };
-  const shape = `M${leftFoot.x},${H} L${leftFoot.x},${leftFoot.y} L70,${y(6000)} L120,${y(6900)} L150,${y(7400)} L182,${y(8300)} L${peak.x},${peak.y} L250,${y(8800)} L282,${y(8000)} L330,${y(7200)} L${rightFoot.x},${rightFoot.y} L${rightFoot.x},${H} Z`;
+  const shape = `M${leftFoot.x},${H} L${leftFoot.x},${leftFoot.y} L${sx(66)},${y(6000)} L${sx(112)},${y(6900)} L${sx(140)},${y(7400)} L${sx(170)},${y(8300)} L${peak.x},${peak.y} L${sx(236)},${y(8800)} L${sx(266)},${y(8000)} L${sx(310)},${y(7200)} L${rightFoot.x},${rightFoot.y} L${rightFoot.x},${H} Z`;
+  const T = (attrs, text, parent = svg) => { const t = svgEl('text', { 'font-size': 10, fill: cssVar('--text'), ...attrs }, parent); t.textContent = text; return t; };
+  const pill = (x, yy, w, h, parent = svg) => svgEl('rect', { x, y: yy, width: w, height: h, rx: h / 2, fill: cssVar('--surface'), opacity: 0.94 }, parent);
 
   const defs = svgEl('defs', {}, svg);
   const sky = svgEl('linearGradient', { id: 'skyg', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
@@ -769,74 +807,108 @@ function renderMountain(c) {
   svgEl('stop', { offset: '1', 'stop-color': cssVar('--sky-2') }, sky);
   const clip = svgEl('clipPath', { id: 'mclip' }, defs);
   svgEl('path', { d: shape }, clip);
-  svgEl('rect', { x: 0, y: 0, width: W, height: H, rx: 10, fill: 'url(#skyg)' }, svg);
-  // Distant ridge
-  svgEl('path', { d: `M0,${y(6400)} L60,${y(7000)} L110,${y(6600)} L170,${y(7300)} L210,${y(6900)} L300,${y(7600)} L360,${y(6800)} L400,${y(7100)} L400,${H} L0,${H} Z`, fill: cssVar('--rock'), opacity: 0.25 }, svg);
+  svgEl('rect', { x: 0, y: 0, width: R, height: H, rx: 10, fill: 'url(#skyg)' }, svg);
+  svgEl('path', { d: `M0,${y(6400)} L60,${y(7000)} L110,${y(6600)} L170,${y(7300)} L210,${y(6900)} L290,${y(7600)} L340,${y(6800)} L${R},${y(7100)} L${R},${H} L0,${H} Z`, fill: cssVar('--rock'), opacity: 0.22 }, svg);
 
+  // Elevation scale on the right
+  [6000, 7000, 8000, 9000, 10000].forEach((ft) => {
+    svgEl('line', { x1: R + 2, x2: R + 8, y1: y(ft), y2: y(ft), stroke: cssVar('--text-2'), 'stroke-width': 1 }, svg);
+    T({ x: R + 10, y: y(ft) + 3.5, 'font-size': 9, fill: cssVar('--text-2') }, `${ft / 1000}k ft`);
+  });
+
+  // Mountain: snow-covered, tree line low, tinted below the freezing/snow level
   const g = svgEl('g', { 'clip-path': 'url(#mclip)' }, svg);
   svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: cssVar('--snow') }, g);
-  // Tree line along the lower slopes
-  for (let tx = 4; tx < W; tx += 9) {
+  for (let tx = 4; tx < R; tx += 9) {
     const ty = H - 6 - (Math.sin(tx * 0.7) + 1) * 6;
     svgEl('path', { d: `M${tx},${ty} l5,-14 l5,14 Z`, fill: cssVar('--forest'), opacity: 0.85 }, g);
   }
-  // Tint the part of the mountain that is above freezing (or getting rain).
-  const lineFt = c.rain?.wet ? c.rain.snowLevel : c.temp?.freezing;
+  const wet = !!c.rain?.wet;
+  const lineFt = wet ? c.rain.snowLevel : c.temp?.freezing;
   const lineY = lineFt != null ? clamp(y(lineFt), -10, H) : H;
-  const warm = svgEl('rect', { x: 0, y: Math.max(0, lineY), width: W, height: Math.max(0, H - lineY), fill: color(cssVar(c.rain?.wet ? '--s1' : '--serious'), 0.38) }, g);
+  const tint = wet && c.rain.cls !== 'good' ? '--s1' : '--serious';
+  const warm = svgEl('rect', { x: 0, y: Math.max(0, lineY), width: W, height: Math.max(0, H - lineY), fill: color(cssVar(tint), 0.38) }, g);
   grow(warm, 'bottom', 1.6, 0.2);
   svgEl('path', { d: shape, fill: 'none', stroke: cssVar('--rock'), 'stroke-width': 1.5, opacity: 0.7 }, svg);
 
-  // Snow / freezing line
-  if (lineFt != null && lineY > 0 && lineY < H - 4) {
-    const ln = svgEl('g', { class: 'snowline' }, svg);
-    svgEl('line', { x1: 0, x2: W, y1: lineY, y2: lineY, stroke: cssVar('--s1'), 'stroke-width': 2, 'stroke-dasharray': '6 5' }, ln);
-    const label = `${c.rain?.wet ? 'Snow line' : 'Freezing level'} ${ftFmt(lineFt)} ft`;
-    const ly = lineY < 30 ? lineY + 6 : lineY - 21;
-    svgEl('rect', { x: W - 154, y: ly, width: 150, height: 17, rx: 8, fill: cssVar('--surface'), opacity: 0.92 }, ln);
-    const t = svgEl('text', { x: W - 79, y: ly + 12, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: cssVar('--text') }, ln);
-    t.textContent = label;
-    bindTip(ln, c.rain?.wet ? 'Highest forecast snow level during precipitation. Above it is snow, below it is rain.' : 'Average forecast freezing level during ski hours. Above it stays frozen, below it can soften.');
-  } else if (lineFt != null && lineY <= 0) {
-    svgEl('rect', { x: W / 2 - 130, y: 6, width: 260, height: 18, rx: 9, fill: cssVar('--surface'), opacity: 0.92 }, svg);
-    const t = svgEl('text', { x: W / 2, y: 19, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: cssVar('--text') }, svg);
-    t.textContent = `${c.rain?.wet ? 'Rain to the summit' : 'Above freezing to the summit'} · ${c.rain?.wet ? 'snow line' : 'freezing level'} ${ftFmt(lineFt)} ft`;
-  } else if (lineFt != null) {
-    svgEl('rect', { x: W / 2 - 100, y: 6, width: 200, height: 18, rx: 9, fill: cssVar('--surface'), opacity: 0.92 }, svg);
-    const t = svgEl('text', { x: W / 2, y: 19, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: cssVar('--text') }, svg);
-    t.textContent = `Below freezing top to bottom (${ftFmt(lineFt)} ft)`;
-  }
-  // Key
-  const key = svgEl('g', {}, svg);
-  svgEl('rect', { x: 4, y: H - 26, width: c.rain?.wet ? 82 : 158, height: 20, rx: 10, fill: cssVar('--surface'), opacity: 0.92 }, key);
-  svgEl('rect', { x: 8, y: H - 22, width: 12, height: 12, rx: 3, fill: color(cssVar(c.rain?.wet ? '--s1' : '--serious'), 0.6) }, key);
-  const kt = svgEl('text', { x: 25, y: H - 12, 'font-size': 10, 'font-weight': 600, fill: cssVar('--text') }, key);
-  kt.textContent = c.rain?.wet ? 'Rain zone' : 'Above freezing (softening)';
+  // Where the temperature boxes will go (drawn later), so line labels can avoid them.
+  const zonesPre = c.temp?.zones?.length ? c.temp.zones : M.zones;
+  const boxes = zonesPre.map((z, i) => {
+    const last = i === zonesPre.length - 1;
+    const p = last ? peak : onLeft(z.ft);
+    const bw = 120, bh = 44;
+    return { x: 4, y: clamp(p.y - bh / 2, 2, H - bh - 2), w: bw, h: bh, p };
+  });
+  const avoid = [...boxes, ...boxes.map((b) => ({ x: b.p.x - 9, y: b.p.y - 9, w: 18, h: 18 }))]; // boxes + their dots
+  const hits = (x, yy, w, h) => avoid.some((b) => x < b.x + b.w && x + w > b.x && yy < b.y + b.h && yy + h > b.y);
 
-  // Zone markers with temperatures
+  // The line itself, labeled on both sides
+  const lineName = wet ? 'Snow level' : 'Freezing level';
+  const above = wet ? 'snow' : 'below freezing';
+  const below = wet ? (c.rain.cls === 'good' ? 'snow too' : 'rain') : 'above freezing';
+  if (lineFt != null && lineY > 18 && lineY < H - 18) {
+    const ln = svgEl('g', {}, svg);
+    svgEl('line', { x1: 0, x2: R, y1: lineY, y2: lineY, stroke: cssVar('--s1'), 'stroke-width': 2, 'stroke-dasharray': '6 5' }, ln);
+    const bwid = 148;
+    const xs = []; for (let x = R - bwid - 4; x >= COL; x -= 8) xs.push(x);
+    const lx = xs.find((x) => !hits(x, lineY - 30, bwid, 60)) ?? R - bwid - 4;
+    if (lx != null) {
+      pill(lx, lineY - 9, bwid, 18, ln);
+      T({ x: lx + 74, y: lineY + 4, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 800 }, `${lineName} ${ftFmt(lineFt)} ft`, ln);
+      if (lineY > 40) { pill(lx + 18, lineY - 28, 112, 16, ln); T({ x: lx + 74, y: lineY - 17, 'text-anchor': 'middle', 'font-size': 9.5, 'font-weight': 600, fill: cssVar('--text-2') }, `↑ ${above}`, ln); }
+      if (lineY < H - 40) { pill(lx + 18, lineY + 12, 112, 16, ln); T({ x: lx + 74, y: lineY + 23, 'text-anchor': 'middle', 'font-size': 9.5, 'font-weight': 600, fill: cssVar('--text-2') }, `↓ ${below}`, ln); }
+    } else {
+      // No room for three labels: one compact label on the line.
+      const cw = 236, cx2 = [...Array(Math.floor((R - cw) / 8)).keys()].map((k) => R - cw - 4 - k * 8).find((x) => x >= 4 && !hits(x, lineY - 9, cw, 18)) ?? R - cw - 4;
+      pill(cx2, lineY - 9, cw, 18, ln);
+      T({ x: cx2 + 8, y: lineY + 4, 'font-size': 10.5, 'font-weight': 800 }, `${lineName} ${ftFmt(lineFt)} ft · ↑ ${above} · ↓ ${below}`, ln);
+    }
+  } else if (lineFt != null) {
+    const top = lineY <= 18;
+    pill(COL + 4, 8, 226, 18);
+    T({ x: COL + 12, y: 21, 'font-size': 10.5, 'font-weight': 800 }, top ? `${lineName} ${ftFmt(lineFt)} ft: ${wet ? 'rain' : 'above 32°F'} to the summit` : `${lineName} ${ftFmt(lineFt)} ft: ${wet ? 'snow' : 'below 32°F'} top to bottom`);
+  }
+
+  // Precipitation in the sky
+  const winRows = c.rows?.win || [];
+  const daySnow = winRows.reduce((a2, r) => a2 + (r.snow || 0), 0);
+  const precip = svgEl('g', {}, svg);
+  if (daySnow >= 0.1 || (wet && c.rain.cls === 'good')) {
+    for (let i = 0; i < 10; i++) svgEl('circle', { cx: COL + 10 + (i % 5) * 20 + (i > 4 ? 10 : 0), cy: 30 + (i > 4 ? 12 : 0), r: 2.4, fill: cssVar('--s1'), opacity: 0.8 }, precip);
+    pill(COL + 4, 50, 140, 17, precip); T({ x: COL + 12, y: 62, 'font-weight': 700 }, `❄ ${r1(daySnow)}" snow, 9am–4pm`, precip);
+  } else if (wet) {
+    for (let i = 0; i < 9; i++) svgEl('line', { x1: COL + 14 + i * 13, y1: 28 + (i % 2) * 8, x2: COL + 11 + i * 13, y2: 36 + (i % 2) * 8, stroke: cssVar('--s1'), 'stroke-width': 2, 'stroke-linecap': 'round' }, precip);
+    pill(COL + 4, 50, 164, 17, precip); T({ x: COL + 12, y: 62, 'font-weight': 700 }, `Rain ${c.rain.wetIn.toFixed(2)}" water, 9am–4pm`, precip);
+  }
+
+  // Summit wind flag
+  if (c.wind) {
+    const fg = svgEl('g', {}, svg);
+    const rot = ((c.wind.dir ?? 0) + 180) % 360;
+    const ax = Math.min(peak.x + 4, R - 150), ay = peak.y - 30;
+    const arr = svgEl('path', { d: 'M0,-11 L6,0 L2,0 L2,11 L-2,11 L-2,0 L-6,0 Z', fill: statusColor(c.wind.cls), transform: `translate(${ax} ${ay}) rotate(${rot})` }, fg);
+    pill(ax + 12, ay - 9, 128, 18, fg);
+    T({ x: ax + 19, y: ay + 4, 'font-weight': 700 }, `${compass(c.wind.dir)} wind, gusts ${r0(c.wind.gust)} mph`, fg);
+    bindTip(fg, `NWS forecast for about ${ftFmt(c.wind.elevFt)} ft: sustained up to ${r0(c.wind.wind)} mph from the ${compass(c.wind.dir)}, gusts to ${r0(c.wind.gust)} mph. Arrow points the way the wind blows.`);
+  }
+
+  // Zone markers: average temp, range, name and elevation
   const zones = c.temp?.zones?.length ? c.temp.zones : M.zones;
   zones.forEach((z, i) => {
-    const p = i === zones.length - 1 ? peak : onLeft(z.ft);
-    const grp = svgEl('g', { class: 'zone', opacity: 0 }, svg);
+    const last = i === zones.length - 1;
+    const p = last ? peak : onLeft(z.ft);
+    const grp = svgEl('g', { opacity: 0 }, svg);
     grp.style.transition = `opacity .6s ease ${0.4 + i * 0.2}s`;
     svgEl('circle', { cx: p.x, cy: p.y, r: 5, fill: cssVar('--text'), stroke: cssVar('--surface'), 'stroke-width': 2 }, grp);
-    const bw = 108;
-    const bx = i === zones.length - 1 ? p.x + 12 : clamp(p.x - bw - 12, 2, W);
-    const by = p.y - (i === zones.length - 1 ? 22 : 17);
-    svgEl('rect', { x: bx, y: by, width: bw, height: 34, rx: 8, fill: cssVar('--surface'), stroke: cssVar('--line') }, grp);
-    const tt = svgEl('text', { x: bx + 8, y: by + 15, 'font-size': 14, 'font-weight': 800, fill: cssVar('--text') }, grp);
-    tt.textContent = z.avg != null ? `${r0(z.avg)}°F` : '–';
-    const tn = svgEl('text', { x: bx + 8, y: by + 28, 'font-size': 9.5, fill: cssVar('--text-2') }, grp);
-    tn.textContent = `${z.name.replace(' base', '').replace(' (mid)', '')} · ${ftFmt(z.ft)}′`;
-    bindTip(grp, `${z.name} (${ftFmt(z.ft)} ft): average ${r0(z.avg)}°F during ski hours, range ${r0(z.min)}–${r0(z.max)}°F.`);
+    const { x: bx, y: by, w: bw, h: bh } = boxes[i];
+    svgEl('line', { x1: bx + bw, y1: by + bh / 2, x2: p.x, y2: p.y, stroke: cssVar('--text-2'), 'stroke-width': 1, 'stroke-dasharray': '2 3' }, grp);
+    svgEl('rect', { x: bx, y: by, width: bw, height: bh, rx: 8, fill: cssVar('--surface'), stroke: cssVar('--line') }, grp);
+    T({ x: bx + 8, y: by + 16, 'font-size': 15, 'font-weight': 800 }, z.avg != null ? `${r0(z.avg)}°F` : '–', grp);
+    T({ x: bx + 54, y: by + 16, 'font-size': 9, fill: cssVar('--text-2') }, z.min != null ? `avg · ${r0(z.min)}–${r0(z.max)}` : '', grp);
+    T({ x: bx + 8, y: by + 33, 'font-size': 10, 'font-weight': 600, fill: cssVar('--text-2') }, `${z.name.replace(' base', '').replace(' (mid)', '')} ${ftFmt(z.ft)}′`, grp);
+    bindTip(grp, `${z.name} (${ftFmt(z.ft)} ft), 9am–4pm: average ${r0(z.avg)}°F, range ${r0(z.min)}–${r0(z.max)}°F.`);
     requestAnimationFrame(() => requestAnimationFrame(() => grp.setAttribute('opacity', 1)));
   });
-
-  const rain = c.rain;
-  let cap = c.temp ? c.temp.text : '';
-  if (rain?.wet) cap = rain.cls === 'bad' ? `Rain likely up past mid-mountain. ${cap}` : rain.cls === 'ok' ? `Rain possible at the base, snow higher up. ${cap}` : `Snow all the way to the base (${rain.wetIn.toFixed(2)}" of water). ${cap}`;
-  if (c.temp?.chill != null && Number.isFinite(c.temp.chill) && c.temp.chill <= 32) cap += ` Wind chill as low as ${r0(c.temp.chill)}°F.`;
-  $('mtn-cap').textContent = cap;
 }
 
 // --- Snow stake meter
@@ -845,7 +917,7 @@ function renderSnow(c) {
   const svg = $('stake-svg');
   svg.innerHTML = '';
   const max = Math.max(12, Math.ceil(((s.d72 || 0) + (s.forecast || 0)) / 6) * 6);
-  const top = 10, bot = 160, x = 46, w = 28;
+  const top = 16, bot = 160, x = 46, w = 28;
   const yv = (v) => bot - (v / max) * (bot - top);
   // Ticks
   for (let v = 0; v <= max; v += max / 6) {
@@ -872,15 +944,14 @@ function renderSnow(c) {
     grow(r, 'bottom', 1.3, i * 0.15);
   });
   svgEl('line', { x1: x - 8, x2: x + w + 8, y1: bot, y2: bot, stroke: cssVar('--text-2'), 'stroke-width': 1.5 }, svg);
+  const unitT = svgEl('text', { x: x + w / 2, y: top - 1, 'text-anchor': 'middle', 'font-size': 9, fill: cssVar('--text-2') }, svg); unitT.textContent = 'inches';
   bindTip(svg, `Model estimate at ${s.zone ? ftFmt(s.zone.ft) + ' ft' : 'mid-mountain'}. Solid: 24 hours (${r1(s.d24)}"). Light: 72 hours (${r1(s.d72)}"). Dashed: forecast before lifts close (${r1(s.forecast)}").`);
 
   countUp($('snow24'), s.d24 ?? null, s.d24 != null && s.d24 < 1 && s.d24 > 0 ? 1 : 0);
   countUp($('snow72'), s.d72 ?? null, s.d72 != null && s.d72 < 1 && s.d72 > 0 ? 1 : 0);
   countUp($('snowF'), s.forecast ?? null, 1);
-  const zones = (s.byZone || []).map((z) => `${z.name.replace(' (mid)', '')} ${r1(z.d24)}"`).join(' · ');
-  $('snow-cap').textContent = s.zone
-    ? `Model estimate for ${s.zone.name.replace(' (mid)', '')} (${ftFmt(s.zone.ft)} ft). Last 24 hrs by elevation: ${zones}. No public snow sensor reports from the mountain; the stake cam is the measured check.`
-    : 'Model estimate unavailable. The stake cam is the measured check.';
+  $('snow-zones').innerHTML = (s.byZone || []).map((z) => `<span>${esc(z.name.replace(' (mid)', '').replace('West Village base', 'Base'))} <b>${r1(z.d24)}"</b></span>`).join('');
+  $('snow-cap').textContent = s.zone ? `Model estimate at ${ftFmt(s.zone.ft)} ft · 24 hrs by elevation above` : 'Model estimate unavailable';
 
   // Falling snowflakes when it is snowing or about to.
   const flakes = $('flakes');
@@ -901,41 +972,38 @@ function renderWind(c) {
   const w = c.wind;
   const svg = $('wind-svg');
   svg.innerHTML = '';
-  const cx = 100, cy = 100, R = 82;
   if (!w) return;
-  const maxG = 70;
-  const arc = (r, f) => {
-    const a0 = -220 * Math.PI / 180, a1 = a0 + f * 260 * Math.PI / 180;
-    const p = (a) => `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
-    return `M${p(a0)} A${r},${r} 0 ${f * 260 > 180 ? 1 : 0} 1 ${p(a1)}`;
-  };
-  // Gust track and zones
-  svgEl('path', { d: arc(R, 1), fill: 'none', stroke: cssVar('--line'), 'stroke-width': 10, 'stroke-linecap': 'round' }, svg);
-  const gustArc = svgEl('path', { d: arc(R, clamp(w.gust / maxG, 0.001, 1)), fill: 'none', stroke: statusColor(w.cls), 'stroke-width': 10, 'stroke-linecap': 'round', pathLength: 100, 'stroke-dasharray': 100, 'stroke-dashoffset': 100 }, svg);
-  gustArc.style.transition = 'stroke-dashoffset 1.4s cubic-bezier(.22,1,.36,1)';
-  requestAnimationFrame(() => requestAnimationFrame(() => gustArc.setAttribute('stroke-dashoffset', 0)));
-  // 40 mph hold-risk tick
-  const holdA = (-220 + (40 / maxG) * 260) * Math.PI / 180;
-  svgEl('line', { x1: cx + (R - 9) * Math.cos(holdA), y1: cy + (R - 9) * Math.sin(holdA), x2: cx + (R + 9) * Math.cos(holdA), y2: cy + (R + 9) * Math.sin(holdA), stroke: cssVar('--text'), 'stroke-width': 2 }, svg);
-  // Compass
-  svgEl('circle', { cx, cy, r: 52, fill: cssVar('--surface'), stroke: cssVar('--line') }, svg);
-  ['N', 'E', 'S', 'W'].forEach((d, i) => {
-    const a = (i * 90 - 90) * Math.PI / 180;
-    const t = svgEl('text', { x: cx + 41 * Math.cos(a), y: cy + 41 * Math.sin(a) + 4, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: cssVar('--text-2') }, svg);
-    t.textContent = d;
+  const cx = 100, cy = 96, R = 78, maxG = 70;
+  const A0 = -220, SPAN = 260;
+  const ang = (v) => (A0 + (clamp(v, 0, maxG) / maxG) * SPAN) * Math.PI / 180;
+  const pt = (v, r) => [cx + r * Math.cos(ang(v)), cy + r * Math.sin(ang(v))];
+  const arc = (v0, v1, r) => { const [x0, y0] = pt(v0, r), [x1, y1] = pt(v1, r); return `M${x0},${y0} A${r},${r} 0 ${((v1 - v0) / maxG) * SPAN > 180 ? 1 : 0} 1 ${x1},${y1}`; };
+  const T = (attrs, text) => { const t = svgEl('text', { 'font-size': 9, fill: cssVar('--text-2'), 'text-anchor': 'middle', ...attrs }, svg); t.textContent = text; return t; };
+  // Colored zones with names
+  [[0, 25, '--good', 'Light'], [25, 40, '--warning', 'Breezy'], [40, maxG, '--critical', 'Lift holds']].forEach(([v0, v1, col, name]) => {
+    svgEl('path', { d: arc(v0 + 0.6, v1 - 0.6, R), fill: 'none', stroke: cssVar(col), 'stroke-width': 10, opacity: 0.3 }, svg);
+    const [lx, ly] = pt((v0 + v1) / 2, R + 15);
+    T({ x: lx, y: ly + 3, 'font-weight': 700 }, name);
   });
-  // Arrow points downwind (wind blows FROM w.dir).
+  // Filled to the forecast gust
+  const fill = svgEl('path', { d: arc(0, clamp(w.gust, 0.5, maxG), R), fill: 'none', stroke: statusColor(w.cls), 'stroke-width': 10, 'stroke-linecap': 'round', pathLength: 100, 'stroke-dasharray': 100, 'stroke-dashoffset': 100 }, svg);
+  fill.style.transition = 'stroke-dashoffset 1.4s cubic-bezier(.22,1,.36,1)';
+  requestAnimationFrame(() => requestAnimationFrame(() => fill.setAttribute('stroke-dashoffset', 0)));
+  // mph marks inside the ring
+  [0, 25, 40, 70].forEach((v) => { const [x, y] = pt(v, R - 15); T({ x, y: y + 3 }, v); });
+  // Compass with direction
+  svgEl('circle', { cx, cy, r: 46, fill: cssVar('--surface'), stroke: cssVar('--line') }, svg);
+  ['N', 'E', 'S', 'W'].forEach((d, i) => { const a = (i * 90 - 90) * Math.PI / 180; T({ x: cx + 37 * Math.cos(a), y: cy + 37 * Math.sin(a) + 4, 'font-size': 10, 'font-weight': 700 }, d); });
   const g = svgEl('g', { class: 'wind-arrow' }, svg);
-  svgEl('path', { d: `M${cx},${cy - 30} L${cx + 9},${cy - 12} L${cx + 3},${cy - 12} L${cx + 3},${cy + 28} L${cx - 3},${cy + 28} L${cx - 3},${cy - 12} L${cx - 9},${cy - 12} Z`, fill: cssVar('--s1') }, g);
+  svgEl('path', { d: `M${cx},${cy - 26} L${cx + 8},${cy - 10} L${cx + 3},${cy - 10} L${cx + 3},${cy + 24} L${cx - 3},${cy + 24} L${cx - 3},${cy - 10} L${cx - 8},${cy - 10} Z`, fill: cssVar('--s1') }, g);
+  g.style.transformOrigin = `${cx}px ${cy}px`;
   g.style.transform = 'rotate(0deg)';
-  const rot = ((w.dir ?? 0) + 180) % 360;
-  requestAnimationFrame(() => requestAnimationFrame(() => { g.style.transform = `rotate(${rot}deg)`; }));
-  const num = svgEl('text', { x: cx, y: cy + 80, 'text-anchor': 'middle', 'font-size': 22, 'font-weight': 800, fill: cssVar('--text') }, svg);
-  num.textContent = `${r0(w.gust)}`;
-  const unit = svgEl('text', { x: cx, y: cy + 94, 'text-anchor': 'middle', 'font-size': 10, fill: cssVar('--text-2') }, svg);
-  unit.textContent = 'mph gusts';
-  bindTip(svg, `Peak gust ${r0(w.gust)} mph, sustained up to ${r0(w.wind)} mph from the ${compass(w.dir)}, at about ${ftFmt(w.elevFt)} ft. The black tick marks 40 mph, where upper lifts start to risk wind holds.`);
-  $('wind-cap').innerHTML = `<span class="st ${w.cls}"><i aria-hidden="true">${w.cls === 'good' ? '✓' : w.cls === 'ok' ? '!' : '✕'}</i>${w.cls === 'good' ? 'Light wind' : w.cls === 'ok' ? 'Breezy' : 'Hold risk'}</span> From the ${compass(w.dir)}, up to ${r0(w.wind)} mph. ${esc(w.text)}`;
+  requestAnimationFrame(() => requestAnimationFrame(() => { g.style.transform = `rotate(${((w.dir ?? 0) + 180) % 360}deg)`; }));
+  // Readout under the dial
+  T({ x: cx, y: 176, 'font-size': 17, 'font-weight': 800, fill: cssVar('--text') }, `${r0(w.gust)} mph gusts`);
+  T({ x: cx, y: 191, 'font-size': 10 }, `from the ${compass(w.dir)} · sustained ${r0(w.wind)} mph`);
+  bindTip(svg, `NWS forecast peak for 9am–4pm at about ${ftFmt(w.elevFt)} ft. The arrow points the way the wind blows. Upper lifts start to risk wind holds around 40 mph gusts.`);
+  $('wind-cap').textContent = `Peak, 9am–4pm · NWS at ~${ftFmt(w.elevFt)} ft`;
 }
 
 // --- Sky icon + hourly ribbon
@@ -959,19 +1027,20 @@ function renderSky(c) {
     for (let i = 0; i < 3; i++) svgEl('circle', { cx: 52 + i * 14, cy: 86, r: 2.5, fill: cssVar('--s1') }, svg);
   }
   $('sky-label').textContent = s.label;
-  $('sky-sub').textContent = `${r0(s.avg)}% cloud · ${r1(s.vis)} mi visibility`;
+  $('sky-sub').textContent = `avg ${r0(s.avg)}% cloud · visibility to ${r1(s.vis)} mi`;
 
   const rib = $('ribbon');
   const sky1 = cssVar('--s1');
   rib.innerHTML = s.hours.map((h, i) => {
     const a = clamp((h.sky ?? 0) / 100, 0, 1);
-    return `<div style="background:${color(sky1, 0.08 + a * 0.5)};animation-delay:${i * 0.05}s" data-i="${i}">${h.snow > 0.05 ? '<b>❄</b>' : ''}${isMobile() ? fmtTime(h.t, { hour: 'numeric' }).split(' ')[0] : fmtTime(h.t, { hour: 'numeric' }).replace(' ', '').toLowerCase()}</div>`;
+    const hr = isMobile() ? fmtTime(h.t, { hour: 'numeric' }).split(' ')[0] : fmtTime(h.t, { hour: 'numeric' }).replace(' ', '').toLowerCase();
+    return `<div style="animation-delay:${i * 0.05}s" data-i="${i}"><span class="rb" style="background:${color(sky1, 0.1 + a * 0.6)}"><b>${r0(h.sky)}%</b>${h.snow > 0.05 ? '<i>❄</i>' : ''}</span><span class="rp">☂${r0(h.pop)}%</span><span class="rh">${hr}</span></div>`;
   }).join('');
   rib.querySelectorAll('div').forEach((d) => {
     const h = s.hours[d.dataset.i];
     bindTip(d, `${fmtTime(h.t, { hour: 'numeric' })}: ${r0(h.sky)}% cloud cover, ${r0(h.pop)}% chance of precipitation${h.snow > 0.05 ? `, ${r1(h.snow)}" snow` : ''}.`);
   });
-  $('sky-cap').innerHTML = `<span class="st ${s.cls}"><i aria-hidden="true">${s.cls === 'good' ? '✓' : s.cls === 'ok' ? '!' : '✕'}</i>${s.cls === 'bad' ? 'Flat light' : s.cls === 'ok' ? 'Mixed light' : 'Good light'}</span> Darker blocks mean more cloud.`;
+
 }
 
 // --- Right now: live readings from on-mountain stations
@@ -996,7 +1065,7 @@ function renderNow(c) {
       : `${s.name} hasn't reported since ${x.last ? fmtTime(x.last.t, { month: 'short', day: 'numeric', hour: 'numeric' }) : 'the start of the period'}, so it's left out.`);
   });
   const live = c.now.live.length;
-  $('now-cap').innerHTML = `<span class="st ${live ? 'good' : 'bad'}"><i aria-hidden="true">${live ? '✓' : '✕'}</i>${live} of ${sts.length} live</span> Stations on and next to the ski area. Tap a row for 24-hour highs and lows.`;
+  $('now-cap').innerHTML = `<span class="st ${live ? 'good' : 'bad'}"><i aria-hidden="true">${live ? '✓' : '✕'}</i>${live} of ${sts.length} stations live</span>`;
 }
 
 // hex + alpha -> rgba
@@ -1513,8 +1582,14 @@ async function refreshData() {
   setTimeout(() => $('refresh').classList.remove('spin'), 600);
 }
 
+function tagTooltips() {
+  const tips = { m: 'Measured: live readings from stations on the mountain', f: 'Forecast: National Weather Service or model prediction', e: 'Model: an estimate of what already fell, not a measurement' };
+  document.querySelectorAll('.src').forEach((el) => { const k = ['m', 'f', 'e'].find((c) => el.classList.contains(c)); if (k && !el.title) el.title = tips[k]; });
+}
+
 function init() {
   detectDevice();
+  tagTooltips();
   document.title = `${M.name} · Ra-Dar Ski Weather`;
   $('mtn-name').textContent = M.name;
   $('links').innerHTML = M.links.map((l) => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a></li>`).join('');
@@ -1531,7 +1606,10 @@ function init() {
     rt = setTimeout(() => { if (detectDevice()) { if (state.call) renderCall(state.call); drawActiveTab(); } }, 200);
   });
   matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { if (state.call) renderCall(state.call); drawActiveTab(); });
-  setInterval(refreshData, DATA_REFRESH_MS);
+  let lastRefresh = Date.now();
+  const tick = () => { if (document.hidden) return; lastRefresh = Date.now(); refreshData(); };
+  setInterval(tick, DATA_REFRESH_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - lastRefresh > DATA_REFRESH_MS) tick(); });
   setInterval(renderCams, CAM_REFRESH_MS);
 }
 init();

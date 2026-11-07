@@ -21,13 +21,13 @@ let weekSel = 0;
 async function loadWeek() {
   const midZone = M.zones.find((z) => z.key === 'mid') || M.zones[1];
   const elevM = Math.round(midZone.ft / 3.28084);
-  const common = `latitude=${M.lat}&longitude=${M.lon}&elevation=${elevM}&temperature_unit=fahrenheit&precipitation_unit=inch&wind_speed_unit=mph&timezone=${encodeURIComponent(TZ)}&forecast_days=9`;
+  const common = `latitude=${M.lat}&longitude=${M.lon}&elevation=${elevM}&temperature_unit=fahrenheit&precipitation_unit=inch&wind_speed_unit=mph&timezone=${encodeURIComponent(TZ)}&forecast_days=8`;
   const modelsUrl = `https://api.open-meteo.com/v1/forecast?${common}&hourly=snowfall,temperature_2m,wind_gusts_10m&models=${WEEK_MODELS.map((m) => m.key).join(',')}`;
   const ensUrl = `https://ensemble-api.open-meteo.com/v1/ensemble?${common}&hourly=snowfall,temperature_2m,wind_gusts_10m&models=${WEEK_ENSEMBLES.join(',')}`;
   const textUrl = `https://api.weather.gov/gridpoints/${M.nws.office}/${M.nws.x},${M.nws.y}/forecast`;
   const [models, ens, text] = await Promise.all([
-    getJSON(modelsUrl, 30000).catch((e) => { console.warn('models', e); return null; }),
-    getJSON(ensUrl, 40000).catch((e) => { console.warn('ensemble', e); return null; }),
+    getJSONCached(modelsUrl, 30000).catch((e) => { console.warn('models', e); return null; }),
+    getJSONCached(ensUrl, 40000, 90).catch((e) => { console.warn('ensemble', e); return null; }),
     getJSON(textUrl, 30000).catch((e) => { console.warn('nws text', e); return null; }),
   ]);
   if (!models && !ens && !text) throw new Error('No 7-day sources available');
@@ -106,7 +106,8 @@ function buildWeek() {
       if (t.slice(0, 10) === date) idxDay.push(k);
       if (inSki(t, date)) idxSki.push(k);
     });
-    const complete = idxSnow.length >= 20;
+    // Today's window has partly passed, so accept the remaining hours for day 0.
+    const complete = idxSnow.length >= (i === 0 ? 6 : 20);
     const snowM = complete ? ensSnow.map((m) => idxSnow.reduce((a, k) => a + (m[k] || 0), 0)).sort((a, b) => a - b) : [];
     const hiM = idxDay.length >= 20 ? ensTemp.map((m) => Math.max(...idxDay.map((k) => m[k] ?? -99))).sort((a, b) => a - b) : [];
     const gustM = idxSki.length ? ensGust.map((m) => Math.max(...idxSki.map((k) => m[k] ?? 0))).sort((a, b) => a - b) : [];
@@ -124,7 +125,7 @@ function buildWeek() {
       if (!arr) return { ...m, snow: null };
       let s = 0, n = 0;
       mTimes.forEach((t, k) => { if (t >= ws && t < we && arr[k] != null) { s += arr[k]; n++; } });
-      return { ...m, snow: n >= 20 ? s : null };
+      return { ...m, snow: n >= (i === 0 ? 6 : 20) ? s : null };
     });
 
     // Temperatures by elevation (Open-Meteo, adjusted to each zone)
@@ -256,11 +257,11 @@ function renderWeekStrip(week) {
       ${d.mostSnow ? '<span class="best-tag">Most snow</span>' : ''}
       <span class="dn">${esc(d.name)}</span><span class="dd">${new Date(d.date + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
       <span class="di">${iconSvg(d.icon)}</span>
-      <span class="ds ${sc}">${d.score ?? '–'}</span>
-      <span class="dsnow"><b>${snowRangeText(d)}</b><small>snow</small></span>
-      <span class="dt">${r0(base?.hi)}° <small>base</small> · ${r0(top?.hi)}° <small>top</small></span>
-      <span class="dw ${d.gust >= 40 ? 'warn' : ''}">Gusts ${r0(d.gust)}</span>
-      <span class="dc c-${d.conf}" title="${confWord[d.conf]}">${'●'.repeat(dots)}${'○'.repeat(3 - dots)}</span>
+      <span class="ds ${sc}" title="Ski score out of 10">${d.score ?? '–'}<small>/10</small></span>
+      <span class="dsnow"><b>${snowRangeText(d)}</b><small>likely snow</small></span>
+      <span class="dt"><small>high</small> ${r0(base?.hi)}° <small>base</small> · ${r0(top?.hi)}° <small>top</small></span>
+      <span class="dw ${d.gust >= 40 ? 'warn' : ''}">Gusts ${r0(d.gust)} mph</span>
+      <span class="dc c-${d.conf}" title="How much the 82 model runs agree">${{ high: 'High', med: 'Medium', low: 'Low' }[d.conf]} confidence</span>
       ${d.closed ? '<span class="dclosed">Lifts closed</span>' : ''}
     </button>`;
   }).join('');

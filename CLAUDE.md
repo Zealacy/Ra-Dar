@@ -23,7 +23,7 @@ Good data is the backbone of this site. These rules come from mistakes the owner
   - NRCS SNOTEL, as a regional reference only.
   - RainViewer radar.
   - Mt. Bachelor webcams and the station graphic.
-- **Lifts:** there is no public live lift-status feed. The resort's feed is the private API, and Liftie (liftie.info) sits behind a Cloudflare bot check, which must not be bypassed. The site shows a wind-hold **estimate** per lift, labeled as such, and always links to the official live status page. The lift list and stats come from the official Mountain Stats page (`/the-mountain/resort-policies-safety/mountain-stats/`). `season.openingDay` in `mountains.js` is set by hand from the official Lift & Trail Status page, so re-check it when working on the site. Never present estimated lift status as real open/closed status. The official board is embedded in the Lifts tab, shifted up by `liftStatusOffsetPx` so it opens at the lift list. If the resort redesigns that page, re-measure the offset. Their board counts 14 lifts (including 2 surface carpets); the wind estimate covers the 12 chairlifts.
+- **Lifts:** there is no public live lift-status feed. The resort's feed is the private API, and Liftie (liftie.info) sits behind a Cloudflare bot check, which must not be bypassed. The per-lift wind-hold **estimate** is **shelved** (`features.liftEstimate: false` in `mountains.js`): the owner found it confusing and didn't want to send people to the wrong area. Don't bring it back unless the owner asks. The Lifts tab shows only the resort's official board. The lift list and stats come from the official Mountain Stats page (`/the-mountain/resort-policies-safety/mountain-stats/`). `season.openingDay` in `mountains.js` is set by hand from the official Lift & Trail Status page, so re-check it when working on the site. Never present estimated lift status as real open/closed status. The official board is embedded in the Lifts tab, shifted up by `liftStatusOffsetPx` so it opens at the lift list. If the resort redesigns that page, re-measure the offset. Their board counts 14 lifts (including 2 surface carpets); the wind estimate covers the 12 chairlifts.
 - **Known gap:** no public snow-depth sensor currently reports from the mountain. A possible fix is MesoWest/Synoptic, which needs an API key that must not go in the public code. Ask the owner before setting that up.
 
 ## Units
@@ -39,7 +39,8 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 
 ## Design preferences
 
-- **The summary at the top ("The Call") must be visual**, with graphics like the score dial, mountain profile, stake meter, wind compass and sky ribbon, so it doesn't push numbers at people. Exact numbers go in tooltips and the detail tabs.
+- **The infographic is front and center** at the top of the home screen (score dial, then the big mountain picture with wind, fresh snow, sky and right-now cards around it). The text briefing sits below it.
+- **Graphics must explain themselves.** Put labels, scales, units, zone names and values directly on the graphic (for example, the elevation scale, "↑ below freezing / ↓ above freezing", wind zones "Light / Breezy / Lift holds"). Don't add paragraphs under a graphic explaining how to read it. A bit more clutter is fine; making people read a lot is not.
 - **Plenty of technical data is wanted, but it lives further down**, in the tabs and in collapsible tables.
 - **Keep the page short vertically:** use tabs, carousels and collapsible sections instead of long stacks.
 - **The layout must work on every device:** JS sets `<html data-device="mobile|tablet|desktop">`, and CSS and charts adapt to it. Test phone and desktop every time.
@@ -55,6 +56,7 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 
 - **Test in a real browser before pushing.** Use Playwright with `proxy: { server: process.env.HTTPS_PROXY, bypass: 'localhost,127.0.0.1' }` and serve the site with `python3 -m http.server`. Take screenshots on desktop and phone, and look at them.
 - This sandbox's connection sometimes drops requests (Open-Meteo especially). `getJSON` retries once. Don't mistake these sandbox failures for bugs in the site.
+- **Open-Meteo's free tier allows 10,000 requests per day per IP address, and ensemble requests count heavily.** Heavy browser testing from the sandbox can use up the whole day's allowance (HTTP 429 "Daily API request limit exceeded"; resets at 00:00 UTC). Keep test runs few. When it's blocked, test layout with fixtures injected in the test only, never in the site. The site caches Open-Meteo responses in each visitor's browser (`getJSONCached`, 45 min, ensemble 90 min) and pauses refreshing in background tabs, so visitors stay under their own limit.
 - Cloud sessions should use the **Ra-Dar** environment, which allows the hosts listed above, in **Auto** mode.
 ## Publishing (standing permission from the owner)
 

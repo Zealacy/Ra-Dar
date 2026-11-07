@@ -36,11 +36,8 @@
     <section id="call" class="panel call reveal">
       <div class="call-hero">
         <div class="gauge-wrap">
-          <svg class="gauge" viewBox="0 0 200 120" aria-hidden="true">
-            <path class="g-track" d="M20 110 A80 80 0 0 1 180 110" pathLength="100"/>
-            <path class="g-fill" id="g-fill" d="M20 110 A80 80 0 0 1 180 110" pathLength="100"/>
-          </svg>
-          <div class="gauge-num"><span id="score">–</span><small>/10</small></div>
+          <svg class="gauge" id="gauge" viewBox="0 0 200 128" aria-hidden="true"></svg>
+          <div class="gauge-num"><span id="score">–</span><small>/10</small><em>ski score</em></div>
         </div>
         <div class="call-words">
           <div class="eyebrow" id="call-day">The Call</div>
@@ -50,16 +47,17 @@
       </div>
       <div class="chips" id="call-chips"></div>
 
-      <div class="brief" id="brief" aria-live="polite">
-        <div class="brief-head"><h3>Briefing</h3><span class="brief-when" id="brief-when"></span></div>
-        <ul class="brief-lines" id="brief-lines"><li>Loading…</li></ul>
-      </div>
 
       <div class="widgets">
         <article class="w w-mtn">
           <header><h3>On the mountain</h3><span class="src f">Forecast</span></header>
-          <svg id="mtn-svg" class="mtn-svg" viewBox="0 0 400 210" role="img" aria-label="Mountain temperatures and snow line"></svg>
-          <p class="cap" id="mtn-cap"></p>
+          <svg id="mtn-svg" class="mtn-svg" viewBox="0 0 400 250" role="img" aria-label="Mountain temperatures, freezing level, wind and precipitation"></svg>
+        </article>
+
+        <article class="w w-wind">
+          <header><h3>Wind</h3><span class="src f">Forecast</span></header>
+          <svg id="wind-svg" class="wind-svg" viewBox="-26 0 252 200" aria-hidden="true"></svg>
+          <p class="cap" id="wind-cap"></p>
         </article>
 
         <article class="w w-snow">
@@ -68,20 +66,14 @@
             <div class="flakes" id="flakes" aria-hidden="true"></div>
             <svg id="stake-svg" class="stake-svg" viewBox="0 0 120 170" aria-hidden="true"></svg>
             <div class="snow-nums">
-              <div class="big"><span id="snow24">–</span><small>"</small></div>
-              <div class="lbl">last 24 hrs</div>
-              <div class="mid"><span id="snow72">–</span>" <span class="lbl">72 hrs</span></div>
-              <div class="mid"><span id="snowF">–</span>" <span class="lbl">on the way</span></div>
+              <div class="sn-row"><i class="sw s24"></i><span class="sn-v"><span id="snow24">–</span>"</span><span class="sn-l">last 24 hrs</span></div>
+              <div class="sn-row"><i class="sw s72"></i><span class="sn-v"><span id="snow72">–</span>"</span><span class="sn-l">last 72 hrs</span></div>
+              <div class="sn-row"><i class="sw sf"></i><span class="sn-v">+<span id="snowF">–</span>"</span><span class="sn-l">forecast to 4pm</span></div>
+              <div class="sn-zones" id="snow-zones"></div>
             </div>
-            <a class="stake-thumb" id="stake-thumb-link" href="#cams" title="Snow stake cam: the on-mountain check"><img id="stake-thumb" alt="Snow stake cam"><span>Stake cam</span></a>
+            <a class="stake-thumb" id="stake-thumb-link" href="#cams" title="Snow stake cam"><img id="stake-thumb" alt="Snow stake cam"><span>Measured: stake cam ↓</span></a>
           </div>
           <p class="cap" id="snow-cap"></p>
-        </article>
-
-        <article class="w w-wind">
-          <header><h3>Wind</h3><span class="src f">Forecast</span></header>
-          <svg id="wind-svg" class="wind-svg" viewBox="0 0 200 200" aria-hidden="true"></svg>
-          <p class="cap" id="wind-cap"></p>
         </article>
 
         <article class="w w-sky">
@@ -90,11 +82,17 @@
             <svg id="sky-icon" class="sky-icon" viewBox="0 0 120 90" aria-hidden="true"></svg>
             <div><div class="mid" id="sky-label">–</div><div class="lbl" id="sky-sub"></div></div>
           </div>
+          <div class="rib-h"><span>Cloud cover by hour</span><span>☂ = chance of precip</span></div>
           <div class="ribbon" id="ribbon"></div>
-          <p class="cap" id="sky-cap"></p>
         </article>
 
-        <article class="w w-lifts">
+        <article class="w w-now">
+          <header><h3>Right now</h3><span class="src m">Measured</span></header>
+          <div class="now-list" id="now-list"><div class="lbl">Loading station readings…</div></div>
+          <p class="cap" id="now-cap"></p>
+        </article>
+
+        <article class="w w-lifts" hidden>
           <header><h3>Lift wind risk</h3><span class="src f">Estimate · not official status</span></header>
           <div class="season" id="season"></div>
           <div class="lifts-body">
@@ -111,14 +109,12 @@
             <a class="pill official" id="lift-official-top" target="_blank" rel="noopener">Which lifts are running? Official board ↗</a>
           </div>
         </article>
-
-        <article class="w w-now">
-          <header><h3>Right now</h3><span class="src m">Measured</span></header>
-          <div class="now-list" id="now-list"><div class="lbl">Loading station readings…</div></div>
-          <p class="cap" id="now-cap"></p>
-        </article>
       </div>
-      <p class="fine">Score out of 10, worked out from the cards. <span class="src m">Measured</span> means live readings from stations on the mountain. <span class="src f">Forecast</span> means a National Weather Service or model prediction. <span class="src e">Model</span> means a model estimate of what already fell. Always check it against the stake cam.</p>
+
+      <div class="brief" id="brief" aria-live="polite">
+        <div class="brief-head"><h3>Briefing</h3><span class="brief-when" id="brief-when"></span></div>
+        <ul class="brief-lines" id="brief-lines"><li>Loading…</li></ul>
+      </div>
     </section>
 
     <!-- ================= WEEK AHEAD (easy access) ================= -->
@@ -126,7 +122,6 @@
       <header class="ph"><h2>Week ahead</h2><span class="src f">Forecast · NWS + 4 models + 82 ensemble runs</span></header>
       <p class="week-summary" id="week-summary"></p>
       <div class="week-strip" id="week-strip"><div class="lbl">Loading the 7-day forecast…</div></div>
-      <p class="fine">Scores are out of 10. Snow is the likely range for each ski day (4pm the day before to 4pm). ●●● is high confidence; ●○○ is low, meaning the models disagree. “Most snow” marks a day that clearly leads on snow. Tap a day for the full breakdown.</p>
     </section>
 
     <!-- ================= CAMS ================= -->
@@ -235,7 +230,7 @@
           <div class="board-frame" id="board-frame"><div class="board-loading">Loading the official lift board…</div></div>
         </section>
 
-        <section class="wind-est">
+        <section class="wind-est" hidden>
           <h3 class="sec-h">Wind-hold estimate <span class="src f">Estimate · not official status</span></h3>
           <p class="lead" id="lifts-lead">How likely wind is to stop each lift, from the National Weather Service gust forecast and how exposed each lift top is. It only covers wind. Lifts also close for maintenance, staffing and other reasons, so always check the official board above.</p>
           <figure class="chart-card wide"><figcaption>Wind-hold risk by hour · <span id="lift-day"></span></figcaption>

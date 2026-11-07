@@ -79,6 +79,9 @@ const MOUNTAINS = {
       { name: 'Alpenglow', type: 'Triple chair', lengthFt: 1194, vertFt: 171, topFt: null, exposure: 'low' },
       { name: 'Early Riser', type: 'Quad chair', lengthFt: 647, vertFt: 70, topFt: null, exposure: 'low' },
     ],
+    // Feature switches. The per-lift wind-hold estimate is shelved (owner found it confusing);
+    // set to true to bring back the summary card and the estimate in the Lifts tab.
+    features: { liftEstimate: false },
     // Rule-of-thumb forecast gusts (mph) where wind holds become possible / likely, by exposure.
     liftWind: { high: [30, 40], mid: [40, 50], low: [50, 60] },
     links: [
