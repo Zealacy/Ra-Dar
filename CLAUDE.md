@@ -5,13 +5,20 @@ It's a static site published with GitHub Pages at **https://zealacy.github.io/Ra
 
 The owner isn't a programmer. Explain things in plain language, keep setup steps they have to do themselves to a minimum, and tell them plainly what went live and what didn't work.
 
-## Handoff: where things stand (updated 2026-11-07)
+## Handoff: where things stand (updated 2026-11-08)
 
-- **Season:** Mt. Bachelor is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page. **Preseason mode** is on until then, and switches off by itself on that date.
-- **Everything below is built and live.** The last real-data check (Nov 7, 4pm Pacific) passed: live station readings matched the resort's own sensors, and the 7-day forecast, preseason snowfall graphic and ski-day view all rendered with real data.
+- **Season:** Mt. Bachelor is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 7, 10pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
+- **Everything below is built and live.** The last real-data check (Nov 7, 10:24pm Pacific) passed: every source loaded with no page errors on desktop and phone, and live station readings matched the resort's own sensors.
 - **No scheduled check-ins or routines are pending.**
+- **Decided against: measured snow depth on the site.** The owner decided on Nov 8 that the stake cam is enough. **Don't propose it again unless the owner asks.** What the research found (Nov 8):
+  - The OSU snow pillow `OSUSP` does measure snow depth and SWE every 10 minutes. It reports in bursts: 4.45" depth and 1.42" SWE at noon on Nov 7, which matched the resort's sensor.
+  - Only MesoWest/Synoptic carries those readings. The NWS feed has its temperature only, and has been silent since Oct 31.
+  - There's no allowed way to show the readings:
+    - Synoptic's free tier is now for .edu research only, and its paid plans need an extra license to display data publicly.
+    - MesoWest's terms require written permission from the sensor's owner (Oregon State) for uses beyond general information, and scraping its pages is off-limits.
+    - NOAA's NOHRSC doesn't carry this sensor.
+  - The resort's own West Village depth appears only inside its station *image*.
 - **Open items and ideas (none in progress):**
-  - **Measured snow depth.** No public sensor reports snow depth from the mountain. The resort's West Village depth (4" on Nov 7) only appears inside its station *image*. MesoWest/Synoptic may carry the OSU snow pillow (`OSUSP`, currently offline), but it needs a free API key that must not go in public code. That would mean a server-side fetch, for example a scheduled GitHub Action writing JSON. **Ask the owner first.**
   - **Real lift status in the top graphic.** It would need Mt. Bachelor's permission to use their data. The owner may ask them.
   - **More mountains.** Add each one to `mountains.js` and verify every station, camera and elevation for it the same careful way.
   - **Post-season.** Nothing handles the end of the season yet (the site would stay in ski-day mode).
@@ -30,7 +37,7 @@ Good data is the backbone of this site. These rules come from mistakes the owner
 - **Never invent data or use mock values.** If a source is down, say so on the page. Every section has an "unavailable" state, and the Week ahead strip warns when a source failed.
 - **Never use private or undocumented APIs, and never impersonate a website** to get around access controls (for example, spoofing Origin or Referer headers for `api.mtbachelor.com/.../dor/*`; the safety checks rightly blocked this). Never bypass bot checks (for example, Liftie's Cloudflare challenge). Public webcam image URLs are fine.
 - **Approved sources**, all of which allow browser requests (CORS):
-  - **NWS observations** (`api.weather.gov/stations/{id}/observations`) for the on-mountain stations: COAC Moon Mountain `MOONM` (7,450 ft), ODOT Century Dr `OD131` (6,424 ft), and the OSU West Village snow pillow `OSUSP` (6,375 ft; offline since Nov 1, temperature only).
+  - **NWS observations** (`api.weather.gov/stations/{id}/observations`) for the on-mountain stations: COAC Moon Mountain `MOONM` (7,450 ft), ODOT Century Dr `OD131` (6,424 ft), and the OSU West Village snow pillow `OSUSP` (6,375 ft; NWS carries only its temperature, silent since Oct 31).
   - **NWS gridpoint forecast** `PDT/23,40` (grid cell averages ~7,638 ft), its written 7-day forecast (`/forecast`), and the forecast discussions (AFD, Pendleton).
   - **Open-Meteo:** forecasts and snowfall at each elevation (base 6,300 / mid 7,800 / summit 9,065 ft); the 4-model comparison (GFS, ECMWF, GEM, ICON); and the ensembles (`ensemble-api.open-meteo.com`: GEFS 31 + ECMWF 51 runs) behind the 7-day ranges and confidence. Never show a single far-out snow number without its range and confidence.
   - **NRCS SNOTEL**, as a regional reference only (collapsed in Live readings).
