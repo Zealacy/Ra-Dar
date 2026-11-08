@@ -416,11 +416,14 @@ function computeCall() {
 
   // Fresh snow: model estimate at the ski area's own elevations (no snow-depth sensor on the
   // mountain is publicly available). The stake cam is shown beside it as the ground truth.
-  if (elev?.[0]?.pastSnow?.length) {
+  // If the 3-day snowfall request failed, use the preseason snowfall series (same model).
+  const pastSrc = elev?.[0]?.pastSnow?.length ? elev
+    : state.pre ? state.pre.map((z) => ({ zone: z.zone, pastSnow: z.times.map((t, k) => ({ t, v: z.snow[k] })) })) : null;
+  if (pastSrc) {
     const now = Date.now();
     const sum = (z, h) => z.pastSnow.filter((p) => p.t <= now && p.t > now - h * 3600e3).reduce((a, p) => a + p.v, 0);
     const zi = Math.max(0, M.zones.findIndex((z) => z.key === M.snowZone));
-    const byZone = elev.map((z) => ({ name: z.zone.name, ft: z.zone.ft, d24: sum(z, 24), d72: sum(z, 72) }));
+    const byZone = pastSrc.map((z) => ({ name: z.zone.name, ft: z.zone.ft, d24: sum(z, 24), d72: sum(z, 72) }));
     c.snow = { d24: byZone[zi].d24, d72: byZone[zi].d72, zone: byZone[zi], byZone };
     const d24 = c.snow.d24;
     score += Math.min(4, d24 / 2) + Math.min(1.5, Math.max(0, c.snow.d72 - d24) / 6);

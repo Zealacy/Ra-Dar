@@ -26,7 +26,7 @@ All values are in US units (°F, inches, mph, feet). Data refreshes every 10 min
 
 ## Preseason mode
 
-Before Opening Day (`season.openingDay` in `mountains.js`), the page leads with snowpack: modeled snow depth at the base, mid-mountain and summit now and 7 days out, season snowfall since Oct 1, the week's snow range and chances (82 ensemble runs), and the snow stake cam, plus a Snowpack tab with 30-day and 7-day charts. Ski-day cards are hidden. It turns off by itself on Opening Day, and visitors can switch views with the button in the header.
+Before Opening Day (`season.openingDay` in `mountains.js`), the page leads with snowpack: modeled snowfall at the base, mid-mountain and summit since Oct 1 plus the next 7 days, a measured "Right now" readout, the week's snow range and chances (82 ensemble runs), and the snow stake cam, plus a Snowpack tab with season and daily snowfall charts. (Modeled snow depth isn't used: it showed 0" while snow was on the ground.) Ski-day cards are hidden. It turns off by itself on Opening Day, and visitors can switch views with the button in the header.
 
 ## Data quality rules
 

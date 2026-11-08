@@ -54,7 +54,7 @@
       </div>
       <div class="pre-now" id="pre-now"></div>
       <div class="pre-body">
-        <figure class="pre-fig"><svg id="pre-depth-svg" viewBox="0 0 360 230" role="img" aria-label="Snow depth by elevation now and in 7 days"></svg></figure>
+        <figure class="pre-fig"><svg id="pre-depth-svg" viewBox="0 0 360 230" role="img" aria-label="Snowfall by elevation since Oct 1 and forecast for the next 7 days"></svg></figure>
         <div class="pre-side">
           <div class="pre-tiles" id="pre-tiles"></div>
           <a class="pre-stake" href="#cams"><img id="pre-stake" alt="Snow stake cam"><span>Measured: snow stake cam, West Village</span></a>
@@ -183,12 +183,11 @@
       <div class="tab-panel" data-panel="snowpack" hidden>
         <p class="lead" id="sp-lead"></p>
         <div class="grid-2">
-          <figure class="chart-card wide"><figcaption>Snow depth by elevation: last 30 days and next 7 (in, model; dashed = forecast)</figcaption><div class="chart-box"><canvas id="c-sp-depth"></canvas></div></figure>
-          <figure class="chart-card"><figcaption>Daily snowfall at Pine Marten, 7,800 ft (in; lighter = forecast)</figcaption><div class="chart-box"><canvas id="c-sp-daily"></canvas></div></figure>
-          <figure class="chart-card"><figcaption>Season snowfall so far by elevation (in, model)</figcaption><div class="chart-box"><canvas id="c-sp-season"></canvas></div></figure>
+          <figure class="chart-card wide"><figcaption>Snowfall since Oct 1 by elevation, running total (in, model; dashed = forecast)</figcaption><div class="chart-box"><canvas id="c-sp-depth"></canvas></div></figure>
+          <figure class="chart-card wide"><figcaption>Daily snowfall at Pine Marten, 7,800 ft: last 30 days and next 7 (in, model; lighter = forecast)</figcaption><div class="chart-box"><canvas id="c-sp-daily"></canvas></div></figure>
         </div>
         <p class="swipe-hint">Swipe for more charts →</p>
-        <details class="tbl"><summary>Day-by-day snowpack table</summary><div class="table-wrap tall"><table id="sp-table"></table></div></details>
+        <details class="tbl"><summary>Day-by-day snowfall table</summary><div class="table-wrap tall"><table id="sp-table"></table></div></details>
       </div>
 
       <div class="tab-panel" data-panel="measured">
