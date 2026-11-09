@@ -1,22 +1,23 @@
 # Ra-Dar: notes for Claude
 
 Ra-Dar is a **ski weather tracker** website. The first mountain is **Mt. Bachelor, Oregon**, and more mountains will be added later through `mountains.js`.
-It's a static site published on **Vercel** at **https://ra-dar-alpha.vercel.app/** (moved from GitHub Pages on Nov 9, 2026; see Publishing). There's no build step, no server and no API keys in the code.
+It's a static site published on **Vercel** at **https://ra-dar-alpha.vercel.app/**. There's no build step, no server and no API keys in the code.
 
 The owner isn't a programmer. Explain things in plain language, keep setup steps they have to do themselves to a minimum, and tell them plainly what went live and what didn't work.
 
+## Where things live (since Nov 9, 2026)
+
+- **Live website: Vercel**, at **https://ra-dar-alpha.vercel.app/**. See Publishing below.
+- **Code and history: GitLab**, in the private project **https://gitlab.com/zealacy-group/ra-dar-storage**, branch `main`. This is the only code repository in use. Its git remote is `origin`.
+  - Getting the code in a new session: `git clone https://gitlab.com/zealacy-group/ra-dar-storage.git`. A cloud session may first try to check out an old repository elsewhere and fail; that's expected, so ignore it.
+  - Access: the owner's GitLab token is a network secret on the Ra-Dar environment for `gitlab.com` (basic auth). It's a legacy personal access token with only `read_repository` and `write_repository`, so it can't call the GitLab API, and it expires within a year; the owner renews it through the secure credential form.
+  - Saving work: commit, then `git push origin HEAD:main`.
+  - The tag `archive/2026-11-08-old-host-final` marks the last version published on the previous host. It's history only.
+- **GitHub is not used. Don't push there, open pull requests there, or point the owner to it.** The project started on GitHub, but GitHub locked the owner's account on Nov 8, 2026, and the old `github.io` address is dead. The owner has an appeal open; if access comes back, ask the owner before using it for anything. Don't suggest a second GitHub account, since GitHub allows one free account per person.
+- **Cloudflare Pages was tried and doesn't work from cloud sessions. Don't retry it.** The proxy injects the saved token into every request to `api.cloudflare.com`, overwriting the short-lived upload JWT, so asset uploads fail (code 8000013). An empty `ra-dar` Pages project and a Pages-only token remain on the owner's Cloudflare account.
+
 ## Handoff: where things stand (updated 2026-11-09)
 
-- **Hosting moved to Vercel on Nov 9.** The owner's GitHub account (`Zealacy`, created just before this project) appears to have been flagged or suspended by GitHub on Nov 8:
-  - Sign-in fails silently, the repo page returns 404, git returns 403, and the old site (zealacy.github.io/Ra-Dar) is down.
-  - The owner is appealing (support.github.com/contact/reinstatement). GitHub's phone verification hit its rate limit on Nov 8.
-  - **The code's home is now GitLab** (set up Nov 9): the private project **https://gitlab.com/zealacy-group/ra-dar-storage**, branch `main`.
-    - The owner's legacy personal access token (scopes `read_repository` and `write_repository` only; expires within a year) is a network secret on the Ra-Dar environment for `gitlab.com`, using basic auth. It can't call the GitLab API.
-    - Push every commit there with `git push gitlab HEAD:main`. If the `gitlab` remote is missing, add it with that URL plus `.git`.
-    - New sessions only auto-clone GitHub, so start with `git clone https://gitlab.com/zealacy-group/ra-dar-storage.git`.
-    - Backup zips are no longer needed after each change.
-  - Don't suggest a second GitHub account: GitHub allows one free account per person.
-- **Cloudflare Pages was tried first and doesn't work from cloud sessions. Don't retry it.** The proxy injects the saved token into every request to `api.cloudflare.com`, overwriting the short-lived upload JWT, so asset uploads fail (code 8000013). An empty `ra-dar` Pages project and a Pages-only token remain on the owner's Cloudflare account.
 - **Season:** Mt. Bachelor is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 7, 10pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
 - **Everything below is built and live.** The last real-data check (Nov 7, 10:24pm Pacific) passed: every source loaded with no page errors on desktop and phone, and live station readings matched the resort's own sensors.
 - **No scheduled check-ins or routines are pending.**
@@ -153,7 +154,7 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
   - `api.weather.gov`, `api.open-meteo.com`, `ensemble-api.open-meteo.com`, `wcc.sc.egov.usda.gov`
   - `api.mtbachelor.com`, `www.mtbachelor.com`
   - `api.rainviewer.com`, `tilecache.rainviewer.com`, `tile.openstreetmap.org`, `cdnjs.cloudflare.com`
-  - `ra-dar-alpha.vercel.app` (live-site checks), plus `api.vercel.com` and `api.cloudflare.com` via saved network secrets
+  - `ra-dar-alpha.vercel.app` (live-site checks), plus `gitlab.com`, `api.vercel.com` and `api.cloudflare.com` via saved network secrets
   - plus a few used only for research (Willamette Pass, TripCheck, YouTube, MesoWest and others)
 - Libraries (from cdnjs): Leaflet 1.9.4, Chart.js 4.4.1.
 
@@ -164,7 +165,7 @@ The owner wants finished changes to go live without extra approval steps, and ha
 - **The live site is on Vercel:** the owner's Hobby team, project `ra-dar`, at **https://ra-dar-alpha.vercel.app/** (also `ra-dar-barnhart.vercel.app`). `ra-dar.vercel.app` belongs to someone else.
 - **When a requested change is finished**, publish it without waiting to be asked:
   1. Run the checks first: `node --check` on every JS file, then the Playwright browser test on desktop and phone (local server), with no page errors and the screenshots looked at.
-  2. Commit with a clear message, then push it to GitLab (`git push gitlab HEAD:main`).
+  2. Commit with a clear message, then push it to GitLab (`git push origin HEAD:main`).
   3. Copy **only the site files** (`index.html`, `style.css`, `app.js`, `week.js`, `preseason.js`, `mountains.js`, `icon.svg`, `icon-180.png`, `preview.png`) into a folder in the scratchpad. Never include `CLAUDE.md`, `README.md` or `.git`.
   4. Deploy from inside that folder with the Vercel CLI (`npm install vercel` in the scratchpad):
      - Command: `VERCEL_TELEMETRY_DISABLED=1 VERCEL_ORG_ID=… VERCEL_PROJECT_ID=… vercel deploy --prod --yes --token proxyinjectedplaceholder`
@@ -173,10 +174,9 @@ The owner wants finished changes to go live without extra approval steps, and ha
      - **Never write account, team or project IDs into the repo** (the owner asked).
   5. Check the live site: confirm `https://ra-dar-alpha.vercel.app/` serves the new files, then run the Playwright test against it.
   6. Tell the owner what went live and give the link.
-- **When GitHub access returns:** push the branch and open a pull request into `claude/weather-tracker-github-v48153` as before. GitHub Pages is no longer the live host, so ask the owner whether to keep it or switch it off.
 - Vercel's default Deployment Protection ("all except custom domains") puts a Vercel login in front of the individual deployment URLs. The production addresses above stay public, so leave the setting alone.
 - **Limits on this permission:**
   - Never publish a change that failed its checks. Fix it, or tell the owner what's broken.
-  - Never force-push, rewrite history, or delete branches.
-  - Only merge pull requests this session opened for the owner's own requested changes. Never merge anyone else's.
-  - The permission covers this repository's website only.
+  - Never force-push, rewrite history, or delete branches or tags on GitLab.
+  - Only publish the owner's own requested changes.
+  - The permission covers this website only.
