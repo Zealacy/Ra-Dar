@@ -411,8 +411,7 @@ function computeCall() {
   const { nws, elev, stations } = state;
   const win = skiWindow();
   const inWindow = (t) => { const p = localParts(t); return p.date === win.date && p.hour >= 9 && p.hour < 16; };
-  const c = { win, why: [], chips: [] };
-  let score = 5;
+  const c = { win, chips: [] };
 
   // Fresh snow: model estimate at the ski area's own elevations (no snow-depth sensor on the
   // mountain is publicly available). The stake cam is shown beside it as the ground truth.
@@ -425,16 +424,11 @@ function computeCall() {
     const zi = Math.max(0, M.zones.findIndex((z) => z.key === M.snowZone));
     const byZone = pastSrc.map((z) => ({ name: z.zone.name, ft: z.zone.ft, d24: sum(z, 24), d72: sum(z, 72) }));
     c.snow = { d24: byZone[zi].d24, d72: byZone[zi].d72, zone: byZone[zi], byZone };
-    const d24 = c.snow.d24;
-    score += Math.min(4, d24 / 2) + Math.min(1.5, Math.max(0, c.snow.d72 - d24) / 6);
-    if (d24 >= 2) c.why.push(`models estimate ${r0(d24)}" of new snow in the last 24 hours`);
   }
 
   // Live station readings (measured), only from stations that reported recently.
   const live = (stations || []).filter((s) => s.stats.fresh);
   c.now = { stations: stations || [], live };
-  const windSt = live.find((s) => s.stats.hasWind && s.ft >= 7000);
-  if (win.today && windSt && windSt.stats.gustNow >= 45) { score -= 1; c.why.push(`${windSt.name} is measuring ${r0(windSt.stats.gustNow)} mph gusts right now`); }
 
   const winRows = nws?.rows.filter((r) => inWindow(r.t)) || [];
   if (nws && winRows.length) {
@@ -442,7 +436,6 @@ function computeCall() {
     const snowNow = nws.rows.filter((r) => r.t <= lastT).reduce((a, r) => a + (r.snow || 0), 0);
     const snow48 = nws.rows.slice(0, 48).reduce((a, r) => a + (r.snow || 0), 0);
     c.snow = { ...(c.snow || {}), forecast: snowNow, f48: snow48 };
-    score += Math.min(1, snowNow / 4);
 
     // Rain / snow line
     const wet = winRows.filter((r) => r.qpf > 0.005);
@@ -452,16 +445,15 @@ function computeCall() {
     c.rain = { wet: wet.length > 0, wetIn, snowLevel, cls: 'good' };
     if (wet.length && snowLevel > mid) c.rain.cls = 'bad';
     else if (wet.length && snowLevel > base) c.rain.cls = 'ok';
-    if (c.rain.cls !== 'good' && wetIn > 0.1) { score -= snowLevel > mid ? 3 : 2; c.why.push('rain is in the forecast'); }
 
     // Wind
     const gust = Math.max(...winRows.map((r) => r.gust ?? 0));
     const wind = Math.max(...winRows.map((r) => r.wind ?? 0));
     const dir = meanDir(winRows.map((r) => r.dir).filter((d) => d != null));
     c.wind = { gust, wind, dir, elevFt: nws.elevFt, cls: 'good', text: 'Below typical lift-hold thresholds.' };
-    if (gust >= 55) { Object.assign(c.wind, { cls: 'bad', text: 'Widespread wind holds are likely, especially Summit and Northwest.' }); score -= 3; c.why.push('strong gusts may close lifts'); }
-    else if (gust >= 40) { Object.assign(c.wind, { cls: 'bad', text: 'Upper lifts (Summit, Northwest) could go on wind hold.' }); score -= 1.5; c.why.push('gusty wind up high'); }
-    else if (gust >= 25) { Object.assign(c.wind, { cls: 'ok', text: 'Gusts 25–40 mph up high.' }); score -= 0.5; }
+    if (gust >= 55) Object.assign(c.wind, { cls: 'bad', text: 'Widespread wind holds are likely, especially Summit and Northwest.' });
+    else if (gust >= 40) Object.assign(c.wind, { cls: 'bad', text: 'Upper lifts (Summit, Northwest) could go on wind hold.' });
+    else if (gust >= 25) Object.assign(c.wind, { cls: 'ok', text: 'Gusts 25–40 mph up high.' });
 
     // Sky
     const sky = avg(winRows.map((r) => r.sky ?? 0));
@@ -470,8 +462,6 @@ function computeCall() {
     c.sky.label = sky >= 80 ? 'Overcast' : sky >= 50 ? 'Mostly cloudy' : sky >= 25 ? 'Partly sunny' : 'Sunny';
     c.sky.cls = sky >= 80 ? 'bad' : sky >= 50 ? 'ok' : 'good';
     const d24 = c.snow?.d24 || 0;
-    if (sky >= 80 && d24 < 3) score -= 1;
-    if (sky < 30 && d24 >= 4) { score += 1; c.why.push('blue skies on top of fresh snow'); }
 
     // Temperatures by zone during the window (Open-Meteo), plus NWS wind chill
     const chill = Math.min(...winRows.map((r) => r.chill ?? r.temp ?? 99));
@@ -487,24 +477,15 @@ function computeCall() {
     const baseMax = c.temp.zones[0]?.max;
     const topMax = c.temp.zones.at(-1)?.max;
     c.temp.text = baseMax != null ? `Highs: base ${r0(baseMax)}°F, summit ${r0(topMax)}°F.` : '';
-    if (chill <= -5) { Object.assign(c.temp, { cls: 'bad', text: `Wind chill to ${r0(chill)}°F.` }); score -= 1; c.why.push('bitter cold'); }
-    else if (baseMax != null && baseMax >= 40) { Object.assign(c.temp, { cls: 'ok', text: `Above freezing on the lower mountain: base high ${r0(baseMax)}°F, summit ${r0(topMax)}°F.` }); if (d24 < 2) score -= 0.5; }
-    else if (live.some((s) => s.stats.hi24 > 34 && s.stats.lo24 < 30) && d24 < 2) { Object.assign(c.temp, { cls: 'ok', text: 'Freeze-thaw in the last 24 hrs: above freezing, then back below.' }); score -= 0.5; }
+    if (chill <= -5) Object.assign(c.temp, { cls: 'bad', text: `Wind chill to ${r0(chill)}°F.` });
+    else if (baseMax != null && baseMax >= 40) Object.assign(c.temp, { cls: 'ok', text: `Above freezing on the lower mountain: base high ${r0(baseMax)}°F, summit ${r0(topMax)}°F.` });
+    else if (live.some((s) => s.stats.hi24 > 34 && s.stats.lo24 < 30) && d24 < 2) Object.assign(c.temp, { cls: 'ok', text: 'Freeze-thaw in the last 24 hrs: above freezing, then back below.' });
   }
 
   c.lifts = computeLifts(win, winRows);
   c.rows = { win: winRows, night: winRows.length ? nws.rows.filter((r) => r.t < winRows[0].t) : [] };
 
-  c.score = Math.round(clamp(score, 1, 10));
   const d24 = c.snow?.d24 || 0;
-  c.headline = 'Firm, mixed conditions';
-  if (d24 >= 8) c.headline = 'Powder day';
-  else if (c.rain?.cls === 'bad') c.headline = 'Rain on the mountain';
-  else if (c.wind?.gust >= 55) c.headline = 'Wind hold risk';
-  else if (d24 >= 3) c.headline = 'Fresh snow on top';
-  else if (c.snow?.forecast >= 3) c.headline = 'Snow is on the way';
-  else if (c.wind?.gust >= 40) c.headline = 'Windy up top';
-  else if (c.sky?.cls === 'good') c.headline = 'Sunny groomer day';
 
   // Status chips (icon + label, never color alone)
   const icon = { good: '✓', ok: '!', bad: '✕', neutral: '•' };
@@ -738,7 +719,6 @@ function computeBriefing(c) {
   const road = live.find((s) => s.id === 'OD131');
   if (road && (road.stats.lo24 <= 32 || nightSnow + daySnow >= 0.3)) add(`Road: Century Dr sensor (${ftFmt(road.ft)} ft) low ${r0(road.stats.lo24)}°F in the last 24 hrs${nightSnow + daySnow >= 0.3 ? `; ${r1(nightSnow + daySnow)}" of snow forecast` : ''}.`);
 
-  lines.push({ text: `Score ${c.score}/10: ${c.headline}.`, bottom: true });
   return { lines };
 }
 
@@ -746,7 +726,7 @@ function renderBriefing(c) {
   const b = computeBriefing(c);
   const day = new Date(c.win.date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   $('brief-when').textContent = `${c.win.today ? 'Today' : 'Tomorrow'}, ${day} · 9am–4pm · updated ${fmtTime(new Date(), { hour: 'numeric', minute: '2-digit' })}`;
-  $('brief-lines').innerHTML = b.lines.map((l) => `<li class="${l.bottom ? 'bottom' : l.warn ? 'warn' : ''}">${esc(l.text)}</li>`).join('');
+  $('brief-lines').innerHTML = b.lines.map((l) => `<li class="${l.warn ? 'warn' : ''}">${esc(l.text)}</li>`).join('');
 }
 
 // ================================================================ The Call: visuals
@@ -754,12 +734,8 @@ function statusColor(cls) { return cls === 'good' ? cssVar('--good') : cls === '
 
 function renderCall(c) {
   const dayName = new Date(c.win.date + 'T12:00').toLocaleDateString('en-US', isMobile() ? { weekday: 'short', month: 'short', day: 'numeric' } : { weekday: 'long', month: 'short', day: 'numeric' });
-  $('call-day').textContent = `${isMobile() ? '' : 'The Call · '}${c.win.today ? 'Today' : 'Tomorrow'}, ${dayName} · 9am–4pm`;
-  $('call-headline').textContent = c.headline;
-  $('call-text').textContent = c.why.length ? `Mainly because ${c.why.join(', ')}.` : 'No single factor stands out.';
+  $('call-day').textContent = `${c.win.today ? 'Today' : 'Tomorrow'}, ${dayName}`;
   $('call-chips').innerHTML = c.chips.map((ch, i) => `<span class="chip ${ch.cls}" style="animation-delay:${0.15 + i * 0.08}s"><i aria-hidden="true">${ch.icon}</i>${esc(ch.label)}</span>`).join('');
-  renderGauge(c.score);
-  countUp($('score'), c.score);
 
   renderMountain(c);
   renderSnow(c);
@@ -768,24 +744,6 @@ function renderCall(c) {
   renderNow(c);
   if (M.features?.liftEstimate) renderLiftsSummary(c);
   renderBriefing(c);
-}
-
-// --- Score dial with labeled bands (1-3 / 4-6 / 7-10) and a needle
-function renderGauge(score) {
-  const svg = $('gauge');
-  svg.innerHTML = '';
-  const cx = 100, cy = 108, r = 80;
-  const ang = (v) => Math.PI + (v / 10) * Math.PI; // 0 -> left, 10 -> right
-  const pt = (v, rr) => [cx + rr * Math.cos(ang(v)), cy + rr * Math.sin(ang(v))];
-  const arc = (v0, v1, rr) => { const [x0, y0] = pt(v0, rr), [x1, y1] = pt(v1, rr); return `M${x0},${y0} A${rr},${rr} 0 0 1 ${x1},${y1}`; };
-  [[0, 3.5, '--critical'], [3.5, 6.5, '--warning'], [6.5, 10, '--good']].forEach(([a0, a1, v], i) => {
-    svgEl('path', { d: arc(a0 + (i ? 0.08 : 0), a1 - (i < 2 ? 0.08 : 0), r), fill: 'none', stroke: cssVar(v), 'stroke-width': 14, opacity: 0.35 }, svg);
-  });
-  const fill = svgEl('path', { d: arc(0, 10, r), fill: 'none', stroke: statusColor(score >= 7 ? 'good' : score >= 4 ? 'ok' : 'bad'), 'stroke-width': 14, pathLength: 100, 'stroke-dasharray': 100, 'stroke-dashoffset': 100 }, svg);
-  fill.style.transition = 'stroke-dashoffset 1.4s cubic-bezier(.22,1,.36,1)';
-  requestAnimationFrame(() => requestAnimationFrame(() => fill.setAttribute('stroke-dashoffset', 100 - (score || 0) * 10)));
-  [0, 5, 10].forEach((v) => { const [x, y] = pt(v, r + 15); const t = svgEl('text', { x, y: y + 4, 'text-anchor': 'middle', 'font-size': 10, fill: cssVar('--text-2') }, svg); t.textContent = v; });
-  [['Poor', 1.6], ['OK', 5], ['Good', 8.4]].forEach(([w, v]) => { const [x, y] = pt(v, r - 22); const t = svgEl('text', { x, y: y + 3, 'text-anchor': 'middle', 'font-size': 9, 'font-weight': 700, fill: cssVar('--text-2') }, svg); t.textContent = w; });
 }
 
 // --- Mountain profile: temperatures at each elevation + snow line
@@ -1562,7 +1520,7 @@ function renderSources() {
     ['Season status', 'Mt. Bachelor Lift & Trail Status page', 'Reference', `Opening Day ${M.season?.openingDay || 'n/a'}, checked ${M.season?.checked || 'n/a'}. Updated by hand.`],
     ['Forecaster notes', 'National Weather Service', 'Forecast', 'The forecasters\' written discussion.'],
     ['Radar', 'RainViewer, using NOAA NEXRAD radar', 'Measured', 'Radar coverage over the Cascades is limited by terrain, so light snow can be missed.'],
-    ['Regional snow stations', 'USDA NRCS SNOTEL', 'Measured', 'Reliable, but 11–18 mi away and up to 1,500 ft below the base. Regional trend only. Not used in the score.'],
+    ['Regional snow stations', 'USDA NRCS SNOTEL', 'Measured', 'Reliable, but 11–18 mi away and up to 1,500 ft below the base. Regional trend only. Not used in the summary.'],
   ];
   $('sources').innerHTML = `<thead><tr><th>What</th><th>Source</th><th>Type</th><th>Notes</th></tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td style="white-space:normal;text-align:left">${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>`;
 }

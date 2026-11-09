@@ -180,7 +180,7 @@ function buildWeek() {
     d.conf = conf;
     d.modelRange = modelRange;
 
-    d.score = dayScore(d);
+    d.hasData = d.snow != null || d.gust != null;
     d.icon = dayIcon(d);
     return d;
   });
@@ -198,30 +198,12 @@ function buildWeek() {
       weekEns = { p10: pct(tot, 0.1), p50: pct(tot, 0.5), p90: pct(tot, 0.9), chance: Object.fromEntries([1, 3, 6, 12, 24].map((th) => [th, Math.round(100 * tot.filter((v) => v >= th).length / tot.length)])) };
     }
   }
-  const ranked = days.filter((d) => d.score != null).sort((a, b) => b.score - a.score || a.i - b.i);
   // Flag the snowiest day only when it clearly leads (a calculated fact, not a recommendation).
   const mid = (d) => d.ens?.p50 ?? d.snow ?? 0;
   const bySnow = [...days].sort((a, b) => mid(b) - mid(a));
   const snowiest = bySnow[0] && mid(bySnow[0]) >= 1 && mid(bySnow[0]) - mid(bySnow[1] || { snow: 0 }) >= 1 ? bySnow[0] : null;
   if (snowiest) snowiest.mostSnow = true;
-  return { days, snowiest, ranked, weekEns };
-}
-
-function dayScore(d) {
-  if (d.snow == null && d.gust == null) return null;
-  let s = 5;
-  const snow = d.snow || 0;
-  s += Math.min(4, snow / 2);
-  if (d.rainCls === 'bad' && d.wetIn > 0.1) s -= 3;
-  else if (d.rainCls === 'ok' && d.wetIn > 0.1) s -= 2;
-  if (d.gust >= 55) s -= 3; else if (d.gust >= 40) s -= 1.5; else if (d.gust >= 25) s -= 0.5;
-  if (d.sky != null) {
-    if (d.sky >= 80 && snow < 3) s -= 1;
-    if (d.sky < 30 && snow >= 4) s += 1;
-  }
-  const baseHi = d.zones?.[0]?.hi;
-  if (baseHi != null && baseHi >= 40 && snow < 2) s -= 0.5;
-  return Math.round(clamp(s, 1, 10));
+  return { days, snowiest, weekEns };
 }
 
 function dayIcon(d) {
@@ -267,14 +249,11 @@ function renderWeekStrip(week) {
   const box = $('week-strip');
   if (!week) { box.innerHTML = '<div class="lbl">7-day forecast unavailable right now.</div>'; return; }
   box.innerHTML = week.days.map((d, k) => {
-    const sc = d.score == null ? '' : d.score >= 7 ? 'good' : d.score >= 4 ? 'ok' : 'bad';
     const base = d.zones[0], top = d.zones[d.zones.length - 1];
-    const dots = { high: 3, med: 2, low: 1 }[d.conf];
-    return `<button class="day ${d.mostSnow ? 'best' : ''}" type="button" data-i="${k}" style="animation-delay:${k * 0.05}s" aria-label="${esc(d.long)}: score ${d.score ?? 'n/a'} of 10, snow ${snowRangeText(d)}, ${confWord[d.conf]}">
+    return `<button class="day ${d.mostSnow ? 'best' : ''}" type="button" data-i="${k}" style="animation-delay:${k * 0.05}s" aria-label="${esc(d.long)}: snow ${snowRangeText(d)}, ${confWord[d.conf]}">
       ${d.mostSnow ? '<span class="best-tag">Most snow</span>' : ''}
       <span class="dn">${esc(d.name)}</span><span class="dd">${new Date(d.date + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
       <span class="di">${iconSvg(d.icon)}</span>
-      <span class="ds ${sc}" title="Ski score out of 10">${d.score ?? '–'}<small>/10</small></span>
       <span class="dsnow"><b>${snowRangeText(d)}</b><small>likely snow</small></span>
       <span class="dt"><small>high</small> ${r0(base?.hi)}° <small>base</small> · ${r0(top?.hi)}° <small>top</small></span>
       <span class="dw ${d.gust >= 40 ? 'warn' : ''}">Gusts ${r0(d.gust)} mph</span>
@@ -292,17 +271,15 @@ function renderWeekStrip(week) {
     !state.nws && 'NWS hourly forecast', !W.text && 'NWS written forecast', !state.elev && 'elevation temperatures',
     !W.models && 'model comparison', !W.ens && 'ensemble ranges',
   ].filter(Boolean);
-  $('week-summary').textContent = weekSummary(week) + (missing.length ? ` Heads up: couldn't load the ${missing.join(', ')}, so some scores and ranges are less reliable right now. Refresh to try again.` : '');
+  $('week-summary').textContent = weekSummary(week) + (missing.length ? ` Heads up: couldn't load the ${missing.join(', ')}, so some numbers and ranges are less reliable right now. Refresh to try again.` : '');
 }
 
 function weekSummary(week) {
-  // Facts only: scores, snow, rain, wind. The reader decides what's worth it.
-  const ds = week.days.filter((d) => d.score != null);
+  // Facts only: snow, rain, wind, warmth. The reader decides what's worth it.
+  const ds = week.days.filter((d) => d.hasData);
   if (!ds.length) return '';
   const parts = [];
-  const hi = Math.max(...ds.map((d) => d.score)), lo = Math.min(...ds.map((d) => d.score));
   const names = (arr) => arr.map((d) => d.name).join(', ');
-  parts.push(hi === lo ? `Scores: ${hi}/10 every day.` : `Scores: ${hi}/10 ${names(ds.filter((d) => d.score === hi))}; ${lo}/10 ${names(ds.filter((d) => d.score === lo))}.`);
   const mid = (d) => d.ens?.p50 ?? d.snow ?? 0;
   const total = ds.reduce((a, d) => a + mid(d), 0);
   const snowy = ds.filter((d) => mid(d) >= 1);
@@ -347,7 +324,6 @@ function renderDayDetail(d) {
     <div class="wk-head">
       <div class="wk-icon">${iconSvg(d.icon)}</div>
       <div><h3>${esc(d.long)}</h3><div class="lbl">${d.dayText ? esc(d.dayText.shortForecast) : 'Model forecast'} · <span class="st ${d.conf === 'high' ? 'good' : d.conf === 'med' ? 'ok' : 'bad'}"><i aria-hidden="true">${d.conf === 'high' ? '✓' : d.conf === 'med' ? '!' : '?'}</i>${confWord[d.conf]}</span>${d.closed ? ' · Lifts not open yet' : ''}</div></div>
-      <div class="wk-score ${d.score >= 7 ? 'good' : d.score >= 4 ? 'ok' : 'bad'}">${d.score ?? '–'}<small>/10</small></div>
     </div>
     <div class="wk-grid">
       <div class="wk-stat"><span class="wk-k">Snow (4pm–4pm)</span><span class="wk-v">${snowRangeText(d)}</span><span class="wk-s">${d.snowSource === 'NWS' ? `NWS: ${r1(d.nwsSnow)}"` : d.ens ? `Middle estimate ${r1(d.ens.p50)}"` : ''}</span></div>
@@ -435,9 +411,9 @@ function renderWeekTables(week) {
   };
   $('wk-chance').innerHTML = `<thead><tr><th>Snow for the ski day</th>${week.days.map((d) => `<th>${esc(d.name)}</th>`).join('')}</tr></thead><tbody>${ths.map((t) => `<tr><td>At least ${t}"</td>${week.days.map((d) => cell(d.ens?.chance[t] ?? null)).join('')}</tr>`).join('')}</tbody>`;
   // Full table
-  const head = ['Day', 'Score', 'Confidence', 'Snow range', 'NWS snow', 'Middle est.', ...WEEK_MODELS.map((m) => m.name.split(' ')[0]), ...M.zones.map((z) => `${z.name.replace(' (mid)', '')} hi/lo`), 'Freezing lvl ft', 'Gusts mph', 'Cloud %', 'Official forecast'];
+  const head = ['Day', 'Confidence', 'Snow range', 'NWS snow', 'Middle est.', ...WEEK_MODELS.map((m) => m.name.split(' ')[0]), ...M.zones.map((z) => `${z.name.replace(' (mid)', '')} hi/lo`), 'Freezing lvl ft', 'Gusts mph', 'Cloud %', 'Official forecast'];
   $('wk-table').innerHTML = `<thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${week.days.map((d) => `<tr>
-    <td>${esc(d.long)}</td><td>${d.score ?? '–'}</td><td>${confWord[d.conf].replace(' confidence', '')}</td><td>${snowRangeText(d)}</td>
+    <td>${esc(d.long)}</td><td>${confWord[d.conf].replace(' confidence', '')}</td><td>${snowRangeText(d)}</td>
     <td>${d.nwsSnow == null ? '–' : r1(d.nwsSnow)}</td><td>${d.ens ? r1(d.ens.p50) : '–'}</td>
     ${d.models.map((m) => `<td>${m.snow == null ? '–' : r1(m.snow)}</td>`).join('')}
     ${d.zones.map((z) => `<td>${r0(z.hi)} / ${r0(z.lo)}</td>`).join('')}

@@ -62,17 +62,12 @@
       </div>
     </section>
 
-    <!-- ================= THE CALL (visual summary) ================= -->
+    <!-- ================= SKI-DAY FORECAST (visual summary) ================= -->
     <section id="call" class="panel call reveal">
       <div class="call-hero">
-        <div class="gauge-wrap">
-          <svg class="gauge" id="gauge" viewBox="0 0 200 128" aria-hidden="true"></svg>
-          <div class="gauge-num"><span id="score">–</span><small>/10</small><em>ski score</em></div>
-        </div>
         <div class="call-words">
-          <div class="eyebrow" id="call-day">The Call</div>
-          <h2 id="call-headline">Reading the mountain…</h2>
-          <p id="call-text"></p>
+          <div class="eyebrow">Ski-day forecast · 9am–4pm</div>
+          <h2 id="call-day">Loading the forecast…</h2>
         </div>
       </div>
       <div class="chips" id="call-chips"></div>
@@ -196,11 +191,11 @@
           <figure class="chart-card"><figcaption>Temperature on the mountain, last 48 hours (°F)</figcaption><div class="chart-box"><canvas id="c-stemp"></canvas></div></figure>
           <figure class="chart-card"><figcaption>Wind at <span id="wind-station-name">Moon Mountain</span>, last 48 hours (mph)</figcaption><div class="chart-box"><canvas id="c-swind"></canvas></div></figure>
           <figure class="chart-card wide"><figcaption>Resort lift-top stations (Mt. Bachelor)</figcaption><a id="stations-link" target="_blank" rel="noopener"><img id="stations" class="stations-img" alt="Mt. Bachelor lift-top weather station readings"></a>
-            <p class="fine">Published by the resort as an image, so it isn't used in the score. Check the date on each box: some sensors stop updating in the off-season, and the West Village snow depth reading isn't reliable early in the season.</p></figure>
+            <p class="fine">Published by the resort as an image, so it's shown for reference and not used in the calculations. Check the date on each box: some sensors stop updating in the off-season, and the West Village snow depth reading isn't reliable early in the season.</p></figure>
         </div>
         <p class="swipe-hint">Swipe for more charts →</p>
         <details class="tbl"><summary>Station readings table</summary><div class="table-wrap"><table id="station-table"></table></div></details>
-        <details class="tbl regional"><summary>Regional snow stations (SNOTEL) · not used in the score</summary>
+        <details class="tbl regional"><summary>Regional snow stations (SNOTEL) · reference only</summary>
           <p class="fine">These federal NRCS stations are reliable, but they are not at Mt. Bachelor. They sit 11–18 miles away, at 4,770–5,680 ft, in different drainages, so they often get far less snow than the ski area. Use them only for the regional trend.</p>
           <div class="chart-card"><figcaption>New snow by station (in)</figcaption><div class="chart-box"><canvas id="c-newsnow"></canvas></div></div>
           <div class="table-wrap"><table id="snotel-table"></table></div>

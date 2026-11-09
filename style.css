@@ -86,19 +86,10 @@ main { padding-top: 16px; padding-bottom: 8px; }
 .reveal.in { opacity: 1; transform: none; }
 
 /* ---------- The Call ---------- */
-.call-hero { display: flex; align-items: center; gap: 22px; margin-bottom: 10px; }
-.gauge-wrap { position: relative; width: 190px; flex: none; }
-.gauge { width: 100%; display: block; overflow: visible; }
-.g-track, .g-fill { fill: none; stroke-width: 16; stroke-linecap: round; }
-.g-track { stroke: var(--surface-2); }
-.g-fill { stroke: var(--muted); stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset 1.4s var(--ease), stroke .6s; }
-.gauge-num { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: 2.8rem; font-weight: 800; line-height: 1; letter-spacing: -.03em; }
-.gauge-num small { font-size: 1rem; color: var(--text-2); font-weight: 600; }
-.gauge-num em { display: block; font-style: normal; font-size: .62rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); margin-top: 2px; }
+.call-hero { margin-bottom: 10px; }
 .eyebrow { font-size: .72rem; text-transform: uppercase; letter-spacing: .09em; color: var(--text-2); font-weight: 700; }
 .call-words h2 { font-size: 1.9rem; margin: 4px 0 6px; letter-spacing: -.01em; }
-.call-words p { margin: 0; color: var(--text-2); }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; padding-left: 212px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
 .chip { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 600; padding: 4px 10px 4px 6px; border-radius: 999px; background: var(--surface-2); color: var(--text); opacity: 0; transform: scale(.9); animation: pop .5s var(--ease) forwards; }
 .chip i { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: .7rem; color: #fff; }
 @keyframes pop { to { opacity: 1; transform: none; } }
@@ -112,8 +103,6 @@ main { padding-top: 16px; padding-bottom: 8px; }
 .brief-lines li { font-size: .92rem; line-height: 1.45; padding-left: 16px; position: relative; }
 .brief-lines li::before { content: ''; position: absolute; left: 2px; top: .6em; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
 .brief-lines li.warn::before { background: var(--critical); }
-.brief-lines li.bottom { font-weight: 700; }
-.brief-lines li.bottom::before { background: var(--text); }
 
 /* status badge: icon + label, never color alone */
 .st { display: inline-flex; align-items: center; gap: 5px; font-size: .72rem; font-weight: 700; }
@@ -294,9 +283,6 @@ tr.fc td { color: var(--text-2); }
 .day .dn { font-weight: 800; font-size: .9rem; }
 .day .dd { font-size: .68rem; color: var(--text-2); }
 .day .di svg { width: 44px; height: 44px; display: block; }
-.day .ds { min-width: 44px; height: 30px; padding: 0 8px; border-radius: 999px; display: flex; align-items: baseline; justify-content: center; gap: 1px; line-height: 30px; font-weight: 800; color: #fff; background: var(--muted); font-size: .95rem; }
-.day .ds small { font-size: .6rem; opacity: .85; }
-.day .ds.good { background: var(--good); } .day .ds.ok { background: var(--warning); color: #111; } .day .ds.bad { background: var(--critical); }
 .day .dsnow { display: flex; flex-direction: column; line-height: 1.1; margin-top: 2px; }
 .day .dsnow b { font-size: .95rem; } .day .dsnow small { font-size: .62rem; color: var(--text-2); }
 .day .dt { font-size: .7rem; } .day .dt small { color: var(--text-2); }
@@ -314,9 +300,6 @@ tr.fc td { color: var(--text-2); }
 .wk-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .wk-head h3 { font-size: 1.15rem; }
 .wk-icon svg { width: 56px; height: 56px; display: block; }
-.wk-score { margin-left: auto; font-size: 1.9rem; font-weight: 800; padding: 4px 12px; border-radius: 12px; background: var(--surface-2); }
-.wk-score small { font-size: .8rem; color: var(--text-2); }
-.wk-score.good { color: var(--good); } .wk-score.bad { color: var(--critical); }
 .wk-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .wk-stat { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .wk-stat .wk-k { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-2); font-weight: 700; }
@@ -414,7 +397,6 @@ footer { padding-bottom: 28px; }
 [data-device="tablet"] .cam-viewer { grid-template-columns: 1fr; }
 [data-device="tablet"] .cam-viewer .thumbs { display: flex; overflow-x: auto; padding: 4px 2px; }
 [data-device="tablet"] .cam-viewer .thumbs button, [data-device="tablet"] .cam-viewer .thumbs img { width: 130px; flex: 0 0 auto; }
-[data-device="tablet"] .chips { padding-left: 0; }
 [data-device="tablet"] .tiers { grid-template-columns: 1fr 1fr; }
 [data-device="tablet"] .wk-grid { grid-template-columns: 1fr 1fr; }
 [data-device="tablet"] .pre-body { grid-template-columns: 1fr 1fr; }
@@ -426,11 +408,7 @@ footer { padding-bottom: 28px; }
 [data-device="mobile"] .jump { display: none; }
 [data-device="mobile"] .updated { max-width: 96px; font-size: .7rem; }
 [data-device="mobile"] .panel { padding: 14px; border-radius: 14px; margin-bottom: 12px; }
-[data-device="mobile"] .call-hero { gap: 12px; }
-[data-device="mobile"] .gauge-wrap { width: 118px; }
-[data-device="mobile"] .gauge-num { font-size: 1.9rem; bottom: 0; }
 [data-device="mobile"] .call-words h2 { font-size: 1.35rem; }
-[data-device="mobile"] .call-words p { font-size: .85rem; }
 [data-device="mobile"] .widgets { grid-template-columns: 1fr 1fr; gap: 8px; }
 [data-device="mobile"] .w { padding: 10px; }
 [data-device="mobile"] .w-mtn { grid-row: auto; grid-column: 1 / -1; }
@@ -457,7 +435,6 @@ footer { padding-bottom: 28px; }
 [data-device="mobile"] .week-strip::-webkit-scrollbar { display: none; }
 [data-device="mobile"] .day { flex: 0 0 31%; scroll-snap-align: start; }
 [data-device="mobile"] .wk-grid { grid-template-columns: 1fr 1fr; }
-[data-device="mobile"] .wk-score { font-size: 1.4rem; }
 [data-device="mobile"] .brief { padding: 10px 12px; }
 [data-device="mobile"] .brief-lines li { font-size: .86rem; }
 [data-device="mobile"] .board-frame { height: 560px; }

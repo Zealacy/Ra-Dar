@@ -19,7 +19,7 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 ## Handoff: where things stand (updated 2026-11-09)
 
 - **Season:** Mt. Bachelor is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 7, 10pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
-- **Everything below is built and live.** The last real-data check (Nov 7, 10:24pm Pacific) passed: every source loaded with no page errors on desktop and phone, and live station readings matched the resort's own sensors.
+- **Everything below is built and live.** The last real-data check (Nov 8, 8:53pm Pacific, after removing the ski score) passed: every source loaded with no page errors on desktop and phone.
 - **No scheduled check-ins or routines are pending.**
 - **Decided against: measured snow depth on the site.** The owner decided on Nov 8 that the stake cam is enough. **Don't propose it again unless the owner asks.** What the research found (Nov 8):
   - The OSU snow pillow `OSUSP` does measure snow depth and SWE every 10 minutes. It reports in bursts: 4.45" depth and 1.42" SWE at noon on Nov 7, which matched the resort's sensor.
@@ -30,7 +30,6 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
     - NOAA's NOHRSC doesn't carry this sensor.
   - The resort's own West Village depth appears only inside its station *image*.
 - **Open items and ideas (none in progress):**
-  - **Real lift status in the top graphic.** It would need Mt. Bachelor's permission to use their data. The owner may ask them.
   - **More mountains.** Add each one to `mountains.js` and verify every station, camera and elevation for it the same careful way.
   - **Willamette Pass is next.** Sources were researched and verified on Nov 8; the build hasn't started.
     - **Measured:**
@@ -53,7 +52,7 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
       - Opening Day not announced ("Opening Soon for 2026/2027").
     - **No avalanche forecast zone found.** Don't link one.
     - **Owner decisions pending.** These are my recommendations; the owner hasn't answered yet:
-      - Use Cascade Summit depth in the summary and score (yes).
+      - Use Cascade Summit depth in the summary (yes).
       - Embed the YouTube cams (yes).
       - Show an "Opening Day not announced" state.
       - Put mid-mountain at ~5,900 ft.
@@ -70,8 +69,8 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 Good data is the backbone of this site. These rules come from mistakes the owner has corrected.
 
 - **Use only reputable sources that actually represent the ski area.** Mountain weather changes sharply with elevation and location, so a "nearby" station can be badly wrong for the ski area.
-  - *Mistake that was corrected:* the score used the Three Creeks Meadow SNOTEL station (5,680 ft, 11.6 mi away, a different drainage) for new snow and snowpack. It read 0" while the mountain had snow, and it made the score wrong.
-  - Before using any station, check its **elevation, distance, location and how recent its readings are**. Use stations on or right next to the ski area. Distant or lower stations may appear only as a clearly labeled regional reference, and must never feed the summary or score.
+  - *Mistake that was corrected:* the old ski score (since removed) used the Three Creeks Meadow SNOTEL station (5,680 ft, 11.6 mi away, a different drainage) for new snow and snowpack. It read 0" while the mountain had snow, which made the result wrong.
+  - Before using any station, check its **elevation, distance, location and how recent its readings are**. Use stations on or right next to the ski area. Distant or lower stations may appear only as a clearly labeled regional reference, and must never feed the summary or any calculation.
 - **Don't use modeled snow depth.** *Mistake that was corrected:* preseason mode first showed Open-Meteo's modeled snow **depth**. It read 0" at every elevation on Nov 7 while the stake cam and the resort's sensor showed snow on the ground. Modeled **snowfall** (snow that fell) is used instead, labeled Model.
 - **Cross-check against the resort's own sensors** (the station graphic `cams/mtn/weather-server-image` and the stake cam) whenever adding or changing a data source.
 - **Ignore stale data.** A station whose last report is older than `stationMaxAgeHours` (3) is shown as offline and left out of the calculations. Check sensor timestamps: the resort's station graphic has a Northwest lift-top sensor stuck since June 3, and showed a bogus 145" West Village snow depth on Nov 6 (4" on Nov 7).
@@ -94,14 +93,16 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 ## Audience: expert skiers
 
 - The site is a **one-stop source of information** for experienced skiers who aren't at the mountain yet. Give them the data and let them decide.
-- **Do calculate** things they can't easily work out themselves: snow amounts, lift-hold and closure risk, scores, ranges and confidence.
+- **Do calculate** things they can't easily work out themselves: snow amounts, lift-hold and closure risk, ranges and confidence.
 - **Don't make decisions for them:** no gear or pack lists, no "best day to go", no verdicts like "mediocre day", and no instructions ("cover exposed skin", "bring chains"). State the facts, such as the road sensor's low temperature, and leave the conclusion to the reader.
-- *Correction from the owner:* a "Pack" list was added to the briefing and then removed for this reason. The 1–10 score and its short label were kept; the owner hasn't objected to them.
+- *Correction from the owner:* a "Pack" list was added to the briefing and then removed for this reason.
+- *Owner decision (Nov 9):* the 1–10 ski score was removed everywhere because it didn't work well, along with its one-line verdict ("Powder day", "Firm, mixed conditions") and the "Mainly because…" line. **Don't bring back a score or verdict unless the owner asks.**
+- *Owner decision (Nov 9):* **no lift-status data in our own graphics.** The owner cares most about weather during the season and snow during preseason. Keep showing the resort's official lift board as it is: embedded for Bachelor, or a link where a resort blocks embedding. Don't propose lift-status features unless the owner asks.
 
 ## Design preferences
 
 - **Every feature gets two parts:** an easy-to-read summary with a visual near the top, and an in-depth version further down (usually its own tab).
-- **The infographic is front and center** on the home screen (ski-day view): the score dial, then the big mountain picture (2/3 width) with wind and fresh snow beside it, and sky and right-now below. The text briefing sits under the graphics.
+- **The infographic is front and center** on the home screen (ski-day view): a heading naming the day and hours it covers, the factual status chips, then the big mountain picture (2/3 width) with wind and fresh snow beside it, and sky and right-now below. The text briefing sits under the graphics.
 - **Graphics must explain themselves.** Put labels, scales, units, zone names and values directly on the graphic (for example, the elevation scale, "↑ below freezing / ↓ above freezing", wind zones "Light / Breezy / Lift holds", mph marks, cloud % per hour). Don't add paragraphs under a graphic explaining how to read it. A bit more clutter is fine; making people read a lot is not.
 - **Never let a forecast pass for current conditions.** After 3pm the ski-day view shows tomorrow, so every forecast graphic says which day and hours it covers ("Tomorrow (Sun), 9am–4pm forecast"), the Week ahead strip always starts with "Today" then "Tomorrow", and preseason mode shows a measured "Right now" readout. *Correction from the owner:* they saw the summit in the 20s (Sunday's forecast after a cold front) while the resort app showed ~50°F now, and thought the data was wrong.
 - **Plenty of technical data is wanted, but it lives further down**, in the tabs and in collapsible tables.
@@ -119,7 +120,7 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
   - the big stake cam
   - a Snowpack tab (running and daily snowfall charts, table)
 
-  It hides the ski-day cards (The Call, briefing). A header button switches to the ski-day view; the choice is remembered (localStorage) until Opening Day.
+  It hides the ski-day cards (the ski-day forecast and briefing). A header button switches to the ski-day view; the choice is remembered (localStorage) until Opening Day.
 - **Forecaster notes can be technical but must be readable by people.** Never show raw teletype text (`000 FXUS66…`, `&&`, `$$`) as the main view. Parse it into sections, highlight ski-relevant sentences, explain jargon on tap, and keep the original at the bottom.
 - **Charts** follow the dataviz rules: one y-axis per chart (no dual axes), the validated palette (`--s1`…`--s4`), hairline grids, hover tooltips, and a table for every chart. Status colors always come with an icon and a label. Set axis ranges before drawing, never mid-animation (that once misplaced a line).
 - **Link preview:** `preview.png` (1200×630) and `icon.svg`/`icon-180.png` are referenced by the Open Graph tags in `index.html`. The preview has no live numbers on purpose, so it never goes stale. The Open Graph tags point at `https://ra-dar-alpha.vercel.app/`. The very first version of the site showed London, and some apps cached that preview; adding `?v=2` (or a higher number) to a shared link forces a fresh one.
@@ -131,7 +132,7 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 - `mountains.js`: everything specific to a mountain: location, zones (base/mid/summit), NWS grid, stations, SNOTEL, cams (the stake is separate, as `snowStake`), lifts, season dates, feature flags, links.
 - `app.js`:
   - `refreshData()` loads the sources in parallel into the `state` object (`stations`, `snotel`, `nws`, `elev`, `week`, `pre`), then:
-    - `computeCall()` → `renderCall()` (score dial, mountain, wind, snow, sky, right-now, briefing)
+    - `computeCall()` → `renderCall()` (day heading, status chips, mountain, wind, snow, sky, right-now, briefing)
     - `buildWeek()` → `renderWeekStrip()`
     - `renderPreseason()`
     - `drawActiveTab()`

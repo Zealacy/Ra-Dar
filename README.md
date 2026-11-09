@@ -16,7 +16,7 @@ It's a static site hosted on Vercel, with no server, no build step and no API ke
 
 **Ski-day view** (after Opening Day, or via the header button):
 
-- **The Call:** a 1–10 ski score dial with status chips, and a big **mountain infographic**:
+- **Ski-day forecast:** the day and hours it covers, factual status chips (new snow, rain, wind, sky, temps), and a big **mountain infographic**:
   - temperature at the base, mid-mountain and summit
   - freezing or snow level ("↑ below freezing / ↓ above freezing")
   - summit wind
@@ -31,7 +31,7 @@ It's a static site hosted on Vercel, with no server, no build step and no API ke
 
 **Both views:**
 
-- **Week ahead:** 7 day cards (Today, Tomorrow, …), each with a score, likely snow range, highs, gusts and confidence in words. The summary line is factual.
+- **Week ahead:** 7 day cards (Today, Tomorrow, …), each with likely snow range, highs, gusts and confidence in words. The summary line is factual.
 - **Webcams:** a carousel led by the snow stake, with cameras labeled by their real location (none is at the summit).
 
 ## Detail tabs
@@ -39,7 +39,7 @@ It's a static site hosted on Vercel, with no server, no build step and no API ke
 | Tab | What it shows | Source |
 |---|---|---|
 | Snowpack (preseason) | Running and daily snowfall by elevation, with the forecast continued, and a table | Open-Meteo (model) |
-| Live readings | 48-hour temperature and wind from the on-mountain stations, the resort's lift-top station graphic, a station table, and regional SNOTEL (labeled, not used in the score) | COAC, ODOT, OSU via NWS; Mt. Bachelor; NRCS |
+| Live readings | 48-hour temperature and wind from the on-mountain stations, the resort's lift-top station graphic, a station table, and regional SNOTEL (labeled, reference only) | COAC, ODOT, OSU via NWS; Mt. Bachelor; NRCS |
 | Hour by hour | 96 hours of NWS forecast: temperature, wind chill, wind, gusts, sky, precipitation, snowfall, snow level, visibility | National Weather Service |
 | Next 7 days | Day picker with the NWS written forecast, chance of ≥1/3/6/12", per-model snow, temps by elevation and hourly charts; week charts and a chance-of-snow grid; accuracy guide | NWS; Open-Meteo (GFS, ECMWF, GEM, ICON; GEFS + ECMWF ensembles) |
 | Base to summit | 7-day temperatures, snow, rain, gusts and freezing level at three elevations | Open-Meteo |
