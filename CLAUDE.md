@@ -10,7 +10,11 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 - **Hosting moved to Vercel on Nov 9.** The owner's GitHub account (`Zealacy`, created just before this project) appears to have been flagged or suspended by GitHub on Nov 8:
   - Sign-in fails silently, the repo page returns 404, git returns 403, and the old site (zealacy.github.io/Ra-Dar) is down.
   - The owner is appealing (support.github.com/contact/reinstatement). GitHub's phone verification hit its rate limit on Nov 8.
-  - Until GitHub is back, commits are local only, so send the owner a fresh backup zip after each change.
+  - **The code's home is now GitLab** (set up Nov 9): the private project **https://gitlab.com/zealacy-group/ra-dar-storage**, branch `main`.
+    - The owner's legacy personal access token (scopes `read_repository` and `write_repository` only; expires within a year) is a network secret on the Ra-Dar environment for `gitlab.com`, using basic auth. It can't call the GitLab API.
+    - Push every commit there with `git push gitlab HEAD:main`. If the `gitlab` remote is missing, add it with that URL plus `.git`.
+    - New sessions only auto-clone GitHub, so start with `git clone https://gitlab.com/zealacy-group/ra-dar-storage.git`.
+    - Backup zips are no longer needed after each change.
   - Don't suggest a second GitHub account: GitHub allows one free account per person.
 - **Cloudflare Pages was tried first and doesn't work from cloud sessions. Don't retry it.** The proxy injects the saved token into every request to `api.cloudflare.com`, overwriting the short-lived upload JWT, so asset uploads fail (code 8000013). An empty `ra-dar` Pages project and a Pages-only token remain on the owner's Cloudflare account.
 - **Season:** Mt. Bachelor is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 7, 10pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
@@ -160,7 +164,7 @@ The owner wants finished changes to go live without extra approval steps, and ha
 - **The live site is on Vercel:** the owner's Hobby team, project `ra-dar`, at **https://ra-dar-alpha.vercel.app/** (also `ra-dar-barnhart.vercel.app`). `ra-dar.vercel.app` belongs to someone else.
 - **When a requested change is finished**, publish it without waiting to be asked:
   1. Run the checks first: `node --check` on every JS file, then the Playwright browser test on desktop and phone (local server), with no page errors and the screenshots looked at.
-  2. Commit with a clear message.
+  2. Commit with a clear message, then push it to GitLab (`git push gitlab HEAD:main`).
   3. Copy **only the site files** (`index.html`, `style.css`, `app.js`, `week.js`, `preseason.js`, `mountains.js`, `icon.svg`, `icon-180.png`, `preview.png`) into a folder in the scratchpad. Never include `CLAUDE.md`, `README.md` or `.git`.
   4. Deploy from inside that folder with the Vercel CLI (`npm install vercel` in the scratchpad):
      - Command: `VERCEL_TELEMETRY_DISABLED=1 VERCEL_ORG_ID=… VERCEL_PROJECT_ID=… vercel deploy --prod --yes --token proxyinjectedplaceholder`
@@ -168,7 +172,7 @@ The owner wants finished changes to go live without extra approval steps, and ha
      - Look up the team and project IDs with the API (`GET https://api.vercel.com/v2/teams`, `GET https://api.vercel.com/v9/projects/ra-dar?teamId=…`).
      - **Never write account, team or project IDs into the repo** (the owner asked).
   5. Check the live site: confirm `https://ra-dar-alpha.vercel.app/` serves the new files, then run the Playwright test against it.
-  6. Tell the owner what went live and give the link. While GitHub is down, also send a fresh backup zip of the repo.
+  6. Tell the owner what went live and give the link.
 - **When GitHub access returns:** push the branch and open a pull request into `claude/weather-tracker-github-v48153` as before. GitHub Pages is no longer the live host, so ask the owner whether to keep it or switch it off.
 - Vercel's default Deployment Protection ("all except custom domains") puts a Vercel login in front of the individual deployment URLs. The production addresses above stay public, so leave the setting alone.
 - **Limits on this permission:**
