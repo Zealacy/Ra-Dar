@@ -1,8 +1,8 @@
 # Ra-Dar: ski weather 🎿
 
-A ski weather tracker for **Mt. Bachelor, Oregon**: **https://zealacy.github.io/Ra-Dar/**
+A ski weather tracker for **Mt. Bachelor, Oregon**: **https://ra-dar-alpha.vercel.app/**
 
-It's a static site on GitHub Pages, with no server, no build step and no API keys. Everything loads live in the visitor's browser from public sources. It's written for experienced skiers: it gives the data and calculations, and leaves the decisions to them.
+It's a static site hosted on Vercel, with no server, no build step and no API keys. Everything loads live in the visitor's browser from public sources. It's written for experienced skiers: it gives the data and calculations, and leaves the decisions to them.
 
 ## Two views
 

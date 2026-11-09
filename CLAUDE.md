@@ -1,12 +1,18 @@
 # Ra-Dar: notes for Claude
 
 Ra-Dar is a **ski weather tracker** website. The first mountain is **Mt. Bachelor, Oregon**, and more mountains will be added later through `mountains.js`.
-It's a static site published with GitHub Pages at **https://zealacy.github.io/Ra-Dar/**. There's no build step, no server and no API keys in the code.
+It's a static site published on **Vercel** at **https://ra-dar-alpha.vercel.app/** (moved from GitHub Pages on Nov 9, 2026; see Publishing). There's no build step, no server and no API keys in the code.
 
 The owner isn't a programmer. Explain things in plain language, keep setup steps they have to do themselves to a minimum, and tell them plainly what went live and what didn't work.
 
-## Handoff: where things stand (updated 2026-11-08)
+## Handoff: where things stand (updated 2026-11-09)
 
+- **Hosting moved to Vercel on Nov 9.** The owner's GitHub account (`Zealacy`, created just before this project) appears to have been flagged or suspended by GitHub on Nov 8:
+  - Sign-in fails silently, the repo page returns 404, git returns 403, and the old site (zealacy.github.io/Ra-Dar) is down.
+  - The owner is appealing (support.github.com/contact/reinstatement). GitHub's phone verification hit its rate limit on Nov 8.
+  - Until GitHub is back, commits are local only, so send the owner a fresh backup zip after each change.
+  - Don't suggest a second GitHub account: GitHub allows one free account per person.
+- **Cloudflare Pages was tried first and doesn't work from cloud sessions. Don't retry it.** The proxy injects the saved token into every request to `api.cloudflare.com`, overwriting the short-lived upload JWT, so asset uploads fail (code 8000013). An empty `ra-dar` Pages project and a Pages-only token remain on the owner's Cloudflare account.
 - **Season:** Mt. Bachelor is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 7, 10pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
 - **Everything below is built and live.** The last real-data check (Nov 7, 10:24pm Pacific) passed: every source loaded with no page errors on desktop and phone, and live station readings matched the resort's own sensors.
 - **No scheduled check-ins or routines are pending.**
@@ -21,6 +27,37 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 - **Open items and ideas (none in progress):**
   - **Real lift status in the top graphic.** It would need Mt. Bachelor's permission to use their data. The owner may ask them.
   - **More mountains.** Add each one to `mountains.js` and verify every station, camera and elevation for it the same careful way.
+  - **Willamette Pass is next.** Sources were researched and verified on Nov 8; the build hasn't started.
+    - **Measured:**
+      - Base weather: ODOT `ODT03` "OR58 at Willamette Pass" (5,121 ft, 0.3 mi, NWS feed). Temperature, wind and gust, but the wind is sheltered at road level.
+      - Snow depth and SWE: Cascade Summit SNOTEL `388:OR:SNTL` (5,100 ft, 1.4 mi, hourly). It read 0" on Nov 8, matching the resort's 0" base depth and its base cam.
+      - **No upper-mountain station exists** (checked on MesoWest).
+      - Regional reference only: Salt Creek Falls `729` (4,220 ft, 4 mi W), New Crescent Lake `660` (4,910 ft, 7 mi SE), Summit Lake `801` (5,610 ft, 12 mi S).
+    - **Forecast:**
+      - NWS **Medford** `MFR/145,125` (averages 5,538 ft and covers base to summit; the resort's own forecast link uses the same point). Zone ORZ027. Written forecast and AFD also from MFR.
+      - **MFR provides no visibility forecast**, and the code currently defaults missing visibility to 10 mi. Fix that.
+      - Open-Meteo near 43.603, -122.025: base 5,120 / mid ~5,900 (midpoint, no landmark) / summit 6,683 ft.
+    - **Cams** (no stake cam):
+      - Resort YouTube live streams: "Willamette Pass Base Area" `sNVA6oC7vcM`, and "Willamette Pass Resort Eagle Peak" `uav7cBNVv0k` (check its view in daylight).
+      - ODOT TripCheck stills `https://tripcheck.com/roadcams/cams/Willamette Pass_pid3351.JPG` (looking W) and `.../WillamettePass_pid658.jpg` (looking E). Credit them "Camera courtesy of ODOT", per the TripCheck FAQ.
+    - **Resort (willamettepass.ski):**
+      - Its pages send `X-Frame-Options: DENY`, so link to the Lifts & Trails page instead of embedding it.
+      - Its weather widget is just the NOAA forecast, read from an internal JSON file. Don't use it.
+      - Stats: 5,120 / 6,683 ft, 1,563 ft vertical, 555 acres, 430" average snowfall.
+      - Lifts: Eagle Peak Accelerator (six-seat); Peak 2, Twilight, Midway, Sleepy Hollow (triples); Magic Carpet. Frontside 9–4, Peak 2 9:30–3:30.
+      - Opening Day not announced ("Opening Soon for 2026/2027").
+    - **No avalanche forecast zone found.** Don't link one.
+    - **Owner decisions pending.** These are my recommendations; the owner hasn't answered yet:
+      - Use Cascade Summit depth in the summary and score (yes).
+      - Embed the YouTube cams (yes).
+      - Show an "Opening Day not announced" state.
+      - Put mid-mountain at ~5,900 ft.
+    - **Code that assumes Bachelor:**
+      - the stake cam, station graphic and embedded lift board
+      - "Summit and Northwest" wording, the `s.ft >= 7000` measured-wind rule and the `OD131` road id in the briefing
+      - the AFD highlight words, the SNOTEL text in `index.html` and the 10-mi visibility default
+      - `openingDay` being required
+      - no mountain switcher
   - **Post-season.** Nothing handles the end of the season yet (the site would stay in ski-day mode).
 
 ## Data: the most important rules
@@ -80,7 +117,7 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
   It hides the ski-day cards (The Call, briefing). A header button switches to the ski-day view; the choice is remembered (localStorage) until Opening Day.
 - **Forecaster notes can be technical but must be readable by people.** Never show raw teletype text (`000 FXUS66…`, `&&`, `$$`) as the main view. Parse it into sections, highlight ski-relevant sentences, explain jargon on tap, and keep the original at the bottom.
 - **Charts** follow the dataviz rules: one y-axis per chart (no dual axes), the validated palette (`--s1`…`--s4`), hairline grids, hover tooltips, and a table for every chart. Status colors always come with an icon and a label. Set axis ranges before drawing, never mid-animation (that once misplaced a line).
-- **Link preview:** `preview.png` (1200×630) and `icon.svg`/`icon-180.png` are referenced by the Open Graph tags in `index.html`. The preview has no live numbers on purpose, so it never goes stale. The very first version of the site showed London, and some apps cached that preview; sharing `…/Ra-Dar/?v=2` forces a fresh one.
+- **Link preview:** `preview.png` (1200×630) and `icon.svg`/`icon-180.png` are referenced by the Open Graph tags in `index.html`. The preview has no live numbers on purpose, so it never goes stale. The Open Graph tags point at `https://ra-dar-alpha.vercel.app/`. The very first version of the site showed London, and some apps cached that preview; adding `?v=2` (or a higher number) to a shared link forces a fresh one.
 - Support light and dark mode.
 
 ## How the code fits together
@@ -112,20 +149,28 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
   - `api.weather.gov`, `api.open-meteo.com`, `ensemble-api.open-meteo.com`, `wcc.sc.egov.usda.gov`
   - `api.mtbachelor.com`, `www.mtbachelor.com`
   - `api.rainviewer.com`, `tilecache.rainviewer.com`, `tile.openstreetmap.org`, `cdnjs.cloudflare.com`
-  - plus a few used only for research
+  - `ra-dar-alpha.vercel.app` (live-site checks), plus `api.vercel.com` and `api.cloudflare.com` via saved network secrets
+  - plus a few used only for research (Willamette Pass, TripCheck, YouTube, MesoWest and others)
 - Libraries (from cdnjs): Leaflet 1.9.4, Chart.js 4.4.1.
 
 ## Publishing (standing permission from the owner)
 
 The owner wants finished changes to go live without extra approval steps, and has given permission for this rule.
 
-- GitHub Pages builds from the branch set in the repo's Settings → Pages, currently **`claude/weather-tracker-github-v48153`**. Pushing to that branch publishes the site.
-- **A new session usually works on a different branch.** Base it on the latest `claude/weather-tracker-github-v48153`, then publish through a pull request into that branch (step 3 below).
+- **The live site is on Vercel:** the owner's Hobby team, project `ra-dar`, at **https://ra-dar-alpha.vercel.app/** (also `ra-dar-barnhart.vercel.app`). `ra-dar.vercel.app` belongs to someone else.
 - **When a requested change is finished**, publish it without waiting to be asked:
-  1. Run the checks first: `node --check` on every JS file, then the Playwright browser test on desktop and phone, with no page errors and the screenshots looked at.
+  1. Run the checks first: `node --check` on every JS file, then the Playwright browser test on desktop and phone (local server), with no page errors and the screenshots looked at.
   2. Commit with a clear message.
-  3. If the session's branch *is* the Pages branch, push it. If it's a different branch, push that branch, open a pull request into the Pages branch, and merge it once the checks above have passed.
-  4. Tell the owner what went live and give the site link: https://zealacy.github.io/Ra-Dar/
+  3. Copy **only the site files** (`index.html`, `style.css`, `app.js`, `week.js`, `preseason.js`, `mountains.js`, `icon.svg`, `icon-180.png`, `preview.png`) into a folder in the scratchpad. Never include `CLAUDE.md`, `README.md` or `.git`.
+  4. Deploy from inside that folder with the Vercel CLI (`npm install vercel` in the scratchpad):
+     - Command: `VERCEL_TELEMETRY_DISABLED=1 VERCEL_ORG_ID=… VERCEL_PROJECT_ID=… vercel deploy --prod --yes --token proxyinjectedplaceholder`
+     - The real token is a network secret on the Ra-Dar environment for `api.vercel.com`, and the proxy swaps it in. The CLI rejects placeholders that contain `-`.
+     - Look up the team and project IDs with the API (`GET https://api.vercel.com/v2/teams`, `GET https://api.vercel.com/v9/projects/ra-dar?teamId=…`).
+     - **Never write account, team or project IDs into the repo** (the owner asked).
+  5. Check the live site: confirm `https://ra-dar-alpha.vercel.app/` serves the new files, then run the Playwright test against it.
+  6. Tell the owner what went live and give the link. While GitHub is down, also send a fresh backup zip of the repo.
+- **When GitHub access returns:** push the branch and open a pull request into `claude/weather-tracker-github-v48153` as before. GitHub Pages is no longer the live host, so ask the owner whether to keep it or switch it off.
+- Vercel's default Deployment Protection ("all except custom domains") puts a Vercel login in front of the individual deployment URLs. The production addresses above stay public, so leave the setting alone.
 - **Limits on this permission:**
   - Never publish a change that failed its checks. Fix it, or tell the owner what's broken.
   - Never force-push, rewrite history, or delete branches.
