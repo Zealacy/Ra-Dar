@@ -226,6 +226,9 @@ main { padding-top: 16px; padding-bottom: 8px; }
 .now-row .wv svg { width: 16px; height: 16px; transition: transform 1.2s var(--ease); }
 .now-row.offline { opacity: .55; }
 .now-row.offline .tv { font-size: .8rem; font-weight: 600; color: var(--text-2); }
+.now-row .tv .na { display: block; font-size: .7rem; font-weight: 600; line-height: 1.2; color: var(--text-2); text-align: right; }
+/* a station that isn't on the ski area says so next to its name */
+.now-row .nm small b.off, .pre-now .pn b.off { font-weight: 700; font-size: inherit; color: var(--text); }
 details.regional > summary { color: var(--text-2); }
 .chart-card + .table-wrap, details .chart-card { margin: 10px 0; }
 /* snowpack meter */

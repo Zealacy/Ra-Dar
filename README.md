@@ -51,7 +51,7 @@ All values are in US units (°F, inches, mph, feet). Data refreshes every 10 min
 
 ## Data quality rules
 
-- **Only data that represents the ski area.** Live readings come from stations on or beside it: COAC Moon Mountain (7,450 ft), ODOT Century Dr (6,424 ft) and the OSU West Village snow pillow (6,375 ft), via the NWS network. Distant SNOTEL stations are a labeled regional reference only.
+- **Only data that represents the ski area.** Live readings come from two stations at the ski area's base, ODOT Century Dr (6,424 ft) and the OSU West Village snow pillow (6,375 ft), and from COAC Moon Mountain (7,450 ft). Moon Mountain is 5 mi north of the summit and is labeled "not at the ski area" everywhere, but it's the nearest public station at upper-mountain height. All come through the NWS network. Distant SNOTEL stations are a labeled regional reference only.
 - **Stale data is dropped.** Stations silent for 3+ hours show as offline and are ignored.
 - **Every value is tagged** *Measured*, *Forecast* or *Model*. No public sensor measures snow depth on the mountain, so snow amounts are model estimates, shown beside the stake cam. Modeled snow *depth* isn't used, because it proved wrong.
 - **Forecasts are never shown as current conditions.** Each forecast graphic names its day and hours.

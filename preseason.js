@@ -112,7 +112,7 @@ function renderPreseason() {
   // Right now: measured readings, so nobody mistakes a forecast for the current temperature.
   const live = (state.stations || []).filter((st) => st.stats.fresh && st.stats.temp != null);
   $('pre-now').innerHTML = live.length
-    ? `<span class="pn-h">Right now <span class="src m">Measured</span></span>${live.map((st) => `<span class="pn"><b>${r0(st.stats.temp)}°F</b> ${esc(st.name)} · ${ftFmt(st.ft)} ft · ${ageText(st.stats.ageH)}</span>`).join('')}`
+    ? `<span class="pn-h">Right now <span class="src m">Measured</span></span>${live.map((st) => `<span class="pn"><b>${r0(st.stats.temp)}°F</b> ${esc(st.name)} · ${ftFmt(st.ft)} ft${st.offSite ? ` · <b class="off">${esc(st.offSite)}</b>` : ''} · ${ageText(st.stats.tempAgeH ?? st.stats.ageH)}</span>`).join('')}`
     : '<span class="pn-h">Right now</span><span class="pn">No live station readings available.</span>';
   const fig = document.querySelector('.pre-fig');
   if (!p) {

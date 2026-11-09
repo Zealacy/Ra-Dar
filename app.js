@@ -265,17 +265,24 @@ async function loadStations() {
   return results;
 }
 function stationStats(obs) {
+  const maxAge = M.stationMaxAgeHours || 3;
   const last = obs.at(-1) || null;
   const ageH = last ? (Date.now() - last.t) / 3600e3 : null;
-  const fresh = ageH != null && ageH <= (M.stationMaxAgeHours || 3);
+  const fresh = ageH != null && ageH <= maxAge;
+  // Some stations drop the temperature for a few reports while wind keeps coming in.
+  // Use the latest temperature only if it's recent too, and keep its own age for the label.
+  let tObs = null;
+  for (let i = obs.length - 1; i >= 0; i--) if (obs[i].temp != null) { tObs = obs[i]; break; }
+  const tempAgeH = tObs ? (Date.now() - tObs.t) / 3600e3 : null;
+  const temp = tempAgeH != null && tempAgeH <= maxAge ? tObs.temp : null;
   const in24 = obs.filter((o) => o.t >= Date.now() - 24 * 3600e3);
   const temps = in24.map((o) => o.temp).filter((v) => v != null);
   const gusts = in24.map((o) => o.gust ?? o.wind).filter((v) => v != null);
   const lastHr = last ? obs.filter((o) => o.t >= last.t - 3600e3) : [];
   const gustNow = Math.max(...lastHr.map((o) => o.gust ?? o.wind ?? 0), 0);
   return {
-    last, ageH, fresh,
-    temp: last?.temp ?? null, wind: last?.wind ?? null, dir: last?.dir ?? null, rh: last?.rh ?? null,
+    last, ageH, fresh, temp, tempAgeH,
+    wind: last?.wind ?? null, dir: last?.dir ?? null, rh: last?.rh ?? null,
     gustNow: lastHr.length ? gustNow : null,
     hasWind: obs.some((o) => o.wind != null),
     hi24: temps.length ? Math.max(...temps) : null, lo24: temps.length ? Math.min(...temps) : null,
@@ -288,11 +295,13 @@ function ageText(h) {
   if (h < 48) return `${Math.round(h)} hr ago`;
   return `${Math.round(h / 24)} days ago`;
 }
+// ", 5 mi N of the summit, not at the ski area" for stations that aren't on the ski area.
+const offSiteNote = (s) => (s.offSite ? `, ${s.offSite}` : '');
 function renderStationTable(stations) {
-  const head = ['Station', 'Run by', 'Elev ft', 'Last report', 'Temp °F', '24h Hi/Lo', 'Wind mph', 'Gust (last hr)', '24h max gust', 'RH %', 'Status'];
+  const head = ['Station', 'Where', 'Run by', 'Elev ft', 'Last report', 'Temp °F', '24h Hi/Lo', 'Wind mph', 'Gust (last hr)', '24h max gust', 'RH %', 'Status'];
   const rows = stations.map((s) => {
     const x = s.stats;
-    return `<tr><td>${esc(s.name)} <small>(${s.id})</small></td><td>${esc(s.operator)}</td><td>${ftFmt(s.ft)}</td>
+    return `<tr><td>${esc(s.name)} <small>(${s.id})</small></td><td style="white-space:normal;text-align:left;min-width:180px">${esc(s.where)}${s.offSite ? ' <b>(not at the ski area)</b>' : ''}</td><td>${esc(s.operator)}</td><td>${ftFmt(s.ft)}</td>
       <td>${x.last ? fmtTime(x.last.t, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '–'}</td>
       <td>${r0(x.temp)}</td><td>${r0(x.hi24)} / ${r0(x.lo24)}</td><td>${x.hasWind ? `${compass(x.dir)} ${r0(x.wind)}` : 'n/a'}</td>
       <td>${x.hasWind ? r0(x.gustNow) : 'n/a'}</td><td>${x.hasWind ? r0(x.gust24) : 'n/a'}</td><td>${r0(x.rh)}</td>
@@ -673,7 +682,7 @@ function computeBriefing(c) {
   // Right now (morning-of check only)
   if (c.win.today) {
     const st = live.filter((s) => s.stats.temp != null).sort((a, b) => b.ft - a.ft)[0];
-    if (st) add(`Now: ${r0(st.stats.temp)}°F at ${st.name} (${ftFmt(st.ft)} ft)${st.stats.hasWind ? `, wind ${compass(st.stats.dir)} ${r0(st.stats.wind)} mph, gusts ${r0(st.stats.gustNow)}` : ''}.`);
+    if (st) add(`Now: ${r0(st.stats.temp)}°F at ${st.name} (${ftFmt(st.ft)} ft${offSiteNote(st)})${st.stats.hasWind ? `, wind ${compass(st.stats.dir)} ${r0(st.stats.wind)} mph, gusts ${r0(st.stats.gustNow)}` : ''}.`);
   }
 
   // Precipitation
@@ -710,7 +719,7 @@ function computeBriefing(c) {
   const d24 = snow.d24 ?? 0, d72 = snow.d72 ?? 0;
   if (snow.zone) add(`New snow, model estimate at ${ftFmt(snow.zone.ft)} ft: ${r1(d24)}" in 24 hrs, ${r1(d72)}" in 72 hrs. No measured total available; see the stake cam.`);
   const thaw = live.filter((s) => s.stats.hi24 != null && s.stats.lo24 != null).sort((a, b) => b.ft - a.ft)[0];
-  if (thaw) add(`Last 24 hrs at ${thaw.name} (${ftFmt(thaw.ft)} ft): high ${r0(thaw.stats.hi24)}°F, low ${r0(thaw.stats.lo24)}°F${thaw.stats.hi24 > 32 && thaw.stats.lo24 < 32 ? ' (freeze-thaw)' : ''}.`);
+  if (thaw) add(`Last 24 hrs at ${thaw.name} (${ftFmt(thaw.ft)} ft${offSiteNote(thaw)}): high ${r0(thaw.stats.hi24)}°F, low ${r0(thaw.stats.lo24)}°F${thaw.stats.hi24 > 32 && thaw.stats.lo24 < 32 ? ' (freeze-thaw)' : ''}.`);
 
   // Visibility
   if (sky && (sky.avg >= 80 || sky.vis < 3)) add(`Visibility: ${r0(sky.avg)}% cloud, down to ${r1(sky.vis)} mi.`, sky.vis < 1);
@@ -1019,15 +1028,15 @@ function renderNow(c) {
     const arrow = x.hasWind && x.dir != null ? `<svg viewBox="0 0 16 16" aria-hidden="true" style="transform:rotate(${(x.dir + 180) % 360}deg)"><path d="M8 1 L12 7 H9 V15 H7 V7 H4 Z" fill="currentColor"/></svg>` : '';
     const wind = !x.fresh ? '' : x.hasWind ? `${arrow}${compass(x.dir)} ${r0(x.wind)}${x.gustNow ? `, gust ${r0(x.gustNow)}` : ''} mph` : 'no wind sensor';
     return `<div class="now-row ${x.fresh ? '' : 'offline'}" style="animation-delay:${i * 0.08}s" data-i="${i}">
-      <div class="nm">${esc(s.name)}<small>${esc(s.operator)} · ${ftFmt(s.ft)} ft · ${x.fresh ? ageText(x.ageH) : x.last ? `offline, last report ${ageText(x.ageH)}` : 'offline, no reports in 48 hrs'}</small></div>
-      <div class="tv">${x.fresh ? `${r0(x.temp)}°` : 'Offline'}</div>
+      <div class="nm">${esc(s.name)}<small>${esc(s.operator)} · ${ftFmt(s.ft)} ft${s.offSite ? ` · <b class="off">${esc(s.offSite)}</b>` : ''} · ${x.fresh ? ageText(x.ageH) + (x.temp != null && x.tempAgeH - x.ageH > 0.5 ? ` (temp ${ageText(x.tempAgeH)})` : '') : x.last ? `offline, last report ${ageText(x.ageH)}` : 'offline, no reports in 48 hrs'}</small></div>
+      <div class="tv">${!x.fresh ? 'Offline' : x.temp != null ? `${r0(x.temp)}°` : '<span class="na">no temp<br>in 3 hrs</span>'}</div>
       <div class="wv">${wind}</div></div>`;
   }).join('');
   list.querySelectorAll('.now-row').forEach((row) => {
     const s = sts[row.dataset.i];
     const x = s.stats;
     bindTip(row, x.fresh
-      ? `${s.name}, ${s.where}. 24 hrs: high ${r0(x.hi24)}°F, low ${r0(x.lo24)}°F${x.hasWind ? `, max gust ${r0(x.gust24)} mph` : ''}. Humidity ${r0(x.rh)}%.`
+      ? `${s.name}, ${s.where}${s.offSite ? ' (not at the ski area)' : ''}. 24 hrs: high ${r0(x.hi24)}°F, low ${r0(x.lo24)}°F${x.hasWind ? `, max gust ${r0(x.gust24)} mph` : ''}. Humidity ${r0(x.rh)}%.`
       : `${s.name} hasn't reported since ${x.last ? fmtTime(x.last.t, { month: 'short', day: 'numeric', hour: 'numeric' }) : 'the start of the period'}, so it's left out.`);
   });
   const live = c.now.live.length;
@@ -1123,10 +1132,10 @@ function drawMeasuredCharts() {
     };
     const labels = hours.map((h) => hourLabel(new Date(h)));
     const vars = ['--s1', '--s2', '--s3'];
-    drawChart('c-stemp', { type: 'line', data: { labels, datasets: sts.map((s, k) => lineDs(`${s.name} (${ftFmt(s.ft)}′)`, bucket(s.obs, 'temp'), vars[k % 3])) }, options: chartOpts({ refLines: [{ y: 32, label: '32°F freezing' }] }) });
+    drawChart('c-stemp', { type: 'line', data: { labels, datasets: sts.map((s, k) => lineDs(`${s.name} (${ftFmt(s.ft)}′${s.offSite ? ', not at the ski area' : ''})`, bucket(s.obs, 'temp'), vars[k % 3])) }, options: chartOpts({ refLines: [{ y: 32, label: '32°F freezing' }] }) });
     const ws = sts.filter((s) => s.stats.hasWind).sort((a, b) => b.ft - a.ft)[0];
     if (ws) {
-      $('wind-station-name').textContent = `${ws.name} (${ftFmt(ws.ft)} ft)`;
+      $('wind-station-name').textContent = `${ws.name} (${ftFmt(ws.ft)} ft${offSiteNote(ws)})`;
       drawChart('c-swind', { type: 'line', data: { labels, datasets: [lineDs('Sustained', bucket(ws.obs, 'wind'), '--s1', true), lineDs('Gusts', bucketMax(ws.obs, 'gust'), '--s2')] }, options: chartOpts({ yMin: 0, refLines: [{ y: 40, label: '40 mph hold risk' }] }) });
     }
   }
@@ -1507,7 +1516,7 @@ function setupReveal() {
 // ================================================================ Data sources
 function renderSources() {
   const rows = [
-    ['Live station readings', M.stations.map((s) => `${s.name} (${s.operator}, ${ftFmt(s.ft)} ft)`).join('; '), 'Measured', 'On or beside the ski area. Read through the National Weather Service network. Offline stations are ignored.'],
+    ['Live station readings', M.stations.map((s) => `${s.name} (${s.operator}, ${ftFmt(s.ft)} ft${offSiteNote(s)})`).join('; '), 'Measured', 'Stations at the ski area, plus the nearest public station at upper-mountain height where the ski area has none (marked "not at the ski area"). Read through the National Weather Service network. Offline stations are ignored.'],
     ['Lift-top stations graphic', 'Mt. Bachelor', 'Measured', 'The resort\'s own summit, lift-top and base sensors. Image only.'],
     ['Webcams & snow stake', 'Mt. Bachelor', 'Live image', 'Official resort cameras. The stake is the best on-mountain check of new snow.'],
     ['Hourly forecast', `National Weather Service (${M.nws.office === 'PDT' ? 'Pendleton' : M.nws.office})`, 'Forecast', 'Official forecast for the 2.5 km grid cell over the ski area.'],

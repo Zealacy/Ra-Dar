@@ -15,10 +15,12 @@ const MOUNTAINS = {
     ],
     // National Weather Service forecast grid cell covering the ski area.
     nws: { office: 'PDT', x: 23, y: 40 },
-    // On-mountain weather stations, read through the National Weather Service
-    // observation network (api.weather.gov). Only these feed "Right now" and The Call.
+    // Live weather stations, read through the National Weather Service observation network
+    // (api.weather.gov). Only these feed "Right now". A station that isn't on the ski area
+    // gets `offSite`, which is shown next to its name everywhere it appears.
     stations: [
-      { id: 'MOONM', name: 'Moon Mountain', operator: 'Central Oregon Avalanche Center', ft: 7450, where: 'about 5 mi N of the summit, near the Cascade crest' },
+      // The nearest public station at upper-mountain height; Mt. Bachelor's own lift-top sensors are image-only.
+      { id: 'MOONM', name: 'Moon Mountain', operator: 'Central Oregon Avalanche Center', ft: 7450, where: 'about 5 mi N of the summit, near the Cascade crest', offSite: '5 mi N of the summit, not at the ski area' },
       { id: 'OD131', name: 'Century Dr at the ski area', operator: 'Oregon DOT', ft: 6424, where: 'Century Drive at milepost 21, by the West Village entrance' },
       { id: 'OSUSP', name: 'West Village snow pillow', operator: 'Oregon State University', ft: 6375, where: 'West Village base area' },
     ],
