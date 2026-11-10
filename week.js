@@ -186,7 +186,7 @@ function buildWeek() {
   });
 
   const open = M.season?.openingDay;
-  days.forEach((d) => { d.closed = open ? d.date < open : false; });
+  days.forEach((d) => { d.closed = open ? d.date < open : !!M.season?.closed; });
 
   // Whole-week snow per ensemble run (summing each run, not the daily ranges).
   let weekEns = null;
@@ -295,7 +295,7 @@ function weekSummary(week) {
   if (windy.length) parts.push(`Gusts 40+ mph: ${windy.map((d) => `${d.name} ${r0(d.gust)}`).join(', ')}.`);
   const warm = ds.filter((d) => (d.zones?.[0]?.hi ?? 0) >= 40);
   if (warm.length) parts.push(`Base above 40°F: ${names(warm)}.`);
-  if (week.days.some((d) => d.closed)) parts.push(`Lifts open ${new Date(M.season.openingDay + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`);
+  if (week.days.some((d) => d.closed)) parts.push(M.season.openingDay ? `Lifts open ${new Date(M.season.openingDay + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.` : 'Opening Day not announced yet.');
   return parts.join(' ');
 }
 
@@ -329,7 +329,7 @@ function renderDayDetail(d) {
       <div class="wk-stat"><span class="wk-k">Snow (4pm–4pm)</span><span class="wk-v">${snowRangeText(d)}</span><span class="wk-s">${d.snowSource === 'NWS' ? `NWS: ${r1(d.nwsSnow)}"` : d.ens ? `Middle estimate ${r1(d.ens.p50)}"` : ''}</span></div>
       <div class="wk-stat"><span class="wk-k">Chance of at least</span><span class="chances">${chance}</span></div>
       <div class="wk-stat"><span class="wk-k">Models (mid-mountain)</span><span class="models">${models}</span></div>
-      <div class="wk-stat"><span class="wk-k">Temps (high / low)</span><span class="wk-v sm">${z.map((x) => `${esc(x.name.replace(' (mid)', '').replace(' base', ''))} ${r0(x.hi)}° / ${r0(x.lo)}°`).join('<br>')}</span></div>
+      <div class="wk-stat"><span class="wk-k">Temps (high / low)</span><span class="wk-v sm">${z.map((x) => `${esc(zShort(x))} ${r0(x.hi)}° / ${r0(x.lo)}°`).join('<br>')}</span></div>
       <div class="wk-stat"><span class="wk-k">Freezing level, ski hours</span><span class="wk-v">${ftFmt(d.freezing)} ft</span><span class="wk-s">${d.rainCls === 'bad' ? 'Rain likely up past mid-mountain' : d.rainCls === 'ok' ? 'Rain possible at the base' : d.wetIn > 0.02 ? 'Snow to the base' : 'Dry'}</span></div>
       <div class="wk-stat"><span class="wk-k">Peak gusts, ski hours</span><span class="wk-v ${d.gust >= 40 ? 'warn' : ''}">${r0(d.gust)} mph</span><span class="wk-s">${d.ens?.gust10 != null ? `Range ${r0(d.ens.gust10)}–${r0(d.ens.gust90)} mph` : ''}${d.gust >= 40 ? ' · upper-lift holds possible' : ''}</span></div>
     </div>
@@ -411,7 +411,7 @@ function renderWeekTables(week) {
   };
   $('wk-chance').innerHTML = `<thead><tr><th>Snow for the ski day</th>${week.days.map((d) => `<th>${esc(d.name)}</th>`).join('')}</tr></thead><tbody>${ths.map((t) => `<tr><td>At least ${t}"</td>${week.days.map((d) => cell(d.ens?.chance[t] ?? null)).join('')}</tr>`).join('')}</tbody>`;
   // Full table
-  const head = ['Day', 'Confidence', 'Snow range', 'NWS snow', 'Middle est.', ...WEEK_MODELS.map((m) => m.name.split(' ')[0]), ...M.zones.map((z) => `${z.name.replace(' (mid)', '')} hi/lo`), 'Freezing lvl ft', 'Gusts mph', 'Cloud %', 'Official forecast'];
+  const head = ['Day', 'Confidence', 'Snow range', 'NWS snow', 'Middle est.', ...WEEK_MODELS.map((m) => m.name.split(' ')[0]), ...M.zones.map((z) => `${zShort(z)} hi/lo`), 'Freezing lvl ft', 'Gusts mph', 'Cloud %', 'Official forecast'];
   $('wk-table').innerHTML = `<thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${week.days.map((d) => `<tr>
     <td>${esc(d.long)}</td><td>${confWord[d.conf].replace(' confidence', '')}</td><td>${snowRangeText(d)}</td>
     <td>${d.nwsSnow == null ? '–' : r1(d.nwsSnow)}</td><td>${d.ens ? r1(d.ens.p50) : '–'}</td>

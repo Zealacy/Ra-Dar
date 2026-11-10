@@ -1,6 +1,6 @@
 # Ra-Dar: notes for Claude
 
-Ra-Dar is a **ski weather tracker** website. The first mountain is **Mt. Bachelor, Oregon**, and more mountains will be added later through `mountains.js`.
+Ra-Dar is a **ski weather tracker** website for **Mt. Bachelor** and **Willamette Pass**, Oregon (switcher at the top of the page). More mountains can be added through `mountains.js`.
 It's a static site published on **Vercel** at **https://ra-dar-alpha.vercel.app/**. There's no build step, no server and no API keys in the code.
 
 The owner isn't a programmer. Explain things in plain language, keep setup steps they have to do themselves to a minimum, and tell them plainly what went live and what didn't work.
@@ -11,17 +11,20 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 - **Code and history: GitLab**, in the private project **https://gitlab.com/zealacy-group/ra-dar-storage**, branch `main`. This is the only code repository in use. Its git remote is `origin`.
   - Getting the code in a new session: `git clone https://gitlab.com/zealacy-group/ra-dar-storage.git`. A cloud session may first try to check out an old repository elsewhere and fail; that's expected, so ignore it.
   - Access: the owner's GitLab token is a network secret on the Ra-Dar environment for `gitlab.com` (basic auth). It's a legacy personal access token with only `read_repository` and `write_repository`, so it can't call the GitLab API, and it expires within a year; the owner renews it through the secure credential form.
-  - Saving work: commit, then `git push origin HEAD:main`.
+  - Saving work: commit, then `git push origin HEAD:main`. **Check `git remote -v` first:** after a container restart the harness may point `origin` back at the old GitHub address. GitLab is then the `gitlab` remote, so push with `git push gitlab HEAD:main`.
   - The tag `archive/2026-11-08-old-host-final` marks the last version published on the previous host. It's history only.
 - **GitHub is not used. Don't push there, open pull requests there, or point the owner to it.** The project started on GitHub, but GitHub locked the owner's account on Nov 8, 2026, and the old `github.io` address is dead. The owner has an appeal open; if access comes back, ask the owner before using it for anything. Don't suggest a second GitHub account, since GitHub allows one free account per person.
 - **Cloudflare Pages was tried and doesn't work from cloud sessions. Don't retry it.** The proxy injects the saved token into every request to `api.cloudflare.com`, overwriting the short-lived upload JWT, so asset uploads fail (code 8000013). An empty `ra-dar` Pages project and a Pages-only token remain on the owner's Cloudflare account.
 
-## Handoff: where things stand (updated 2026-11-09)
+## Handoff: where things stand (updated 2026-11-10)
 
-- **Season:** Mt. Bachelor is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 7, 10pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
-- **Everything below is built and live.** The last real-data check (Nov 8, 8:53pm Pacific, after removing the ski score) passed: every source loaded with no page errors on desktop and phone.
+- **Two mountains are live: Mt. Bachelor and Willamette Pass** (added Nov 9–10). A switcher at the top of the page picks the mountain; see "Mountains" below.
+- **Seasons:**
+  - **Mt. Bachelor** is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 7, 10pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
+  - **Willamette Pass** is closed with **no Opening Day announced** ("Opening Soon for 2026/2027!", checked Nov 9). `season: { openingDay: null, closed: true }` keeps preseason on and shows "TBA". **Re-check the resort's Hours of Operation page when working on the site, and set the date when they post one.**
+- **Everything below is built and live.** The last real-data check (Nov 9, 8:28pm Pacific) passed for both mountains: every source loaded with no page errors on desktop and phone.
 - **No scheduled check-ins or routines are pending.**
-- **Decided against: measured snow depth on the site.** The owner decided on Nov 8 that the stake cam is enough. **Don't propose it again unless the owner asks.** What the research found (Nov 8):
+- **Decided against: measured snow depth for Mt. Bachelor.** The owner decided on Nov 8 that the stake cam is enough. **Don't propose it again unless the owner asks.** (Willamette Pass is different: a public SNOTEL sensor sits at its base, so it shows measured depth; see Mountains.) What the Bachelor research found (Nov 8):
   - The OSU snow pillow `OSUSP` does measure snow depth and SWE every 10 minutes. It reports in bursts: 4.45" depth and 1.42" SWE at noon on Nov 7, which matched the resort's sensor.
   - Only MesoWest/Synoptic carries those readings. The NWS feed has its temperature only, and has been silent since Oct 31.
   - There's no allowed way to show the readings:
@@ -30,39 +33,50 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
     - NOAA's NOHRSC doesn't carry this sensor.
   - The resort's own West Village depth appears only inside its station *image*.
 - **Open items and ideas (none in progress):**
-  - **More mountains.** Add each one to `mountains.js` and verify every station, camera and elevation for it the same careful way.
-  - **Willamette Pass is next.** Sources were researched and verified on Nov 8; the build hasn't started.
-    - **Measured:**
-      - Base weather: ODOT `ODT03` "OR58 at Willamette Pass" (5,121 ft, 0.3 mi, NWS feed). Temperature, wind and gust, but the wind is sheltered at road level.
-      - Snow depth and SWE: Cascade Summit SNOTEL `388:OR:SNTL` (5,100 ft, 1.4 mi, hourly). It read 0" on Nov 8, matching the resort's 0" base depth and its base cam.
-      - **No upper-mountain station exists** (checked on MesoWest).
-      - Regional reference only: Salt Creek Falls `729` (4,220 ft, 4 mi W), New Crescent Lake `660` (4,910 ft, 7 mi SE), Summit Lake `801` (5,610 ft, 12 mi S).
-    - **Forecast:**
-      - NWS **Medford** `MFR/145,125` (averages 5,538 ft and covers base to summit; the resort's own forecast link uses the same point). Zone ORZ027. Written forecast and AFD also from MFR.
-      - **MFR provides no visibility forecast**, and the code currently defaults missing visibility to 10 mi. Fix that.
-      - Open-Meteo near 43.603, -122.025: base 5,120 / mid ~5,900 (midpoint, no landmark) / summit 6,683 ft.
-    - **Cams** (no stake cam):
-      - Resort YouTube live streams: "Willamette Pass Base Area" `sNVA6oC7vcM`, and "Willamette Pass Resort Eagle Peak" `uav7cBNVv0k` (check its view in daylight).
-      - ODOT TripCheck stills `https://tripcheck.com/roadcams/cams/Willamette Pass_pid3351.JPG` (looking W) and `.../WillamettePass_pid658.jpg` (looking E). Credit them "Camera courtesy of ODOT", per the TripCheck FAQ.
-    - **Resort (willamettepass.ski):**
-      - Its pages send `X-Frame-Options: DENY`, so link to the Lifts & Trails page instead of embedding it.
-      - Its weather widget is just the NOAA forecast, read from an internal JSON file. Don't use it.
-      - Stats: 5,120 / 6,683 ft, 1,563 ft vertical, 555 acres, 430" average snowfall.
-      - Lifts: Eagle Peak Accelerator (six-seat); Peak 2, Twilight, Midway, Sleepy Hollow (triples); Magic Carpet. Frontside 9–4, Peak 2 9:30–3:30.
-      - Opening Day not announced ("Opening Soon for 2026/2027").
-    - **No avalanche forecast zone found.** Don't link one.
-    - **Owner decisions pending.** These are my recommendations; the owner hasn't answered yet:
-      - Use Cascade Summit depth in the summary (yes).
-      - Embed the YouTube cams (yes).
-      - Show an "Opening Day not announced" state.
-      - Put mid-mountain at ~5,900 ft.
-    - **Code that assumes Bachelor:**
-      - the stake cam, station graphic and embedded lift board
-      - "Summit and Northwest" wording, the `s.ft >= 7000` measured-wind rule and the `OD131` road id in the briefing
-      - the AFD highlight words, the SNOTEL text in `index.html` and the 10-mi visibility default
-      - `openingDay` being required
-      - no mountain switcher
+  - **More mountains.** Add each one to `mountains.js` and verify every station, camera and elevation for it the same careful way (see "Adding a mountain" below).
+  - **Willamette Pass's "Eagle Peak" cam** (YouTube `uav7cBNVv0k`) is left out: its still was black and unchanged at night on Nov 8 and in daylight on Nov 9. Re-check it in daylight; if it shows a real view, label it by what its picture shows and add it to `cams`.
   - **Post-season.** Nothing handles the end of the season yet (the site would stay in ski-day mode).
+
+## Mountains
+
+The page layout is identical for every mountain. **Everything that differs lives in `mountains.js`**, and no code names a mountain. Where a mountain lacks something, the same slot shows its nearest equivalent or says plainly that there is none.
+
+- **Choosing the mountain:** `?mtn=<key>` in the address wins, then the last one this browser showed (localStorage `radar-mtn`), then the first in `MOUNTAINS`. The switcher in the header is plain links (`?mtn=key`), so every view can be shared. The preseason/ski-day choice is remembered per mountain (`radar-view:<key>`).
+- **Settings a mountain can have** (see the comments in `mountains.js`):
+  - `zones` with a `short` name for labels, and `nws` with `officeName`.
+  - `stations` (NWS observation ids). Use `offSite` for a station that isn't on the ski area, `road` for a road sensor (the briefing's road line), and `sheltered` for a sensor whose wind isn't representative (no lift-hold line on its wind chart).
+  - `snowSensor`: an on-site SNOTEL used as **measured snow depth**, in Right now, the Fresh snow card, the briefing, Live readings and the Snowpack tab. It goes offline after `maxAgeHours`.
+  - `snotel`: the regional reference only.
+  - `snowStake` and `stationGraphic`: optional. Without a stake, the first cam is the preseason hero cam.
+  - `cams`: still images (`src`, add `small: true` for small stamped road cams) or YouTube live streams (`youtube: id`). A stream shows YouTube's live still (`i.ytimg.com/vi/<id>/maxresdefault_live.jpg`, refreshed about every 5 minutes) and loads YouTube's own embed player only when tapped.
+  - `season: { openingDay, closed, checked }`, where `openingDay: null` with `closed: true` means "not announced yet".
+  - `liftStatusUrl` and `liftStatusEmbed`: embed only where the resort doesn't block framing.
+  - `windHoldLifts` (named in the briefing's wind line), `afdWords` (place names to highlight in the forecaster notes), `links`, and `text` (per-mountain wording: Live readings lead, sources notes, snow-depth note, cam credits, footer).
+- **Mt. Bachelor:** see "Approved sources" below.
+- **Willamette Pass** (sources verified Nov 8–9):
+  - **Measured:**
+    - Base weather: ODOT `ODT03` "OR58 at Willamette Pass" (5,121 ft, 0.3 mi from the base lodge, NWS feed). Temperature, wind and gust, but its wind is sheltered at road level.
+    - Snow depth and SWE: Cascade Summit SNOTEL `388:OR:SNTL` (5,100 ft, 1.4 mi W, base elevation, hourly). It read 0" on Nov 8–9, matching the resort's 0" base depth and its base cam. It's on the ski area's doorstep at base elevation, so unlike Bachelor's distant SNOTELs it may feed the summary.
+    - **No public station exists on the upper mountain** (checked on NWS and MesoWest), so everything above the base is a forecast.
+    - Regional reference only: Salt Creek Falls `729` (4,220 ft, 4 mi W), New Crescent Lake `660` (4,910 ft, 7 mi SE), Summit Lake `801` (5,610 ft, 12 mi S).
+  - **Forecast:**
+    - NWS **Medford** `MFR/145,125`. The cell averages 5,538 ft and covers base to summit; the resort's own forecast link uses the same point. Zone ORZ027. The written forecast and AFD come from MFR too.
+    - **MFR publishes no visibility forecast**, so visibility shows as "no visibility forecast for this area" instead of being assumed.
+    - Open-Meteo at 43.604, -122.026: base 5,120 / mid 5,900 (halfway; the resort names no mid-mountain landmark) / summit 6,683 ft (Eagle Peak).
+  - **Cams** (there's no snow stake cam):
+    - The resort's "Willamette Pass Base Area" YouTube stream `sNVA6oC7vcM` looks up the lift line from the base.
+    - ODOT TripCheck stills `https://tripcheck.com/roadcams/cams/Willamette%20Pass_pid3351.JPG` (looking W) and `WillamettePass_pid658.jpg` (looking E), 328×314 with their own stamp. ODOT allows their use with the credit "Camera courtesy of ODOT", per the TripCheck FAQ.
+  - **Resort (willamettepass.ski):**
+    - Its pages send `X-Frame-Options: DENY`, so the Lifts tab links to its Lifts & Trails page.
+    - Its weather widget is just the NOAA forecast, read from an internal JSON file. Don't use it.
+    - Stats: 5,120 / 6,683 ft, 1,563 ft vertical, 555 acres, 430" average snowfall.
+    - Lifts: Eagle Peak Accelerator (six-seat); Peak 2, Twilight, Midway, Sleepy Hollow (triples); Magic Carpet. Frontside 9–4, Peak 2 9:30–3:30.
+  - **No avalanche forecast zone covers it.** Don't link one.
+- **Adding a mountain:**
+  1. Research and verify every station, camera, elevation and the forecast grid cell. Find the cell with `api.weather.gov/points/<lat>,<lon>` and check its elevation.
+  2. Check the resort's pages for frame-blocking headers, and its cams' on-image stamps.
+  3. Add a block to `mountains.js`.
+  4. Test both views on desktop and phone for **every** mountain, since shared code changes affect all of them.
 
 ## Data: the most important rules
 
@@ -73,7 +87,7 @@ Good data is the backbone of this site. These rules come from mistakes the owner
   - **Any station that isn't on the ski area must say so** on the page. Set `offSite` in `mountains.js`, for example `'5 mi N of the summit, not at the ski area'`.
 - Before using any station, check its **elevation, distance, location and how recent its readings are**. Use stations on or right next to the ski area. Distant or lower stations may appear only as a clearly labeled regional reference, and must never feed the summary or any calculation.
 - **Don't use modeled snow depth.** *Mistake that was corrected:* preseason mode first showed Open-Meteo's modeled snow **depth**. It read 0" at every elevation on Nov 7 while the stake cam and the resort's sensor showed snow on the ground. Modeled **snowfall** (snow that fell) is used instead, labeled Model.
-- **Cross-check against the resort's own sensors** (the station graphic `cams/mtn/weather-server-image` and the stake cam) whenever adding or changing a data source.
+- **Cross-check against the resort's own sensors** whenever adding or changing a data source: Bachelor's station graphic `cams/mtn/weather-server-image` and stake cam, and Willamette Pass's reported base depth and base cam.
 - **Ignore stale data.** A station whose last report is older than `stationMaxAgeHours` (3) is shown as offline and left out of the calculations. Check sensor timestamps: the resort's station graphic has a Northwest lift-top sensor stuck since June 3, and showed a bogus 145" West Village snow depth on Nov 6 (4" on Nov 7).
 - **Label every value** as *Measured* (live sensors on the mountain), *Forecast* (NWS or model prediction) or *Model* (an estimate of what already fell). Never present an estimate as a measurement.
 - **Never invent data or use mock values.** If a source is down, say so on the page. Every section has an "unavailable" state, and the Week ahead strip warns when a source failed.
@@ -85,10 +99,11 @@ Good data is the backbone of this site. These rules come from mistakes the owner
     - Its thermometer sometimes drops out for a few hourly reports while wind keeps coming in. `stationStats` then uses the latest temperature only if it's within `stationMaxAgeHours` and shows that temperature's own age; otherwise the card says "no temp in 3 hrs".
   - **NWS gridpoint forecast** `PDT/23,40` (grid cell averages ~7,638 ft), its written 7-day forecast (`/forecast`), and the forecast discussions (AFD, Pendleton).
   - **Open-Meteo:** forecasts and snowfall at each elevation (base 6,300 / mid 7,800 / summit 9,065 ft); the 4-model comparison (GFS, ECMWF, GEM, ICON); and the ensembles (`ensemble-api.open-meteo.com`: GEFS 31 + ECMWF 51 runs) behind the 7-day ranges and confidence. Never show a single far-out snow number without its range and confidence.
-  - **NRCS SNOTEL**, as a regional reference only (collapsed in Live readings).
+  - **NRCS SNOTEL**, as a regional reference only (collapsed in Live readings), except a mountain's on-site `snowSensor` (Willamette Pass: Cascade Summit), which is measured snow depth.
+  - **Willamette Pass:** NWS observations for ODOT `ODT03`, the NWS Medford gridpoint `MFR/145,125` and AFDs, the resort's YouTube live stream (still image plus YouTube's embed player on tap), ODOT TripCheck camera images, and a link to the resort's Lifts & Trails page. See "Mountains".
   - **RainViewer** radar; OpenStreetMap tiles.
   - **Mt. Bachelor:** webcams and the station graphic (public image URLs), the official Lift & Trail Status page (embedded), and the Mountain Stats page (the lift list).
-- **Lifts:** there is no public live lift-status feed. The resort's feed is the private API, and Liftie sits behind a Cloudflare bot check. The per-lift wind-hold **estimate** is **shelved** (`features.liftEstimate: false` in `mountains.js`): the owner found it confusing and didn't want to send people to the wrong area. **Don't bring it back unless the owner asks.** The Lifts tab shows only the resort's official board, embedded and shifted up by `liftStatusOffsetPx` (1040) so it opens at the lift list. If the resort redesigns that page, re-measure the offset. `season.openingDay` is set by hand from the official page, so re-check it when working on the site. Their board counts 14 lifts (including 2 surface carpets); the stats list in `mountains.js` has the 12 chairlifts.
+- **Lifts:** there is no public live lift-status feed at either resort. The notes below are for Mt. Bachelor; Willamette Pass's board can only be linked. The resort's feed is the private API, and Liftie sits behind a Cloudflare bot check. The per-lift wind-hold **estimate** is **shelved** (`features.liftEstimate: false` in `mountains.js`): the owner found it confusing and didn't want to send people to the wrong area. **Don't bring it back unless the owner asks.** The Lifts tab shows only the resort's official board, embedded and shifted up by `liftStatusOffsetPx` (1040) so it opens at the lift list. If the resort redesigns that page, re-measure the offset. `season.openingDay` is set by hand from the official page, so re-check it when working on the site. Their board counts 14 lifts (including 2 surface carpets); the stats list in `mountains.js` has the 12 chairlifts.
 
 ## Units
 
@@ -113,15 +128,16 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 - **Keep the page short vertically:** use tabs, carousels and collapsible sections instead of long stacks.
 - **The layout must work on every device:** JS sets `<html data-device="mobile|tablet|desktop">`, and CSS and charts adapt to it. Test phone and desktop every time.
 - **Smooth animations are wanted**, but always respect `prefers-reduced-motion`.
-- **Snow stake camera:** always included, with high visual priority, but **only one large stake image per view.** In preseason the big stake sits in the snowpack section and the cam carousel opens on the next camera; in the ski-day view the carousel opens on the stake. The stake is the first entry in the carousel. *Correction from the owner:* two large stake cams at once was too much.
+- **Snow stake camera** (Mt. Bachelor; Willamette Pass has none, so its Base Area cam takes the same slot): always included, with high visual priority, but **only one large stake image per view.** In preseason the big stake sits in the snowpack section and the cam carousel opens on the next camera; in the ski-day view the carousel opens on the stake. The stake is the first entry in the carousel. *Correction from the owner:* two large stake cams at once was too much.
 - **Other cams:** pick them by how useful they are for judging ski conditions, and **label them by their real location**. Check each camera's own on-image stamp. *Mistake that was corrected:* camera 3 was labeled "The Cone (summit)", but it sits at West Village. **No camera is at the summit**; the highest are three cameras at the top of Outback (mid-mountain).
 - **Tab labels are plain words:** Snowpack (preseason only) · Live readings · Hour by hour · Next 7 days · Base to summit · Lifts · Radar loop · Forecaster notes.
-- **Preseason mode** (`preseason.js`): turns on automatically before `season.openingDay` and off on Opening Day. It leads with:
-  - the Opening Day countdown
+- **Preseason mode** (`preseason.js`): turns on automatically before `season.openingDay` and off on Opening Day. A closed resort with no date announced (`openingDay: null, closed: true`) stays in preseason. It leads with:
+  - the Opening Day countdown ("TBA" when no date is announced)
   - a measured "Right now" readout
   - snowfall by elevation (since Oct 1, plus the next 7 days stacked on top; Model)
   - tiles for last-7-day snowfall, the week's snow range (82 runs) and the chance of ≥6"/≥12"
-  - the big stake cam
+  - the big stake cam, or the first cam where there's no stake
+  - measured snow depth where the mountain has a snow sensor (Right now readout and Snowpack tab)
   - a Snowpack tab (running and daily snowfall charts, table)
 
   It hides the ski-day cards (the ski-day forecast and briefing). A header button switches to the ski-day view; the choice is remembered (localStorage) until Opening Day.
@@ -133,14 +149,15 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 ## How the code fits together
 
 - `index.html`: page structure. Scripts load in this order: `mountains.js`, `week.js`, `preseason.js`, `app.js`. `week.js` and `preseason.js` contain only functions, because `app.js` starts the page as soon as it loads.
-- `mountains.js`: everything specific to a mountain: location, zones (base/mid/summit), NWS grid, stations, SNOTEL, cams (the stake is separate, as `snowStake`), lifts, season dates, feature flags, links.
+- `mountains.js`: everything specific to a mountain (see "Mountains" above). `app.js` picks it at load as `M` (`MTN_KEY`); `setupMountain()` builds the switcher and fills in per-mountain wording and slots.
 - `app.js`:
   - `refreshData()` loads the sources in parallel into the `state` object (`stations`, `snotel`, `nws`, `elev`, `week`, `pre`), then:
     - `computeCall()` → `renderCall()` (day heading, status chips, mountain, wind, snow, sky, right-now, briefing)
     - `buildWeek()` → `renderWeekStrip()`
     - `renderPreseason()`
     - `drawActiveTab()`
-  - Helpers: `getJSON` (retries once) and `getJSONCached` (localStorage, for Open-Meteo).
+  - Helpers: `getJSON` (retries once) and `getJSONCached` (localStorage, for Open-Meteo). `snowSensor()` returns the on-site SNOTEL from `state.snotel` (loaded together with the regional ones).
+  - The mountain picture's elevation scale and shape are computed from the mountain's own base and summit, so it works for any vertical.
   - Data refreshes every 10 minutes, but not while the tab is hidden. Webcams refresh every 5 minutes.
 - `week.js`: the 7-day forecast. It combines NWS hourly + written forecasts, the 4 models and the ensembles. Snow is counted per **ski day (4pm to 4pm)**. Confidence comes from ensemble and model spread plus lead time. It also computes `weekEns` (the whole-week total per ensemble run).
 - `preseason.js`: `viewMode()` and `applyViewMode()`, `loadPreseason()` (Open-Meteo snowfall since Oct 1 + 8 forecast days), the snowfall graphic and tiles, and the Snowpack tab.
@@ -160,7 +177,8 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
   - `api.mtbachelor.com`, `www.mtbachelor.com`
   - `api.rainviewer.com`, `tilecache.rainviewer.com`, `tile.openstreetmap.org`, `cdnjs.cloudflare.com`
   - `ra-dar-alpha.vercel.app` (live-site checks), plus `gitlab.com`, `api.vercel.com` and `api.cloudflare.com` via saved network secrets
-  - plus a few used only for research (Willamette Pass, TripCheck, YouTube, MesoWest and others)
+  - `tripcheck.com`, `i.ytimg.com`, `www.youtube.com`, `www.willamettepass.ski` (Willamette Pass cams and source checks)
+  - plus a few used only for research (MesoWest, Synoptic, COAC, NOHRSC and others)
 - Libraries (from cdnjs): Leaflet 1.9.4, Chart.js 4.4.1.
 
 ## Publishing (standing permission from the owner)

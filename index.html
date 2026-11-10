@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b1a2b">
   <title>Ra-Dar Ski Weather</title>
-  <meta name="description" content="Ski weather for Mt. Bachelor: snowpack, 7-day snow forecasts by elevation, live mountain readings and webcams.">
+  <meta name="description" content="Ski weather for Mt. Bachelor and Willamette Pass, Oregon: snowpack, 7-day snow forecasts by elevation, live mountain readings and webcams.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Ra-Dar">
-  <meta property="og:title" content="Ra-Dar · Mt. Bachelor ski weather">
+  <meta property="og:title" content="Ra-Dar · ski weather for Mt. Bachelor &amp; Willamette Pass">
   <meta property="og:description" content="Snowpack, 7-day snow forecasts by elevation, live mountain readings and webcams.">
   <meta property="og:url" content="https://ra-dar-alpha.vercel.app/">
   <meta property="og:image" content="https://ra-dar-alpha.vercel.app/preview.png">
@@ -26,8 +26,9 @@
     <div class="wrap top-row">
       <div class="title">
         <div class="brand">Ra-Dar <span>ski weather</span></div>
-        <h1 id="mtn-name">Mt. Bachelor</h1>
+        <h1 id="mtn-name" class="sr-only">Ski weather</h1>
       </div>
+      <nav class="mtn-switch" id="mtn-switch" aria-label="Choose a mountain"></nav>
       <nav class="jump" aria-label="Sections">
         <a href="#call">Today</a>
         <a href="#cams">Cams</a>
@@ -50,14 +51,14 @@
       <div class="pre-head">
         <div class="pre-count"><span id="pre-count">–</span><small id="pre-open">days to Opening Day</small></div>
         <div class="pre-title"><div class="eyebrow">Preseason</div><h2>Snowpack &amp; what's coming</h2></div>
-        <span class="src e">Model + cam</span>
+        <span class="src e" id="pre-src">Model + cam</span>
       </div>
       <div class="pre-now" id="pre-now"></div>
       <div class="pre-body">
         <figure class="pre-fig"><svg id="pre-depth-svg" viewBox="0 0 360 230" role="img" aria-label="Snowfall by elevation since Oct 1 and forecast for the next 7 days"></svg></figure>
         <div class="pre-side">
           <div class="pre-tiles" id="pre-tiles"></div>
-          <a class="pre-stake" href="#cams"><img id="pre-stake" alt="Snow stake cam"><span>Measured: snow stake cam, West Village</span></a>
+          <a class="pre-stake" href="#cams"><img id="pre-stake" alt=""><span id="pre-stake-cap"></span></a>
         </div>
       </div>
     </section>
@@ -86,7 +87,7 @@
         </article>
 
         <article class="w w-snow">
-          <header><h3>Fresh snow</h3><span class="src e">Model + cam</span></header>
+          <header><h3>Fresh snow</h3><span class="src e" id="snow-src">Model + cam</span></header>
           <div class="snow-body">
             <div class="flakes" id="flakes" aria-hidden="true"></div>
             <svg id="stake-svg" class="stake-svg" viewBox="0 0 120 170" aria-hidden="true"></svg>
@@ -97,6 +98,7 @@
               <div class="sn-zones" id="snow-zones"></div>
             </div>
             <a class="stake-thumb" id="stake-thumb-link" href="#cams" title="Snow stake cam"><img id="stake-thumb" alt="Snow stake cam"><span>Measured: stake cam ↓</span></a>
+            <div class="snow-measured" id="snow-measured" hidden></div>
           </div>
           <p class="cap" id="snow-cap"></p>
         </article>
@@ -154,7 +156,10 @@
       <header class="ph"><h2 id="cam-title">Webcams</h2><span class="updated-s" id="cams-updated"></span></header>
       <div class="cam-viewer">
         <div class="cam-main-wrap">
-          <a id="cam-main-link" target="_blank" rel="noopener" class="img-frame"><img id="cam-main" alt=""></a>
+          <div class="img-frame" id="cam-frame">
+            <a id="cam-main-link" target="_blank" rel="noopener"><img id="cam-main" alt=""></a>
+            <button type="button" class="cam-play" id="cam-play" hidden><span aria-hidden="true">▶</span> Watch live video</button>
+          </div>
           <p class="fine" id="cam-why"></p>
         </div>
         <div class="thumbs" id="thumbs" role="tablist" aria-label="Choose a webcam"></div>
@@ -179,24 +184,27 @@
         <p class="lead" id="sp-lead"></p>
         <div class="grid-2">
           <figure class="chart-card wide"><figcaption>Snowfall since Oct 1 by elevation, running total (in, model; dashed = forecast)</figcaption><div class="chart-box"><canvas id="c-sp-depth"></canvas></div></figure>
-          <figure class="chart-card wide"><figcaption>Daily snowfall at Pine Marten, 7,800 ft: last 30 days and next 7 (in, model; lighter = forecast)</figcaption><div class="chart-box"><canvas id="c-sp-daily"></canvas></div></figure>
+          <figure class="chart-card wide"><figcaption>Daily snowfall at <span id="sp-daily-zone">mid-mountain</span>: last 30 days and next 7 (in, model; lighter = forecast)</figcaption><div class="chart-box"><canvas id="c-sp-daily"></canvas></div></figure>
+          <figure class="chart-card wide" id="fig-sp-measured" hidden><figcaption>Measured snow depth at <span id="sp-measured-name"></span>, this season (in) <span class="src m">Measured</span></figcaption><div class="chart-box"><canvas id="c-sp-measured"></canvas></div></figure>
         </div>
         <p class="swipe-hint">Swipe for more charts →</p>
         <details class="tbl"><summary>Day-by-day snowfall table</summary><div class="table-wrap tall"><table id="sp-table"></table></div></details>
       </div>
 
       <div class="tab-panel" data-panel="measured">
-        <p class="lead">Live readings from public weather stations at the ski area, plus the nearest one at upper-mountain height where the ski area has none (marked "not at the ski area"), and the resort's own lift-top stations. A station is marked offline and ignored if it hasn't reported in the last few hours.</p>
+        <p class="lead"><span id="live-lead"></span> A station is marked offline and ignored if it hasn't reported in the last few hours.</p>
         <div class="grid-2">
-          <figure class="chart-card"><figcaption>Temperature on the mountain, last 48 hours (°F)</figcaption><div class="chart-box"><canvas id="c-stemp"></canvas></div></figure>
+          <figure class="chart-card"><figcaption>Measured temperature, last 48 hours (°F)</figcaption><div class="chart-box"><canvas id="c-stemp"></canvas></div></figure>
           <figure class="chart-card"><figcaption>Wind at <span id="wind-station-name">Moon Mountain</span>, last 48 hours (mph)</figcaption><div class="chart-box"><canvas id="c-swind"></canvas></div></figure>
-          <figure class="chart-card wide"><figcaption>Resort lift-top stations (Mt. Bachelor)</figcaption><a id="stations-link" target="_blank" rel="noopener"><img id="stations" class="stations-img" alt="Mt. Bachelor lift-top weather station readings"></a>
-            <p class="fine">Published by the resort as an image, so it's shown for reference and not used in the calculations. Check the date on each box: some sensors stop updating in the off-season, and the West Village snow depth reading isn't reliable early in the season.</p></figure>
+          <figure class="chart-card wide" id="fig-sdepth" hidden><figcaption>Snow depth at <span id="sdepth-name"></span>, last 7 days (in) <span class="src m">Measured</span></figcaption><div class="chart-box"><canvas id="c-sdepth"></canvas></div>
+            <p class="fine" id="sdepth-note"></p></figure>
+          <figure class="chart-card wide" id="fig-stations" hidden><figcaption>Resort lift-top stations (<span class="mtn-name-text"></span>)</figcaption><a id="stations-link" target="_blank" rel="noopener"><img id="stations" class="stations-img" alt="Resort lift-top weather station readings"></a>
+            <p class="fine" id="stations-note"></p></figure>
         </div>
         <p class="swipe-hint">Swipe for more charts →</p>
         <details class="tbl"><summary>Station readings table</summary><div class="table-wrap"><table id="station-table"></table></div></details>
-        <details class="tbl regional"><summary>Regional snow stations (SNOTEL) · reference only</summary>
-          <p class="fine">These federal NRCS stations are reliable, but they are not at Mt. Bachelor. They sit 11–18 miles away, at 4,770–5,680 ft, in different drainages, so they often get far less snow than the ski area. Use them only for the regional trend.</p>
+        <details class="tbl regional"><summary id="snotel-summary">Regional snow stations (SNOTEL) · reference only</summary>
+          <p class="fine" id="snotel-note"></p>
           <div class="chart-card"><figcaption>New snow by station (in)</figcaption><div class="chart-box"><canvas id="c-newsnow"></canvas></div></div>
           <div class="table-wrap"><table id="snotel-table"></table></div>
           <p class="fine">SWE is snow water equivalent. Density is ΔSWE ÷ Δdepth: under 7% is light, dry powder, 7–12% is typical, and over 12% is heavy, wet snow.</p></details>
@@ -235,7 +243,7 @@
             <p><b>Days 1–3:</b> generally reliable. Timing and amounts can still shift, especially for snow, which is the hardest thing to forecast in the mountains.</p>
             <p><b>Days 4–5:</b> good for the overall pattern (stormy or dry, warm or cold). Exact snow totals often change.</p>
             <p><b>Days 6–7:</b> trends only. Use the ranges and confidence, not the single numbers.</p>
-            <p>The <b>range</b> shows where 80% of 82 slightly different model runs land (the American GEFS and European ECMWF ensembles). A wide range or <b>low confidence</b> means the models disagree, so expect the forecast to change. Snow here is for mid-mountain (7,800 ft); the summit usually gets more and the base less. Check back daily: forecasts update every few hours.</p>
+            <p>The <b>range</b> shows where 80% of 82 slightly different model runs land (the American GEFS and European ECMWF ensembles). A wide range or <b>low confidence</b> means the models disagree, so expect the forecast to change. Snow here is for mid-mountain (<span id="acc-mid-ft"></span> ft); the summit usually gets more and the base less. Check back daily: forecasts update every few hours.</p>
           </div></details>
         <details class="tbl"><summary>Full 7-day table</summary><div class="table-wrap"><table id="wk-table"></table></div></details>
       </div>
@@ -255,8 +263,8 @@
         <section class="official-board">
           <div class="lift-head">
             <div>
-              <h3 class="sec-h">Official lift status <span class="src m">Live · Mt. Bachelor</span></h3>
-              <p class="lead">Mt. Bachelor's own lift &amp; trail board, shown as published by the resort. It includes closures for maintenance, staffing and any other reason. If it doesn't load, open it directly.</p>
+              <h3 class="sec-h">Official lift status <span class="src m" id="lift-src">Live</span></h3>
+              <p class="lead" id="lift-lead"></p>
             </div>
             <a class="pill official" id="lift-official" target="_blank" rel="noopener">Open official board ↗</a>
           </div>
@@ -299,9 +307,8 @@
   </main>
 
   <footer class="wrap fine">
-    An unofficial fan site, not affiliated with Mt. Bachelor. Data: NRCS SNOTEL, National Weather Service,
-    Open-Meteo, RainViewer, OpenStreetMap. Webcams and station graphic © Mt. Bachelor.
-    Official sources: the Mt. Bachelor mountain report and the Central Oregon Avalanche Center forecast.
+    An unofficial fan site, not affiliated with any ski resort. Data: NRCS SNOTEL, National Weather Service,
+    Open-Meteo, RainViewer, OpenStreetMap. <span id="footer-credits"></span>
   </footer>
 
   <div class="tip" id="tip" role="status"></div>
