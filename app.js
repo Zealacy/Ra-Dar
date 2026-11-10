@@ -509,7 +509,7 @@ function computeCall() {
 
     // Temperatures by zone during the window (Open-Meteo), plus NWS wind chill
     const chill = Math.min(...winRows.map((r) => r.chill ?? r.temp ?? 99));
-    c.temp = { chill, zones: [], cls: 'good', text: '' };
+    c.temp = { chill, zones: [], cls: 'neutral', why: null, highs: null };
     if (elev) {
       c.temp.zones = elev.map((z) => {
         const vals = z.times.map((t, i) => [t, z.hourly.temperature_2m[i]]).filter(([t]) => inWindow(t)).map(([, v]) => v);
@@ -519,11 +519,13 @@ function computeCall() {
       c.temp.freezing = avg(fl);
     }
     const baseMax = c.temp.zones[0]?.max;
-    const topMax = c.temp.zones.at(-1)?.max;
-    c.temp.text = baseMax != null ? `Highs: base ${r0(baseMax)}°F, summit ${r0(topMax)}°F.` : '';
-    if (chill <= -5) Object.assign(c.temp, { cls: 'bad', text: `Wind chill to ${r0(chill)}°F.` });
-    else if (baseMax != null && baseMax >= 40) Object.assign(c.temp, { cls: 'ok', text: `Above freezing on the lower mountain: base high ${r0(baseMax)}°F, summit ${r0(topMax)}°F.` });
-    else if (live.some((s) => s.stats.hi24 > 34 && s.stats.lo24 < 30) && d24 < 2) Object.assign(c.temp, { cls: 'ok', text: 'Freeze-thaw in the last 24 hrs: above freezing, then back below.' });
+    const highs = c.temp.zones.map((z) => z.max).filter((v) => v != null);
+    if (highs.length) c.temp.highs = [Math.min(...highs), Math.max(...highs)];
+    // The chip states the fact behind it, never a verdict. Freeze-thaw counts only stations on the
+    // ski area, because a short chip can't carry an off-site station's "not at the ski area" label.
+    if (chill <= -5) Object.assign(c.temp, { cls: 'bad', why: 'chill' });
+    else if (baseMax != null && baseMax >= 40) Object.assign(c.temp, { cls: 'ok', why: 'warm' });
+    else if (live.some((s) => !s.offSite && s.stats.hi24 > 34 && s.stats.lo24 < 30) && d24 < 2) Object.assign(c.temp, { cls: 'ok', why: 'thaw' });
   }
 
   c.lifts = computeLifts(win, winRows);
@@ -539,7 +541,15 @@ function computeCall() {
   if (c.rain) push(c.rain.cls, c.rain.cls === 'good' ? (c.rain.wet ? 'Snow to the base' : 'Dry') : 'Rain risk');
   if (c.wind) push(c.wind.cls, c.wind.cls === 'good' ? 'Light wind' : c.wind.cls === 'ok' ? 'Breezy' : 'Wind-hold risk');
   if (c.sky) push(c.sky.cls, c.sky.label);
-  if (c.temp) push(c.temp.cls, c.temp.cls === 'good' ? 'Good temps' : c.temp.chill <= -5 ? 'Bitter cold' : 'Soft / icy snow');
+  if (c.temp) {
+    const t = c.temp, h = t.highs;
+    const span = (a, b) => (a === b ? a : a.startsWith('-') || b.startsWith('-') ? `${a} to ${b}` : `${a}–${b}`);
+    const label = t.why === 'chill' ? `Wind chill ${r0(t.chill)}°F`
+      : t.why === 'warm' ? 'Base above 40°F'
+      : t.why === 'thaw' ? 'Freeze-thaw last 24 hrs'
+      : h ? `Highs ${span(r0(h[0]), r0(h[1]))}°F` : null;
+    if (label) push(t.cls, label);
+  }
   return c;
 }
 
@@ -1474,13 +1484,25 @@ function renderAfd(prod) {
   const html = sections.map((sec) => {
     const upper = sec.title.toUpperCase();
     if (!sec.title) {
+      // Headline lines wrapped in dots, such as "...Aviation Discussion Updated..." (Medford) or
+      // ".Updated Aviation Discussion." (Pendleton), say what changed in this issue. Show them as a
+      // plain note, highlighted if they mention an alert or snow; they are not the forecaster credits.
+      const isHeadline = (l) => /^\.{1,3}[A-Za-z][^.]*\.{1,3}$/.test(l);
       const content = sec.lines.map((l) => l.trim()).filter(Boolean);
-      const credits = content.every((l) => /\.{2,}\s*\S+$|www\.|https?:|interact with us|^\S+$/i.test(l));
+      const headlines = content.filter(isHeadline).map((l) => {
+        const words = l.replace(/^\.+|\.+$/g, '').trim().split(/\s+/).map((w) => (/^[A-Z][a-z]+$/.test(w) ? w.toLowerCase() : w));
+        const text = esc(words.join(' ').replace(/^./, (ch) => ch.toUpperCase()) + '.');
+        return `<p class="fine afd-update">${AFD_HIGHLIGHT.test(text) ? `<mark>${text}</mark>` : text}</p>`;
+      }).join('');
+      const rest = content.filter((l) => !isHeadline(l));
+      if (!rest.length) return headlines;
+      // Credits look like "DISCUSSION...86" or "AVIATION...26/75": a section name, dots, then an ID.
+      const credits = rest.every((l) => /^[A-Za-z][A-Za-z /]*\.{2,}\s*[^\s.]\S*$|www\.|https?:|interact with us|^\S+$/i.test(l));
       if (credits) {
-        const who = content.filter((l) => /\.{2,}/.test(l)).map((l) => l.replace(/^(.+?)\.{2,}\s*(.*)$/, (_m, role, id) => `${role.charAt(0).toUpperCase()}${role.slice(1).toLowerCase()}: ${id}`));
-        return who.length ? `<p class="fine afd-credits">Written by forecaster IDs: ${esc(who.join(' · '))}</p>` : '';
+        const who = rest.filter((l) => /\.{2,}/.test(l)).map((l) => l.replace(/^(.+?)\.{2,}\s*(.*)$/, (_m, role, id) => `${role.charAt(0).toUpperCase()}${role.slice(1).toLowerCase()}: ${id}`));
+        return headlines + (who.length ? `<p class="fine afd-credits">Written by forecaster IDs: ${esc(who.join(' · '))}</p>` : '');
       }
-      return `<div class="afd-intro">${afdBlocks(sec.lines).map((b) => (b.type === 'ul' ? `<ul>${b.items.map((i) => `<li>${afdInline(esc(i))}</li>`).join('')}</ul>` : `<p>${afdInline(esc(b.text))}</p>`)).join('')}</div>`;
+      return headlines + `<div class="afd-intro">${afdBlocks(sec.lines.filter((l) => !isHeadline(l.trim()))).map((b) => (b.type === 'ul' ? `<ul>${b.items.map((i) => `<li>${afdInline(esc(i))}</li>`).join('')}</ul>` : `<p>${afdInline(esc(b.text))}</p>`)).join('')}</div>`;
     }
     const isAlerts = /WATCHES|WARNINGS|ADVISORIES/.test(upper);
     const name = isAlerts ? 'Watches, warnings & advisories' : AFD_NAMES[upper] || (sec.title ? sec.title.charAt(0) + sec.title.slice(1).toLowerCase() : 'Notes');
@@ -1653,9 +1675,10 @@ function renderSources() {
     ['Preseason snowpack', 'Open-Meteo model snowfall at each elevation', 'Model', sn ? 'An estimate of snow that fell, not snow on the ground. Measured depth comes from the snow station above.' : 'An estimate of snow that fell, not snow on the ground. No snow-depth sensor on the mountain publishes data this site can use, so it is shown beside the snow stake cam.'],
     ['7-day forecast', 'NWS official forecast + GFS, ECMWF, GEM, ICON models + GEFS (31) and ECMWF (51) ensemble runs, via Open-Meteo', 'Forecast', 'Ranges show where 80% of the 82 ensemble runs land. Confidence comes from how much the runs and models disagree. Accuracy drops after about day 3.'],
     ['Base-to-summit forecast & new-snow estimate', 'Open-Meteo, blending NOAA and European models', 'Forecast / Model', 'Model data adjusted to each elevation. New-snow totals are estimates, not measurements.'],
-    M.lifts?.length && ['Lift list & stats', `${M.name} (official Mountain Stats page)`, 'Reference', 'Names, types, lengths, vertical rise.'],
+    // The lift list and the wind-hold estimate appear only when the estimate is switched on (it is shelved).
+    M.features?.liftEstimate && M.lifts?.length && ['Lift list & stats', `${M.name} (official Mountain Stats page)`, 'Reference', 'Names, types, lengths, vertical rise.'],
     ['Official lift status', `${M.name} lift & trail page (${M.liftStatusEmbed ? 'embedded' : 'linked; the resort blocks embedding'})`, 'Live', 'Published by the resort, including maintenance and staffing closures.'],
-    ['Wind-hold risk', 'Ra-Dar estimate from NWS forecast gusts', 'Estimate', 'Wind only. Rule-of-thumb thresholds (upper lifts around 40 mph gusts). Not official status.'],
+    M.features?.liftEstimate && ['Wind-hold risk', 'Ra-Dar estimate from NWS forecast gusts', 'Estimate', 'Wind only. Rule-of-thumb thresholds (upper lifts around 40 mph gusts). Not official status.'],
     ['Season status', `${M.name} official site`, 'Reference', `Opening Day ${M.season?.openingDay || 'not announced yet'}, checked ${M.season?.checked || 'n/a'}. Updated by hand.`],
     ['Forecaster notes', `National Weather Service (${M.nws.officeName || M.nws.office})`, 'Forecast', 'The forecasters\' written discussion.'],
     ['Radar', 'RainViewer, using NOAA NEXRAD radar', 'Measured', 'Radar coverage over the Cascades is limited by terrain, so light snow can be missed.'],
