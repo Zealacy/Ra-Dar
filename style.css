@@ -240,6 +240,8 @@ main { padding-top: 16px; padding-bottom: 8px; }
 .now-row .wv:empty { display: none; }
 .now-row .wv svg { width: 16px; height: 16px; transition: transform 1.2s var(--ease); }
 .now-row.offline { opacity: .55; }
+/* Model estimates (where nothing is measured): dashed, like every other model or forecast mark on the page. */
+.now-row.model { background: transparent; border: 1.5px dashed var(--line); }
 .now-row.offline .tv { font-size: .8rem; font-weight: 600; color: var(--text-2); }
 .now-row .tv .na { display: block; font-size: .7rem; font-weight: 600; line-height: 1.2; color: var(--text-2); text-align: right; }
 /* a station that isn't on the ski area says so next to its name */
@@ -369,6 +371,7 @@ table.chance td.pc { text-align: center; font-weight: 700; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .chart-card { margin: 0; background: var(--surface-2); border-radius: 12px; padding: 12px; min-width: 0; }
 .chart-card.wide { grid-column: 1 / -1; }
+.chart-card.empty .chart-box { display: none; }
 .chart-card figcaption { font-size: .8rem; font-weight: 650; color: var(--text-2); margin-bottom: 6px; }
 .chart-box { position: relative; height: 230px; }
 .stations-img { width: 100%; max-width: 640px; margin: 0 auto; aspect-ratio: 1150 / 880; object-fit: cover; object-position: top; border-radius: 8px; display: block; }

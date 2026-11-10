@@ -6,6 +6,13 @@
 // Adding a mountain: verify every station, camera and elevation first (see CLAUDE.md), then add
 // a block. The key is what goes in the address (?mtn=key) and the order here is the order of
 // the switcher at the top of the page.
+//
+// Outside the US (no National Weather Service), leave out `nws` and give `forecast` instead: a
+// national weather model read through Open-Meteo for the hourly forecast. With no `nws` there is
+// no written forecast or forecast discussion either; `discussion` says so and links the nearest
+// equivalent. `nowModel: true` lets "Right now" show labeled model estimates where no public
+// station measures the mountain (owner's choice; never where a usable station exists).
+// `snowDaily` reads Environment Canada's daily climate stations for measured snow, with dates.
 
 const MOUNTAINS = {
   bachelor: {
@@ -197,6 +204,102 @@ const MOUNTAINS = {
       camsSource: 'Willamette Pass Resort (YouTube live); Oregon DOT TripCheck',
       camsNote: 'The resort cam shows the stream\'s live still, refreshed about every 5 minutes; tap it for live video in YouTube\'s player. Road cameras courtesy of ODOT. This resort has no snow stake cam.',
       footer: 'Resort cam © Willamette Pass Resort, via YouTube. Road cameras courtesy of ODOT. Official source: the Willamette Pass conditions page.',
+    },
+  },
+
+  sunpeaks: {
+    name: 'Sun Peaks',
+    region: 'Thompson Okanagan · British Columbia, Canada',
+    // A point on the ski area between the village and the top of Burfield.
+    lat: 50.893,
+    lon: -119.900,
+    timezone: 'America/Vancouver',
+    // The resort's own figures (Trail Maps & Stats, checked 2026-11-09): village base 1,255 m,
+    // Burfield chair summit ("Top of the World") 2,080 m. Mid-mountain is the resort's own
+    // mid-mountain weather point, 1,855 m, about the top of Sunburst Express (1,850 m).
+    zones: [
+      { key: 'base', name: 'Village base', short: 'Village', ft: 4117 },
+      { key: 'mid', name: 'Mid-mountain', short: 'Mid-mountain', ft: 6086 },
+      { key: 'summit', name: 'Top of the World (Burfield summit)', short: 'Summit', ft: 6824 },
+    ],
+    // There is no National Weather Service in Canada. The hourly forecast is Environment Canada's
+    // GEM model through Open-Meteo: its 2.5 km HRDPS run for the first 48 hours, then its regional
+    // and global runs. It is raw model output (no forecaster), at mid-mountain elevation. It has no
+    // snow-level or visibility forecast, so those show as unavailable instead of being assumed.
+    forecast: { model: 'gem_seamless', short: 'GEM', name: 'Environment Canada GEM model (2.5 km HRDPS for the first 48 hrs), via Open-Meteo' },
+    // No public weather station on the mountain reports in winter (checked 2026-11-09): the BC
+    // Wildfire station near the village runs in fire season only, and the nearest others are valley
+    // and highway sensors 30+ km away. The resort's own readings are on its web page only.
+    stations: [],
+    stationMaxAgeHours: 3,
+    // Owner decision (2026-11-09): with no live station, "Right now" shows model estimates at each
+    // elevation, labeled "Model, not measured". Only for a mountain with no usable measured station.
+    nowModel: true,
+    snowZone: 'mid',
+    windHoldLifts: 'Upper-mountain',
+    // Measured snow: Environment Canada's climate stations on the ski area, read by hand once a day.
+    // They report in season only (2025-26: Jan 13 to Apr 6, with gaps) and appear with a delay, so
+    // they are shown with their dates and never as "right now". Elevations from ECCC's station list.
+    snowDaily: {
+      operator: 'Environment and Climate Change Canada',
+      bbox: '-119.93,50.88,-119.87,50.91',
+      maxAgeDays: 3,
+      stations: [
+        { id: '116QK0M', name: 'Sun Peaks Upper', ft: 6742, where: 'upper mountain, near the top of Burfield' },
+        { id: '1168204', name: 'Sun Peaks Mountain', ft: 6061, where: 'mid-mountain' },
+        { id: '116Q20D', name: 'Sun Peaks Lower', ft: 4300, where: 'just above the village' },
+      ],
+    },
+    // No regional snow-pillow reference: BC's pillows don't reach browsers, and the nearest is 56 km away.
+    snotel: [],
+    // No snow stake cam. Nine resort stills exist (checked 2026-11-09 against each picture and the
+    // resort's own captions). They have no time stamp on the image and pause overnight. The Village
+    // Clock Tower view is left out (village square, nothing about ski conditions). The large 4K images
+    // are `heavy`: their thumbnails refresh less often to save data.
+    // The first camera is the one shown large at the top in preseason.
+    cams: [
+      { name: 'Juniper Ridge (top of Burfield)', why: 'Top of the Burfield chair, 6,824 ft: the alpine snow surface and visibility up top. Resort camera; no time stamp on the image, and it pauses overnight.', src: 'https://www.sunpeaksresort.com/sites/default/files/spr_website_data/webcams/Wild%20flowers%202.jpg', heavy: true, caption: 'Juniper Ridge cam, top of Burfield (resort). This resort has no snow stake cam.' },
+      { name: 'Crystal Bowl (top of Burfield)', why: 'Top of the Burfield chair, 6,824 ft, looking into Crystal Bowl: alpine snow and visibility.', src: 'https://www.sunpeaksresort.com/sites/default/files/spr_website_data/webcams/Wild%20flowers%201.jpg', heavy: true },
+      { name: 'Mt. Tod from the top of Morrisey', why: 'Top of Morrisey Express, 5,495 ft, looking at Mt. Tod: falling snow and the cloud deck.', src: 'https://www.sunpeaksresort.com/sites/default/files/spr_website_data/webcams/view%20of%20mt%20todd.jpg' },
+      { name: 'Top of Sundance Express', why: 'Top of Sundance Express, 5,677 ft: mid-mountain snow cover.', src: 'https://www.sunpeaksresort.com/sites/default/files/spr_website_data/webcams/sundance.jpg' },
+      { name: 'Mt. Morrisey from the Elevation chair', why: 'Base of the Elevation chair, 5,249 ft, looking across at Mt. Morrisey\'s runs: snow cover from top to bottom.', src: 'https://www.sunpeaksresort.com/sites/default/files/spr_website_data/webcams/ele_view_of_morrisey.jpg' },
+      { name: 'Base of OSV (Elevation chair)', why: 'Base of the Elevation chair, 5,249 ft: snow on a lower-mountain run.', src: 'https://www.sunpeaksresort.com/sites/default/files/spr_website_data/webcams/ele_view_of_OSV.jpg' },
+      { name: 'Village Day Lodge slope', why: 'Village base, 4,117 ft: snow on the bottom of the mountain.', src: 'https://www.sunpeaksresort.com/sites/default/files/spr_website_data/webcams/Village%20Day%20Lodge%20Slopeside.jpg', heavy: true },
+      { name: 'Village and lower slopes', why: 'Village Square, 4,117 ft, looking over the village to the lower slopes.', src: 'https://www.sunpeaksresort.com/sites/default/files/spr_website_data/webcams/Valley.jpg', heavy: true },
+    ],
+    // Season dates from the resort's Winter Hours of Operation page (checked 2026-11-09):
+    // "Operating Season November 21, 2026 to April 4, 2027".
+    season: { openingDay: '2026-11-21', checked: '2026-11-09' },
+    liftStatusUrl: 'https://www.sunpeaksresort.com/ski-ride/weather-conditions-cams/lifts-trail-status',
+    // The resort's pages send "X-Frame-Options: SAMEORIGIN", so the board can only be linked.
+    liftStatusEmbed: false,
+    features: { liftEstimate: false },
+    // Environment Canada publishes no forecast discussion. Avalanche Canada's forecasters write a
+    // Mountain Weather Forecast in avalanche season; it's not in their documented API, so it's linked.
+    discussion: {
+      none: 'Environment Canada doesn\'t publish a forecasters\' discussion like the US National Weather Service\'s. The closest equivalent for the BC mountains is Avalanche Canada\'s Mountain Weather Forecast, written by their forecasters during avalanche season.',
+      link: { label: 'Avalanche Canada Mountain Weather Forecast', url: 'https://avalanche.ca/weather/forecast' },
+    },
+    links: [
+      { label: 'Official weather & snow report', url: 'https://www.sunpeaksresort.com/ski-ride/weather-conditions-cams/weather-snow-report' },
+      { label: 'Official lifts & trail status', url: 'https://www.sunpeaksresort.com/ski-ride/weather-conditions-cams/lifts-trail-status' },
+      { label: 'Official webcams', url: 'https://www.sunpeaksresort.com/ski-ride/weather-conditions-cams/webcams' },
+      { label: 'Avalanche Canada forecasts', url: 'https://avalanche.ca/map' },
+      { label: 'Avalanche Canada Mountain Weather Forecast', url: 'https://avalanche.ca/weather/forecast' },
+      { label: 'DriveBC (roads)', url: 'https://www.drivebc.ca/' },
+    ],
+    text: {
+      liveLead: 'No public weather station on the mountain reports in winter, so there are no live measured readings here. Measured snow comes from Environment Canada\'s three climate stations on the ski area, read by hand once a day in season.',
+      stationsNote: 'No public weather station on the mountain reports in winter. The resort shows its own readings on its website only.',
+      snowDepthNote: 'Measured snow depth comes from Environment Canada\'s daily, hand-read reports at three stations on the ski area, in season only.',
+      regionalWhy: '',
+      camsSource: 'Sun Peaks Resort',
+      camsNote: 'Official resort cameras. They have no time stamp on the image and pause overnight. This resort has no snow stake cam.',
+      elevSource: 'Open-Meteo, blending national weather models',
+      radarSource: 'RainViewer, combining national weather radars',
+      radarNote: 'Mountains block parts of the radar beam in the BC Interior, so light snow can be missed.',
+      dataCredits: 'Environment and Climate Change Canada, Open-Meteo, RainViewer, OpenStreetMap.',
+      footer: 'Webcams © Sun Peaks Resort. Official sources: the Sun Peaks weather & snow report and Avalanche Canada.',
     },
   },
 };

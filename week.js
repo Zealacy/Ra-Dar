@@ -3,6 +3,8 @@
 //
 // Accuracy approach:
 //   - Official: National Weather Service gridpoint forecast (hourly numbers) + written periods.
+//     Where there is no NWS (Canada), the hourly numbers are the national model's (FC in app.js),
+//     labeled with its name, and there is no written forecast.
 //   - Models compared: GFS (US), ECMWF (Europe), GEM (Canada), ICON (Germany), via Open-Meteo.
 //   - Ensembles for ranges and confidence: GEFS (31 runs) + ECMWF ENS (51 runs), via Open-Meteo.
 // All snow totals are per *ski day*: 4pm the day before to 4pm that day.
@@ -24,11 +26,12 @@ async function loadWeek() {
   const common = `latitude=${M.lat}&longitude=${M.lon}&elevation=${elevM}&temperature_unit=fahrenheit&precipitation_unit=inch&wind_speed_unit=mph&timezone=${encodeURIComponent(TZ)}&forecast_days=8`;
   const modelsUrl = `https://api.open-meteo.com/v1/forecast?${common}&hourly=snowfall,temperature_2m,wind_gusts_10m&models=${WEEK_MODELS.map((m) => m.key).join(',')}`;
   const ensUrl = `https://ensemble-api.open-meteo.com/v1/ensemble?${common}&hourly=snowfall,temperature_2m,wind_gusts_10m&models=${WEEK_ENSEMBLES.join(',')}`;
-  const textUrl = `https://api.weather.gov/gridpoints/${M.nws.office}/${M.nws.x},${M.nws.y}/forecast`;
+  // The written forecast exists only where there is a National Weather Service.
+  const textUrl = M.nws ? `https://api.weather.gov/gridpoints/${M.nws.office}/${M.nws.x},${M.nws.y}/forecast` : null;
   const [models, ens, text] = await Promise.all([
     getJSONCached(modelsUrl, 30000).catch((e) => { console.warn('models', e); return null; }),
     getJSONCached(ensUrl, 40000, 90).catch((e) => { console.warn('ensemble', e); return null; }),
-    getJSON(textUrl, 30000).catch((e) => { console.warn('nws text', e); return null; }),
+    textUrl ? getJSON(textUrl, 30000).catch((e) => { console.warn('nws text', e); return null; }) : null,
   ]);
   if (!models && !ens && !text) throw new Error('No 7-day sources available');
   return { models, ens, text, midZone };
@@ -142,18 +145,20 @@ function buildWeek() {
     const fl = elev?.[0] ? elev[0].times.map((t, k) => [t, elev[0].flFt[k]]).filter(([t]) => inSki(localKey(t), date)).map(([, v]) => v) : [];
     d.freezing = fl.length ? avg(fl) : null;
 
-    // Best single snow number: official NWS where it covers the day, else ensemble median.
+    // Best single snow number: the hourly forecast (NWS, or the national model) where it covers the day, else ensemble median.
     d.snow = d.nwsSnow ?? d.ens?.p50 ?? null;
-    d.snowSource = d.nwsSnow != null ? 'NWS' : d.ens ? 'ensemble median' : null;
+    d.snowSource = d.nwsSnow != null ? FC.short : d.ens ? 'ensemble median' : null;
 
-    // Ski-hour conditions: NWS where covered, else models
+    // Ski-hour conditions: the hourly forecast where covered, else models
     if (skiRows.length >= 6) {
       d.gust = Math.max(...skiRows.map((r) => r.gust ?? 0));
       d.sky = avg(skiRows.map((r) => r.sky ?? 0));
       const wet = skiRows.filter((r) => r.qpf > 0.005);
       d.wetIn = wet.reduce((a, r) => a + (r.qpf || 0), 0);
-      d.snowLevel = wet.length ? Math.max(...wet.map((r) => r.snowLevel ?? 0)) : null;
-      d.condSource = 'NWS';
+      if (!wet.length || wet.some((r) => r.snowLevel != null)) d.snowLevel = wet.length ? Math.max(...wet.map((r) => r.snowLevel ?? 0)) : null;
+      else if (state.elev) d.rainTop = rainTopZone(wet.map((r) => r.t)); // no snow-level forecast: each elevation's model temperature
+      else d.rainUnknown = true; // ...and no elevation temperatures to tell rain from snow
+      d.condSource = FC.short;
     } else if (elev?.[1]) {
       const z = elev[1], b = elev[0];
       const idx = z.times.map((t, k) => [localKey(t), k]).filter(([k]) => inSki(k, date)).map(([, k]) => k);
@@ -165,7 +170,9 @@ function buildWeek() {
       d.snowLevel = midRain > 0.02 ? M.zones[1].ft + 500 : baseRain > 0.02 ? M.zones[0].ft + 500 : null;
       d.condSource = 'models';
     }
-    d.rainCls = d.snowLevel == null || !(d.wetIn > 0.02) ? 'good' : d.snowLevel > M.zones[1].ft ? 'bad' : d.snowLevel > M.zones[0].ft ? 'ok' : 'good';
+    d.rainCls = d.rainTop != null
+      ? (!(d.wetIn > 0.02) || d.rainTop < 0 ? 'good' : d.rainTop >= 1 ? 'bad' : 'ok')
+      : d.snowLevel == null || !(d.wetIn > 0.02) ? 'good' : d.snowLevel > M.zones[1].ft ? 'bad' : d.snowLevel > M.zones[0].ft ? 'ok' : 'good';
 
     // Confidence from how much the 82 ensemble runs and the 4 models disagree, and lead time
     const spread = d.ens ? d.ens.p90 - d.ens.p10 : null;
@@ -215,7 +222,7 @@ function dayIcon(d) {
   if (/sunny|clear/.test(t)) return /partly|mostly sunny/.test(t) ? 'partly' : 'sun';
   if (/cloudy/.test(t)) return /partly/.test(t) ? 'partly' : 'cloud';
   // No written forecast that far out: decide from the numbers
-  if ((d.snow || 0) >= 0.5) return d.rainCls === 'good' ? 'snow' : 'mix';
+  if ((d.snow || 0) >= 0.5) return d.rainCls === 'good' && !d.rainUnknown ? 'snow' : 'mix';
   if (d.rainCls !== 'good') return 'rain';
   if (d.sky == null) return 'cloud';
   return d.sky < 30 ? 'sun' : d.sky < 70 ? 'partly' : 'cloud';
@@ -268,7 +275,7 @@ function renderWeekStrip(week) {
   }));
   const W = state.week || {};
   const missing = [
-    !state.nws && 'NWS hourly forecast', !W.text && 'NWS written forecast', !state.elev && 'elevation temperatures',
+    !state.nws && `${FC.short} hourly forecast`, M.nws && !W.text && 'NWS written forecast', !state.elev && 'elevation temperatures',
     !W.models && 'model comparison', !W.ens && 'ensemble ranges',
   ].filter(Boolean);
   $('week-summary').textContent = weekSummary(week) + (missing.length ? ` Heads up: couldn't load the ${missing.join(', ')}, so some numbers and ranges are less reliable right now. Refresh to try again.` : '');
@@ -316,7 +323,9 @@ function renderDayDetail(d) {
   const per = (p) => p ? `<div class="wk-period"><h4>${esc(p.name)}</h4><p>${esc(p.detailedForecast)}</p></div>` : '';
   const official = d.dayText || d.nightText
     ? `${per(d.prevNightText)}${per(d.dayText)}${per(d.nightText)}`
-    : '<p class="fine">The National Weather Service\'s written forecast doesn\'t reach this far out yet. The numbers below come from the computer models.</p>';
+    : M.nws
+      ? '<p class="fine">The National Weather Service\'s written forecast doesn\'t reach this far out yet. The numbers below come from the computer models.</p>'
+      : `<p class="fine">No weather service writes a forecast for this ski area: there is no National Weather Service here. The numbers below come from the computer models (${esc(FC.short)} for the first days).</p>`;
   const z = d.zones;
   const chance = d.ens ? [1, 3, 6, 12].map((th) => `<span class="ch"><b>${d.ens.chance[th]}%</b> ≥${th}"</span>`).join('') : '<span class="fine">No ensemble data</span>';
   const models = d.models.map((m) => `<span>${esc(m.name.split(' ')[0])} <b>${m.snow == null ? '–' : r1(m.snow) + '"'}</b></span>`).join('');
@@ -326,14 +335,14 @@ function renderDayDetail(d) {
       <div><h3>${esc(d.long)}</h3><div class="lbl">${d.dayText ? esc(d.dayText.shortForecast) : 'Model forecast'} · <span class="st ${d.conf === 'high' ? 'good' : d.conf === 'med' ? 'ok' : 'bad'}"><i aria-hidden="true">${d.conf === 'high' ? '✓' : d.conf === 'med' ? '!' : '?'}</i>${confWord[d.conf]}</span>${d.closed ? ' · Lifts not open yet' : ''}</div></div>
     </div>
     <div class="wk-grid">
-      <div class="wk-stat"><span class="wk-k">Snow (4pm–4pm)</span><span class="wk-v">${snowRangeText(d)}</span><span class="wk-s">${d.snowSource === 'NWS' ? `NWS: ${r1(d.nwsSnow)}"` : d.ens ? `Middle estimate ${r1(d.ens.p50)}"` : ''}</span></div>
+      <div class="wk-stat"><span class="wk-k">Snow (4pm–4pm)</span><span class="wk-v">${snowRangeText(d)}</span><span class="wk-s">${d.snowSource === FC.short ? `${esc(FC.short)}: ${r1(d.nwsSnow)}"` : d.ens ? `Middle estimate ${r1(d.ens.p50)}"` : ''}</span></div>
       <div class="wk-stat"><span class="wk-k">Chance of at least</span><span class="chances">${chance}</span></div>
       <div class="wk-stat"><span class="wk-k">Models (mid-mountain)</span><span class="models">${models}</span></div>
       <div class="wk-stat"><span class="wk-k">Temps (high / low)</span><span class="wk-v sm">${z.map((x) => `${esc(zShort(x))} ${r0(x.hi)}° / ${r0(x.lo)}°`).join('<br>')}</span></div>
-      <div class="wk-stat"><span class="wk-k">Freezing level, ski hours</span><span class="wk-v">${ftFmt(d.freezing)} ft</span><span class="wk-s">${d.rainCls === 'bad' ? 'Rain likely up past mid-mountain' : d.rainCls === 'ok' ? 'Rain possible at the base' : d.wetIn > 0.02 ? 'Snow to the base' : 'Dry'}</span></div>
+      <div class="wk-stat"><span class="wk-k">Freezing level, ski hours</span><span class="wk-v">${ftFmt(d.freezing)} ft</span><span class="wk-s">${d.rainUnknown ? 'Rain or snow unknown: elevation temperatures didn\'t load' : d.rainCls === 'bad' ? 'Rain likely up past mid-mountain' : d.rainCls === 'ok' ? 'Rain possible at the base' : d.wetIn > 0.02 ? 'Snow to the base' : 'Dry'}</span></div>
       <div class="wk-stat"><span class="wk-k">Peak gusts, ski hours</span><span class="wk-v ${d.gust >= 40 ? 'warn' : ''}">${r0(d.gust)} mph</span><span class="wk-s">${d.ens?.gust10 != null ? `Range ${r0(d.ens.gust10)}–${r0(d.ens.gust90)} mph` : ''}${d.gust >= 40 ? ' · upper-lift holds possible' : ''}</span></div>
     </div>
-    <div class="wk-official"><h4 class="sec-h">Official forecast <span class="src f">National Weather Service</span></h4>${official}</div>`;
+    <div class="wk-official"><h4 class="sec-h">${M.nws ? 'Official forecast <span class="src f">National Weather Service</span>' : 'Written forecast'}</h4>${official}</div>`;
 
   // Hour-by-hour for the chosen day (NWS), single-axis charts
   const rows = (state.nws?.rows || []).filter((r) => localParts(r.t).date === d.date && localParts(r.t).hour >= 6 && localParts(r.t).hour <= 20);
@@ -360,7 +369,7 @@ function drawWeekCharts(week) {
       datasets: [
         { label: 'Likely range (80% of runs)', data: week.days.map((d) => (d.ens ? [d.ens.p10, d.ens.p90] : null)), backgroundColor: rangeColor, borderRadius: 4, borderSkipped: false, maxBarThickness: 24 },
         { type: 'line', label: 'Middle estimate', data: week.days.map((d) => d.ens?.p50 ?? null), borderColor: cssVar('--s1'), backgroundColor: cssVar('--s1'), showLine: false, pointRadius: 5, pointHoverRadius: 7, pointBorderColor: cssVar('--surface'), pointBorderWidth: 2 },
-        { type: 'line', label: 'NWS official', data: week.days.map((d) => d.nwsSnow), borderColor: cssVar('--s2'), backgroundColor: cssVar('--s2'), showLine: false, pointStyle: 'rectRot', pointRadius: 6, pointHoverRadius: 8, pointBorderColor: cssVar('--surface'), pointBorderWidth: 2 },
+        { type: 'line', label: FC.official ? 'NWS official' : `${FC.short} model`, data: week.days.map((d) => d.nwsSnow), borderColor: cssVar('--s2'), backgroundColor: cssVar('--s2'), showLine: false, pointStyle: 'rectRot', pointRadius: 6, pointHoverRadius: 8, pointBorderColor: cssVar('--surface'), pointBorderWidth: 2 },
       ],
     },
     options: { ...opts({ yMin: 0 }), interaction: { mode: 'index', intersect: false } },
@@ -411,7 +420,7 @@ function renderWeekTables(week) {
   };
   $('wk-chance').innerHTML = `<thead><tr><th>Snow for the ski day</th>${week.days.map((d) => `<th>${esc(d.name)}</th>`).join('')}</tr></thead><tbody>${ths.map((t) => `<tr><td>At least ${t}"</td>${week.days.map((d) => cell(d.ens?.chance[t] ?? null)).join('')}</tr>`).join('')}</tbody>`;
   // Full table
-  const head = ['Day', 'Confidence', 'Snow range', 'NWS snow', 'Middle est.', ...WEEK_MODELS.map((m) => m.name.split(' ')[0]), ...M.zones.map((z) => `${zShort(z)} hi/lo`), 'Freezing lvl ft', 'Gusts mph', 'Cloud %', 'Official forecast'];
+  const head = ['Day', 'Confidence', 'Snow range', `${FC.short} snow`, 'Middle est.', ...WEEK_MODELS.map((m) => m.name.split(' ')[0]), ...M.zones.map((z) => `${zShort(z)} hi/lo`), 'Freezing lvl ft', 'Gusts mph', 'Cloud %', 'Official forecast'];
   $('wk-table').innerHTML = `<thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${week.days.map((d) => `<tr>
     <td>${esc(d.long)}</td><td>${confWord[d.conf].replace(' confidence', '')}</td><td>${snowRangeText(d)}</td>
     <td>${d.nwsSnow == null ? '–' : r1(d.nwsSnow)}</td><td>${d.ens ? r1(d.ens.p50) : '–'}</td>

@@ -124,18 +124,22 @@ function renderPreseason() {
   $('pre-stake').src = camUrl(camStill(hero));
   $('pre-stake').alt = `${hero.name} webcam`;
   $('pre-stake-cap').textContent = hero.caption || hero.name;
-  // Right now: measured readings, so nobody mistakes a forecast for the current temperature.
+  // Right now: measured readings, so nobody mistakes a forecast for the current temperature. Where nothing
+  // on the mountain is measured and the owner allowed it, labeled model estimates for this hour instead.
   const live = (state.stations || []).filter((st) => st.stats.fresh && st.stats.temp != null);
   const sn = snowSensor(), snOk = !!sn?.stats.fresh;
   const snowNow = snOk ? `<span class="pn"><b>${r0(sn.stats.depth)}" snow on the ground</b> ${esc(sn.name)} snow station · ${ftFmt(sn.ft)} ft · ${esc(sn.where)} · ${ageText(sn.stats.depthAgeH)}</span>` : '';
+  const est = !live.length && !snOk && useModelNow() ? modelNow() : null;
   $('pre-now').innerHTML = live.length || snOk
     ? `<span class="pn-h">Right now <span class="src m">Measured</span></span>${snowNow}${live.map((st) => `<span class="pn"><b>${r0(st.stats.temp)}°F</b> ${esc(st.name)} · ${ftFmt(st.ft)} ft${st.offSite ? ` · <b class="off">${esc(st.offSite)}</b>` : ''} · ${ageText(st.stats.tempAgeH ?? st.stats.ageH)}</span>`).join('')}`
-    : '<span class="pn-h">Right now</span><span class="pn">No live station readings available.</span>';
+    : est?.zones.some((z) => z.temp != null)
+      ? `<span class="pn-h">Right now <span class="src e" title="Model: a computer-model estimate for this hour, not a measurement">${esc(NOW_MODEL_TAG)}</span></span>${est.zones.filter((z) => z.temp != null).map((z) => `<span class="pn"><b>${r0(z.temp)}°F</b> ${esc(zShort(z))} · ${ftFmt(z.ft)} ft</span>`).join('')}<span class="pn">No public station on the mountain reports in winter.</span>`
+      : '<span class="pn-h">Right now</span><span class="pn">No live station readings available.</span>';
   const fig = document.querySelector('.pre-fig');
   if (!p) {
     $('pre-depth-svg').innerHTML = '';
     fig.classList.add('empty');
-    fig.dataset.msg = `Snowfall model data couldn't load right now. Refresh to try again. ${M.snowStake ? 'The stake cam is live.' : 'The cam and the measured readings are live.'}`;
+    fig.dataset.msg = `Snowfall model data couldn't load right now. Refresh to try again. ${M.snowStake ? 'The stake cam is live.' : M.stations.length || M.snowSensor ? 'The cam and the measured readings are live.' : 'The cams are live.'}`;
     renderPreTiles(null);
     return;
   }
@@ -153,7 +157,14 @@ function renderPreTiles(p) {
     p ? tile(`Snowfall last 7 days · ${midFt} ft`, `${r1(p.zones[1]?.last7 ?? p.zones[0].last7)}"`, `model · since ${sinceNice}: ${r0((p.zones[1] || p.zones[0]).seasonSnow)}"`) : tile('Snowfall last 7 days', '–', 'model data unavailable right now'),
     tile('Snow next 7 days', w ? `${Math.floor(w.p10)}–${Math.ceil(w.p90)}"` : p ? `~${r0(p.zones[1]?.next7)}"` : '–', w ? `likely range at ${midFt} ft (82 runs) · middle ${r1(w.p50)}"` : p ? `model, ${midFt} ft` : 'forecast data unavailable right now'),
     tile('Chance this week', w ? `${w.chance[6]}% <small>≥6"</small> · ${w.chance[12]}% <small>≥12"</small>` : '–', w ? `${w.chance[1]}% chance of at least 1"` : ''),
-  ].join('');
+    // Measured snow on the ground from the daily climate stations, with its date (where a mountain has them).
+    M.snowDaily && (() => {
+      const d = dailyLatest();
+      return d
+        ? tile(`Measured on the ground · ${ftFmt(d.ft)} ft`, `${r0(d.last.depth)}"`, `${esc(d.name)} · daily report, ${esc(dayNice(d.last.date))}`)
+        : tile('Measured on the ground', '–', state.daily ? `Daily snow reports: ${esc(dailyNone())}` : 'Daily snow reports unavailable right now');
+    })(),
+  ].filter(Boolean).join('');
 }
 
 // Snowfall by elevation: since Oct 1 (solid) with the next 7 days stacked on top (dashed).
@@ -186,12 +197,13 @@ function renderSnowfallBars(p) {
     T({ x: cx, y: bot + 28, 'text-anchor': 'middle', 'font-size': 9.5 }, `${ftFmt(z.ft)} ft`);
   });
   svgEl('line', { x1: 40, x2: W - 6, y1: bot, y2: bot, stroke: cssVar('--text-2'), 'stroke-width': 1.2 }, svg);
-  bindTip(svg, `Model snowfall at each elevation since ${since} (solid), plus the model forecast for the next 7 days (dashed). This is snow that fell, not snow on the ground: melting and wind are not counted. ${M.snowSensor ? `The ${M.snowSensor.name} snow station measures the ground.` : 'The stake cam shows the ground.'}`);
+  bindTip(svg, `Model snowfall at each elevation since ${since} (solid), plus the model forecast for the next 7 days (dashed). This is snow that fell, not snow on the ground: melting and wind are not counted. ${M.snowSensor ? `The ${M.snowSensor.name} snow station measures the ground.` : M.snowStake ? 'The stake cam shows the ground.' : M.snowDaily ? 'The daily climate-station reports measure the ground, in season.' : 'The cams show the ground.'}`);
 }
 
 // ---------------------------------------------------------------- in-depth tab
 // Measured snow depth for the season, from the mountain's own snow sensor (where it has one).
 function drawMeasuredSeason() {
+  if (!M.snowSensor && M.snowDaily) { drawDailySeason(); return; }
   const sn = snowSensor(), pts = sn?.season?.SNWD || [];
   if (!M.snowSensor || !pts.length) return;
   const o = chartOpts({ legend: false, yMin: 0, xTicks: 8 });
@@ -199,6 +211,30 @@ function drawMeasuredSeason() {
   drawChart('c-sp-measured', {
     type: 'line',
     data: { labels: pts.map((d) => new Date(d.date + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })), datasets: [{ ...lineDs('Snow depth', pts.map((d) => d.v), '--s3', true), tension: 0 }] },
+    options: o,
+  });
+}
+
+// Measured snow on the ground this season from the daily climate stations, one line per station, with
+// gaps left as gaps (they're hand-read and skip days). Until they report, the slot says so.
+function drawDailySeason() {
+  const fig = $('fig-sp-measured'), note = $('sp-measured-note');
+  const sts = (state.daily || []).filter((s) => s.rows.some((r) => r.depth != null));
+  fig.classList.toggle('empty', !sts.length);
+  if (!sts.length) {
+    charts['c-sp-measured']?.destroy();
+    note.textContent = state.daily ? `${dailyNone()}. These stations are read by hand once a day, in season only.` : 'Daily snow reports unavailable right now.';
+    return;
+  }
+  note.textContent = 'Read by hand once a day; gaps are days without a report.';
+  const dates = [...new Set(sts.flatMap((s) => s.rows.filter((r) => r.depth != null).map((r) => r.date)))].sort();
+  const vars = ['--s1', '--s2', '--s3'];
+  const o = chartOpts({ yMin: 0, xTicks: 8 });
+  o.scales.y.suggestedMax = 12;
+  drawChart('c-sp-measured', {
+    type: 'line',
+    data: { labels: dates.map((d) => new Date(d + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+      datasets: sts.map((s, k) => ({ ...lineDs(`${s.name} ${ftFmt(s.ft)}′`, dates.map((d) => s.rows.find((r) => r.date === d)?.depth ?? null), vars[k % 3]), tension: 0, spanGaps: false, pointRadius: 2 })) },
     options: o,
   });
 }

@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b1a2b">
   <title>Ra-Dar Ski Weather</title>
-  <meta name="description" content="Ski weather for Mt. Bachelor and Willamette Pass, Oregon: snowpack, 7-day snow forecasts by elevation, live mountain readings and webcams.">
+  <meta name="description" content="Ski weather for Mt. Bachelor and Willamette Pass (Oregon) and Sun Peaks (BC): snowpack, 7-day snow forecasts by elevation, mountain readings and webcams.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Ra-Dar">
-  <meta property="og:title" content="Ra-Dar · ski weather for Mt. Bachelor &amp; Willamette Pass">
+  <meta property="og:title" content="Ra-Dar · ski weather for Mt. Bachelor, Willamette Pass &amp; Sun Peaks">
   <meta property="og:description" content="Snowpack, 7-day snow forecasts by elevation, live mountain readings and webcams.">
   <meta property="og:url" content="https://ra-dar-alpha.vercel.app/">
   <meta property="og:image" content="https://ra-dar-alpha.vercel.app/preview.png">
@@ -114,7 +114,7 @@
         </article>
 
         <article class="w w-now">
-          <header><h3>Right now</h3><span class="src m">Measured</span></header>
+          <header><h3>Right now</h3><span class="src m" id="now-src">Measured</span></header>
           <div class="now-list" id="now-list"><div class="lbl">Loading station readings…</div></div>
           <p class="cap" id="now-cap"></p>
         </article>
@@ -146,7 +146,7 @@
 
     <!-- ================= WEEK AHEAD (easy access) ================= -->
     <section id="week" class="panel reveal">
-      <header class="ph"><h2>Week ahead</h2><span class="src f">Forecast · NWS + 4 models + 82 ensemble runs</span></header>
+      <header class="ph"><h2>Week ahead</h2><span class="src f" id="week-src">Forecast · NWS + 4 models + 82 ensemble runs</span></header>
       <p class="week-summary" id="week-summary"></p>
       <div class="week-strip" id="week-strip"><div class="lbl">Loading the 7-day forecast…</div></div>
     </section>
@@ -185,24 +185,27 @@
         <div class="grid-2">
           <figure class="chart-card wide"><figcaption>Snowfall since Oct 1 by elevation, running total (in, model; dashed = forecast)</figcaption><div class="chart-box"><canvas id="c-sp-depth"></canvas></div></figure>
           <figure class="chart-card wide"><figcaption>Daily snowfall at <span id="sp-daily-zone">mid-mountain</span>: last 30 days and next 7 (in, model; lighter = forecast)</figcaption><div class="chart-box"><canvas id="c-sp-daily"></canvas></div></figure>
-          <figure class="chart-card wide" id="fig-sp-measured" hidden><figcaption>Measured snow depth at <span id="sp-measured-name"></span>, this season (in) <span class="src m">Measured</span></figcaption><div class="chart-box"><canvas id="c-sp-measured"></canvas></div></figure>
+          <figure class="chart-card wide" id="fig-sp-measured" hidden><figcaption>Measured snow depth at <span id="sp-measured-name"></span>, this season (in) <span class="src m">Measured</span></figcaption><div class="chart-box"><canvas id="c-sp-measured"></canvas></div><p class="fine" id="sp-measured-note"></p></figure>
         </div>
         <p class="swipe-hint">Swipe for more charts →</p>
         <details class="tbl"><summary>Day-by-day snowfall table</summary><div class="table-wrap tall"><table id="sp-table"></table></div></details>
       </div>
 
       <div class="tab-panel" data-panel="measured">
-        <p class="lead"><span id="live-lead"></span> A station is marked offline and ignored if it hasn't reported in the last few hours.</p>
+        <p class="lead"><span id="live-lead"></span><span id="live-offline"> A station is marked offline and ignored if it hasn't reported in the last few hours.</span></p>
         <div class="grid-2">
-          <figure class="chart-card"><figcaption>Measured temperature, last 48 hours (°F)</figcaption><div class="chart-box"><canvas id="c-stemp"></canvas></div></figure>
-          <figure class="chart-card"><figcaption>Wind at <span id="wind-station-name">Moon Mountain</span>, last 48 hours (mph)</figcaption><div class="chart-box"><canvas id="c-swind"></canvas></div></figure>
+          <figure class="chart-card" id="fig-stemp"><figcaption>Measured temperature, last 48 hours (°F)</figcaption><div class="chart-box"><canvas id="c-stemp"></canvas></div></figure>
+          <figure class="chart-card" id="fig-swind"><figcaption>Wind at <span id="wind-station-name">Moon Mountain</span>, last 48 hours (mph)</figcaption><div class="chart-box"><canvas id="c-swind"></canvas></div></figure>
           <figure class="chart-card wide" id="fig-sdepth" hidden><figcaption>Snow depth at <span id="sdepth-name"></span>, last 7 days (in) <span class="src m">Measured</span></figcaption><div class="chart-box"><canvas id="c-sdepth"></canvas></div>
             <p class="fine" id="sdepth-note"></p></figure>
           <figure class="chart-card wide" id="fig-stations" hidden><figcaption>Resort lift-top stations (<span class="mtn-name-text"></span>)</figcaption><a id="stations-link" target="_blank" rel="noopener"><img id="stations" class="stations-img" alt="Resort lift-top weather station readings"></a>
             <p class="fine" id="stations-note"></p></figure>
+          <figure class="chart-card wide" id="fig-daily" hidden><figcaption>Daily snow reports from the climate stations on the ski area <span class="src m">Measured</span></figcaption>
+            <div class="table-wrap"><table id="daily-table"></table></div>
+            <p class="fine" id="daily-note"></p></figure>
         </div>
         <p class="swipe-hint">Swipe for more charts →</p>
-        <details class="tbl"><summary>Station readings table</summary><div class="table-wrap"><table id="station-table"></table></div></details>
+        <details class="tbl" id="station-tbl"><summary>Station readings table</summary><div class="table-wrap"><table id="station-table"></table></div></details>
         <details class="tbl regional"><summary id="snotel-summary">Regional snow stations (SNOTEL) · reference only</summary>
           <p class="fine" id="snotel-note"></p>
           <div class="chart-card"><figcaption>New snow by station (in)</figcaption><div class="chart-box"><canvas id="c-newsnow"></canvas></div></div>
@@ -216,7 +219,7 @@
           <figure class="chart-card"><figcaption>Snowfall per hour (in)</figcaption><div class="chart-box"><canvas id="c-snowfall"></canvas></div></figure>
           <figure class="chart-card"><figcaption>Temperature &amp; wind chill (°F)</figcaption><div class="chart-box"><canvas id="c-ftemp"></canvas></div></figure>
           <figure class="chart-card"><figcaption>Wind (mph)</figcaption><div class="chart-box"><canvas id="c-wind"></canvas></div></figure>
-          <figure class="chart-card"><figcaption>Snow level (ft)</figcaption><div class="chart-box"><canvas id="c-snowlevel"></canvas></div></figure>
+          <figure class="chart-card"><figcaption id="snowlevel-cap">Snow level (ft)</figcaption><div class="chart-box"><canvas id="c-snowlevel"></canvas></div></figure>
         </div>
         <p class="swipe-hint">Swipe for more charts →</p>
         <details class="tbl"><summary>Hour-by-hour table (96 hours)</summary><div class="table-wrap tall"><table id="nws-table"></table></div></details>
@@ -295,7 +298,7 @@
       <div class="tab-panel" data-panel="discussion" hidden>
         <p class="lead" id="afd-summary">Loading the forecaster notes…</p>
         <div id="afd" class="afd"></div>
-        <p class="fine">Lines marked <mark>like this</mark> mention the Cascades, snow, wind or alerts. Terms with a dotted underline are jargon: tap or hover one to see what it means.</p>
+        <p class="fine" id="afd-fine">Lines marked <mark>like this</mark> mention the Cascades, snow, wind or alerts. Terms with a dotted underline are jargon: tap or hover one to see what it means.</p>
       </div>
     </section>
 
@@ -307,8 +310,8 @@
   </main>
 
   <footer class="wrap fine">
-    An unofficial fan site, not affiliated with any ski resort. Data: NRCS SNOTEL, National Weather Service,
-    Open-Meteo, RainViewer, OpenStreetMap. <span id="footer-credits"></span>
+    An unofficial fan site, not affiliated with any ski resort. Data: <span id="footer-data">NRCS SNOTEL, National Weather Service,
+    Open-Meteo, RainViewer, OpenStreetMap.</span> <span id="footer-credits"></span>
   </footer>
 
   <div class="tip" id="tip" role="status"></div>

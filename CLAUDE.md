@@ -1,6 +1,6 @@
 # Ra-Dar: notes for Claude
 
-Ra-Dar is a **ski weather tracker** website for **Mt. Bachelor** and **Willamette Pass**, Oregon (switcher at the top of the page). More mountains can be added through `mountains.js`.
+Ra-Dar is a **ski weather tracker** website for **Mt. Bachelor** and **Willamette Pass** (Oregon) and **Sun Peaks** (British Columbia), with a switcher at the top of the page. More mountains can be added through `mountains.js`.
 It's a static site published on **Vercel** at **https://ra-dar-alpha.vercel.app/**. There's no build step, no server and no API keys in the code.
 
 The owner isn't a programmer. Explain things in plain language, keep setup steps they have to do themselves to a minimum, and tell them plainly what went live and what didn't work.
@@ -24,9 +24,13 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
   - The sources table hides the shelved wind-hold estimate and lift list rows.
   - Ski-day chips state facts, per the owner's decision (see "Audience").
   - Before the deploy: `node --check`, and the browser test on both mountains, desktop and phone, both views. After it: all nine live files matched the deploy, both production addresses pointed at the new deployment, and the same browser test against the live site passed with every source loaded and no page errors. The owner's newly installed security plugins flagged nothing.
-- **Two mountains are live: Mt. Bachelor and Willamette Pass** (added Nov 9–10). A switcher at the top of the page picks the mountain; see "Mountains" below.
+- **Sun Peaks is built but NOT live yet** (Nov 9–10, Pacific). It's on GitLab `main` and passed every check: `node --check`, and the browser test on all three mountains, desktop and phone, both views, plus forced-failure tests (GEM blocked, elevation data blocked).
+  - **Why it isn't published:** the owner installed security plugins and asked to be told before publishing if they flag anything. The `security-guidance` plugin flagged `innerHTML` twice: the new daily-reports table and the preseason "Right now" line. Every value placed in that HTML was reviewed: all are escaped with `esc()` or are formatted numbers. The flags are generic, not a real hole. The owner was told and asked for a go-ahead.
+  - **Next step:** once the owner says to publish, run the Publishing steps (fresh browser test, Vercel deploy, live check).
+- **Mountains:** Mt. Bachelor and Willamette Pass are live (added Nov 9–10). Sun Peaks is built (see above). A switcher at the top of the page picks the mountain; see "Mountains" below.
 - **Seasons:**
   - **Mt. Bachelor** is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 9, 9pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
+  - **Sun Peaks** opens **Nov 21, 2026 (scheduled)**, season to Apr 4, 2027, per the resort's Winter Hours of Operation page (checked Nov 9, 10:20pm Pacific). Preseason mode until then.
   - **Willamette Pass** is closed with **no Opening Day announced** ("Opening Soon for 2026/2027!", checked Nov 9). `season: { openingDay: null, closed: true }` keeps preseason on and shows "TBA". **Set the date when they post one.**
     - Since Nov 9, 9pm, `www.willamettepass.ski` answers cloud sessions with a Cloudflare bot check (HTTP 403, "Attention Required"). Don't get around it. Ask the owner to check the resort's Hours of Operation page instead. The site's links to the resort are unaffected for visitors.
 - **Everything below is built and live.** The last real-data check (Nov 9, 10:01pm Pacific, on the live site) passed for both mountains with every source loaded. The check before it (Nov 9, 9:20pm Pacific) also passed for both mountains: every source loaded with no page errors on desktop and phone. Open-Meteo dropped some requests from the sandbox (once a real 503), and the page showed its "unavailable" notes as designed.
@@ -40,10 +44,10 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
     - NOAA's NOHRSC doesn't carry this sensor.
   - The resort's own West Village depth appears only inside its station *image*.
 - **Open items and ideas (none in progress):**
-  - **More mountains.** Add each one to `mountains.js` and verify every station, camera and elevation for it the same careful way (see "Adding a mountain" below). **Sun Peaks (BC) is researched and wanted, but not built** (see "Mountains"). It opens Nov 21. Waiting on the owner:
-    - Whether to start building it.
-    - The owner may ask the resort for permission to use its own live readings (four elevations on its web page).
-  - *Owner decision (Nov 9, 10pm Pacific):* **Sun Peaks' "Right now" may show model estimates** (Open-Meteo, at base, mid and summit), clearly labeled **"Model, not measured"**, because no live public station exists and the alternative is no data at all. The owner judged them reliable and precise enough (on Nov 9 they were within about 2°F of the resort's own readings). This exception covers only a mountain with no usable measured station. If a measured source becomes usable (for example, the resort grants permission), it replaces the estimates. Every other mountain's "Right now" stays measured-only.
+  - **More mountains.** Add each one to `mountains.js` and verify every station, camera and elevation for it the same careful way (see "Adding a mountain" below).
+  - *Owner decisions (Nov 9, Pacific) on Sun Peaks:* build it (done, waiting to publish). The owner **won't be getting the resort's permission** to use its live readings any time soon, so don't plan on them.
+  - *Owner decision (Nov 9, 10pm Pacific):* **Sun Peaks' "Right now" may show model estimates** (Open-Meteo, at base, mid and summit), clearly labeled **"Model, not measured"**, because no live public station exists and the alternative is no data at all. The owner judged them reliable and precise enough (on Nov 9 they were within about 2°F of the resort's own readings). This exception covers only a mountain with no usable measured station (`nowModel: true` in `mountains.js`). If a measured source becomes usable, it replaces the estimates. Every other mountain's "Right now" stays measured-only.
+  - **Found Nov 10, not fixed (ask the owner first; it changes numbers on all mountains):** Open-Meteo's rain/snow split is **not adjusted for elevation**. At Sun Peaks on Nov 10 it gave the same 0.139" of "rain" at the base (41°F) and the summit (31°F), and the same snowfall since Oct 1 at all three elevations. So "snowfall by elevation" (the preseason chart and Snowpack tab) and `week.js`'s fallback for days past NWS coverage (`baseRain`/`midRain`) aren't truly per elevation. A possible fix: split each hour's precipitation by that elevation's own model temperature, as the new rain check does (`rainTopZone`).
   - **Willamette Pass's "Eagle Peak" cam** (YouTube `uav7cBNVv0k`) is left out: its still was black and unchanged at night on Nov 8 and in daylight on Nov 9. Re-check it in daylight; if it shows a real view, label it by what its picture shows and add it to `cams`.
   - **Post-season.** Nothing handles the end of the season yet (the site would stay in ski-day mode).
 
@@ -61,7 +65,15 @@ The page layout is identical for every mountain. **Everything that differs lives
   - `cams`: still images (`src`, add `small: true` for small stamped road cams) or YouTube live streams (`youtube: id`). A stream shows YouTube's live still (`i.ytimg.com/vi/<id>/maxresdefault_live.jpg`, refreshed about every 5 minutes) and loads YouTube's own embed player only when tapped.
   - `season: { openingDay, closed, checked }`, where `openingDay: null` with `closed: true` means "not announced yet".
   - `liftStatusUrl` and `liftStatusEmbed`: embed only where the resort doesn't block framing.
-  - `windHoldLifts` (named in the briefing's wind line), `afdWords` (place names to highlight in the forecaster notes), `links`, and `text` (per-mountain wording: Live readings lead, sources notes, snow-depth note, cam credits, footer).
+  - `windHoldLifts` (named in the briefing's wind line), `afdWords` (place names to highlight in the forecaster notes), `links`, and `text` (per-mountain wording: Live readings lead, sources notes, snow-depth note, cam credits, footer, and optional `elevSource`, `radarSource`, `radarNote`, `dataCredits`).
+  - **Outside the US (no NWS):** leave out `nws` and give `forecast: { model, short, name }`, a national model read through Open-Meteo (Sun Peaks: `gem_seamless`). Then:
+    - `app.js` builds the same hourly rows from it (`loadModelHourly`), with wind chill computed by the NWS formula. It has no snow level or visibility, so those show as unavailable, and the Hour by hour tab shows the freezing level in the snow-level slot, saying so.
+    - Rain vs. snow comes from each elevation's model temperature during wet hours (`rainTopZone`, rain at `RAIN_F` = 35°F or warmer). If the elevation data fails, the page says "rain/snow unknown" instead of guessing.
+    - Every label names the source through `FC` (NWS, or the model's short name). A model is never called "official".
+    - There's no written forecast or forecaster notes; `discussion: { none, link }` says so and links the nearest equivalent.
+  - `nowModel: true`: "Right now" shows labeled model estimates when no station is live (owner's decision; Sun Peaks only).
+  - `snowDaily`: Environment Canada's daily climate stations (measured snow on the ground and new snow, cm → in), read with one bounding-box request (`climate-daily`) plus their last report dates (`climate-stations`). They're shown with their dates in the Fresh snow card, a preseason tile, the briefing, a Live readings table and the Snowpack tab, never as "right now". A report counts as recent for `maxAgeDays` (3).
+  - Cams can be `heavy: true` (4K stills): their thumbnails refresh every 30 minutes instead of every 5, to save data.
 - **Mt. Bachelor:** see "Approved sources" below.
 - **Willamette Pass** (sources verified Nov 8–9):
   - **Measured:**
@@ -82,7 +94,14 @@ The page layout is identical for every mountain. **Everything that differs lives
     - Stats: 5,120 / 6,683 ft, 1,563 ft vertical, 555 acres, 430" average snowfall.
     - Lifts: Eagle Peak Accelerator (six-seat); Peak 2, Twilight, Midway, Sleepy Hollow (triples); Magic Carpet. Frontside 9–4, Peak 2 9:30–3:30.
   - **No avalanche forecast zone covers it.** Don't link one.
-- **Sun Peaks, BC, Canada: researched Nov 9–10, not built yet.** The owner wants it added. The owner accepts no live station reading if none exists ("having numbers is always best, but if none exist then so be it").
+- **Sun Peaks, BC, Canada: built Nov 9–10 (Pacific), not published yet** (see Handoff). The owner accepts no live station reading if none exists ("having numbers is always best, but if none exist then so be it").
+  - **As built** (re-verified Nov 9, 10pm Pacific):
+    - Point 50.893, -119.900. Zones: Village base 4,117 ft / Mid-mountain 6,086 ft / Top of the World (Burfield summit) 6,824 ft.
+    - Hourly forecast: GEM (`gem_seamless`) at mid-mountain. Its gusts are real (they equal the sustained wind only in calm hours), and it has a chance of precipitation, but no freezing level, visibility or snow level.
+    - Elevation temperatures and "Right now": Open-Meteo's default model. On Nov 9 at 10pm it was within 0.7–1.7°F of the resort's own thermometers (+0.7 village, −0.9 mid, −1.7 top); GEM alone was −1.6 at mid.
+    - Measured snow: the three ECCC climate stations (Upper 2,055 m = 6,742 ft, Mountain 1,847.4 m = 6,061 ft, Lower 1,310.6 m = 4,300 ft, elevations from ECCC's station list). **Last season they reported only Jan 13 to Apr 6, 2026**, with gaps, so expect "no reports yet" until about January.
+    - Eight of the nine resort cams, ordered: Juniper Ridge and Crystal Bowl (top of Burfield), Mt. Tod from Morrisey, top of Sundance, Mt. Morrisey from the Elevation chair, Base of OSV, Village Day Lodge slope, Village/Valley. The Village Clock Tower view is left out: it shows the village square, nothing about ski conditions. The cams last updated about 5pm Pacific and pause overnight; the 4K ones are 1.3–1.6 MB.
+    - Lift board: linked (`X-Frame-Options: SAMEORIGIN`). Links: the official report, lifts, cams, Avalanche Canada (map and Mountain Weather Forecast), DriveBC.
   - **Basics** (resort's Trail Maps & Stats and Hours pages, checked Nov 9):
     - Village base 1,255 m (4,117 ft). Mid-mountain 1,855 m (6,086 ft), the resort's own mid-mountain weather point, about the top of Sunburst Express (1,850 m). Summit "Top of the World", the top of Burfield, 2,080 m (6,824 ft).
     - West Bowl Express tops out at 2,093 m. Mt. Tod's summit (2,152 m) is outside the boundary. Vertical 896 m (2,940 ft).
@@ -115,12 +134,8 @@ The page layout is identical for every mountain. **Everything that differs lives
     - By caption and file: Crystal Bowl (`Wild flowers 1`) and Juniper Ridge (`Wild flowers 2`), both top of Burfield 2,080 m; Mt. Tod, view from Mt. Morrisey (`view of mt todd`, top of Morrisey Express 1,672 m); Sundance (`sundance`, top of Sundance Express 1,731 m); Elevation (`ele_view_of_morrisey`) and Base of OSV (`ele_view_of_OSV`), both at the base of the Elevation chair, 1,600 m; Village Day Lodge Slopeside, Valley, Village Clock Tower (village 1,255 m).
     - The two Burfield-top cams are the most useful (alpine snow surface).
   - **Roads:** no DriveBC camera or road sensor on Sun Peaks Road. The nearest are valley highway cams 16–44 km away.
-  - **Code work needed:**
-    1. A non-NWS forecast path (HRDPS/GEM hourly via Open-Meteo) for the ski-day graphics, briefing, Hour by hour and Week ahead.
-    2. An ECCC climate-daily loader for measured snow depth.
-    3. Honest "none published here" states for the live station, written forecast and forecaster notes (link Avalanche Canada's Mountain Weather Forecast).
-    4. Metric-to-imperial conversion.
-    5. Then test all three mountains.
+  - **Code work:** done (the non-NWS forecast path, the ECCC loader, "none published here" states, unit conversion, all three mountains tested). See "Settings a mountain can have" above.
+  - **Mountain picture fix that came with it:** Sun Peaks' mid-mountain is only 738 ft below the summit, so the temperature boxes overlapped, and its freezing level ran just under the summit. Now boxes that would overlap are pushed apart, and a line label with no room goes to the open sky at the top left with a dashed sample. The old "compact label" fallback could never run because of a `??` default; that's fixed. Layouts that already fit don't move (Bachelor checked against the live version).
 - **Adding a mountain:**
   1. Research and verify every station, camera, elevation and the forecast grid cell. Find the cell with `api.weather.gov/points/<lat>,<lon>` and check its elevation.
   2. Check the resort's pages for frame-blocking headers, and its cams' on-image stamps.
@@ -150,6 +165,11 @@ Good data is the backbone of this site. These rules come from mistakes the owner
   - **Open-Meteo:** forecasts and snowfall at each elevation (base 6,300 / mid 7,800 / summit 9,065 ft); the 4-model comparison (GFS, ECMWF, GEM, ICON); and the ensembles (`ensemble-api.open-meteo.com`: GEFS 31 + ECMWF 51 runs) behind the 7-day ranges and confidence. Never show a single far-out snow number without its range and confidence.
   - **NRCS SNOTEL**, as a regional reference only (collapsed in Live readings), except a mountain's on-site `snowSensor` (Willamette Pass: Cascade Summit), which is measured snow depth.
   - **Willamette Pass:** NWS observations for ODOT `ODT03`, the NWS Medford gridpoint `MFR/145,125` and AFDs, the resort's YouTube live stream (still image plus YouTube's embed player on tap), ODOT TripCheck camera images, and a link to the resort's Lifts & Trails page. See "Mountains".
+  - **Sun Peaks:**
+    - Open-Meteo GEM (`models=gem_seamless`) for the hourly forecast.
+    - Environment Canada's documented OGC API (`api.weather.gc.ca/collections/climate-daily` and `climate-stations`, CORS `*`) for measured daily snow.
+    - The resort's public webcam stills (`/sites/default/files/spr_website_data/webcams/`).
+    - Links to its lift board and to Avalanche Canada.
   - **RainViewer** radar; OpenStreetMap tiles.
   - **Mt. Bachelor:** webcams and the station graphic (public image URLs), the official Lift & Trail Status page (embedded), and the Mountain Stats page (the lift list).
 - **Lifts:** there is no public live lift-status feed at either resort. The notes below are for Mt. Bachelor; Willamette Pass's board can only be linked. The resort's feed is the private API, and Liftie sits behind a Cloudflare bot check. The per-lift wind-hold **estimate** is **shelved** (`features.liftEstimate: false` in `mountains.js`): the owner found it confusing and didn't want to send people to the wrong area. **Don't bring it back unless the owner asks.** The Lifts tab shows only the resort's official board, embedded and shifted up by `liftStatusOffsetPx` (1040) so it opens at the lift list. If the resort redesigns that page, re-measure the offset. `season.openingDay` is set by hand from the official page, so re-check it when working on the site. Their board counts 14 lifts (including 2 surface carpets); the stats list in `mountains.js` has the 12 chairlifts.
@@ -178,7 +198,7 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 - **Keep the page short vertically:** use tabs, carousels and collapsible sections instead of long stacks.
 - **The layout must work on every device:** JS sets `<html data-device="mobile|tablet|desktop">`, and CSS and charts adapt to it. Test phone and desktop every time.
 - **Smooth animations are wanted**, but always respect `prefers-reduced-motion`.
-- **Snow stake camera** (Mt. Bachelor; Willamette Pass has none, so its Base Area cam takes the same slot): always included, with high visual priority, but **only one large stake image per view.** In preseason the big stake sits in the snowpack section and the cam carousel opens on the next camera; in the ski-day view the carousel opens on the stake. The stake is the first entry in the carousel. *Correction from the owner:* two large stake cams at once was too much.
+- **Snow stake camera** (Mt. Bachelor only. Willamette Pass's Base Area cam and Sun Peaks' Juniper Ridge cam, at the top of Burfield, take the same slot): always included, with high visual priority, but **only one large stake image per view.** In preseason the big stake sits in the snowpack section and the cam carousel opens on the next camera; in the ski-day view the carousel opens on the stake. The stake is the first entry in the carousel. *Correction from the owner:* two large stake cams at once was too much.
 - **Other cams:** pick them by how useful they are for judging ski conditions, and **label them by their real location**. Check each camera's own on-image stamp. *Mistake that was corrected:* camera 3 was labeled "The Cone (summit)", but it sits at West Village. **No camera is at the summit**; the highest are three cameras at the top of Outback (mid-mountain).
 - **Tab labels are plain words:** Snowpack (preseason only) · Live readings · Hour by hour · Next 7 days · Base to summit · Lifts · Radar loop · Forecaster notes.
 - **Preseason mode** (`preseason.js`): turns on automatically before `season.openingDay` and off on Opening Day. A closed resort with no date announced (`openingDay: null, closed: true`) stays in preseason. It leads with:
@@ -206,7 +226,13 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
     - `buildWeek()` → `renderWeekStrip()`
     - `renderPreseason()`
     - `drawActiveTab()`
-  - Helpers: `getJSON` (retries once) and `getJSONCached` (localStorage, for Open-Meteo). `snowSensor()` returns the on-site SNOTEL from `state.snotel` (loaded together with the regional ones).
+  - Helpers: `getJSON` (retries once) and `getJSONCached` (localStorage, for Open-Meteo and the ECCC daily data). `snowSensor()` returns the on-site SNOTEL from `state.snotel` (loaded together with the regional ones).
+  - Mountains without the NWS:
+    - `FC` names the hourly source.
+    - `loadNws()` hands off to `loadModelHourly()`.
+    - `rainTopZone()` decides rain vs. snow by elevation.
+    - `loadSnowDaily()` fills `state.daily`, read through `dailyLatest()` and `dailyNone()`.
+    - `modelNow()` and `renderNowModel()` build the labeled "Right now" estimates.
   - The mountain picture's elevation scale and shape are computed from the mountain's own base and summit, so it works for any vertical.
   - Data refreshes every 10 minutes, but not while the tab is hidden. Webcams refresh every 5 minutes.
 - `week.js`: the 7-day forecast. It combines NWS hourly + written forecasts, the 4 models and the ensembles. Snow is counted per **ski day (4pm to 4pm)**. Confidence comes from ensemble and model spread plus lead time. It also computes `weekEns` (the whole-week total per ensemble run).
@@ -221,6 +247,8 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
   - Take screenshots on desktop (1280px) and phone (iPhone 13), and look at them.
   - To test the ski-day view in preseason, click `#view-toggle`. Its choice persists in that browser.
 - This sandbox's connection sometimes drops requests (Open-Meteo especially). `getJSON` retries once. Don't mistake these sandbox failures for bugs in the site.
+  - On Nov 9 at 10:40pm Pacific, `api.weather.gc.ca` also reset connections from the sandbox for several minutes (curl: "Connection reset by peer"), then answered again. `weather.gc.ca` loaded fine meanwhile. The page showed "no daily snow reports" as designed.
+  - To test a failure state on purpose, block the request in the Playwright test only (`page.route(..., r => r.abort())`), never in the site.
 - **Open-Meteo's free tier allows 10,000 requests per day per IP address, and ensemble requests count heavily.** Heavy browser testing from the sandbox can use up the whole day's allowance (HTTP 429 "Daily API request limit exceeded"; resets at 00:00 UTC = 4pm Pacific). **Keep test page loads few.** When it's blocked, test layout with fixtures injected in the test only, never in the site. The site caches Open-Meteo responses in each visitor's browser (`getJSONCached`: 45 min, ensemble 90 min, preseason snowfall 3 h).
 - Cloud sessions should use the **Ra-Dar** environment, in **Auto** mode. It allows these hosts:
   - `api.weather.gov`, `api.open-meteo.com`, `ensemble-api.open-meteo.com`, `wcc.sc.egov.usda.gov`

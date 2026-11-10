@@ -2,7 +2,8 @@
 // browser requests (CORS) and needs no API key.
 //   Measured: weather stations at each ski area (National Weather Service network), NRCS SNOTEL
 //             (snow depth, SWE, temp, precip), RainViewer radar, resort and road webcams.
-//   Forecast: National Weather Service gridpoint data, Open-Meteo by elevation.
+//   Forecast: National Weather Service gridpoint data (or, outside the US, a national weather
+//             model through Open-Meteo), Open-Meteo by elevation.
 // Everything specific to a mountain comes from mountains.js; nothing below names one.
 
 // Which mountain: the address (?mtn=key) wins, then the one this browser showed last, then the first.
@@ -20,14 +21,22 @@ const M = MOUNTAINS[MTN_KEY];
 const zShort = (z) => z.short || z.name;
 const midZone = () => M.zones.find((z) => z.key === 'mid') || M.zones[1] || M.zones[0];
 const TZ = M.timezone;
-const AWDB = 'https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1';
+// Where the hourly forecast comes from: the National Weather Service in the US, otherwise a national
+// weather model through Open-Meteo (raw model output, so never called "official").
+const FC = M.nws
+  ? { short: 'NWS', name: `National Weather Service (${M.nws.officeName || M.nws.office})`, official: true }
+  : { short: M.forecast.short, name: M.forecast.name, official: false };
+// Precipitation counts as rain at an elevation whose model temperature is at least this (°F), where no
+// snow-level forecast is published. Open-Meteo's own rain/snow split isn't adjusted for elevation.
+const RAIN_F = 35;
+const AWDB ='https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1';
 const DATA_REFRESH_MS = 10 * 60 * 1000;
 const CAM_REFRESH_MS = 5 * 60 * 1000;
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SVGNS = 'http://www.w3.org/2000/svg';
 
 const $ = (id) => document.getElementById(id);
-const state = { stations: null, snotel: null, nws: null, elev: null, week: null, weekView: null, pre: null, call: null };
+const state = { stations: null, snotel: null, daily: null, nws: null, elev: null, week: null, weekView: null, pre: null, call: null };
 const charts = {};
 let activeTab = 'measured';
 
@@ -271,6 +280,75 @@ function renderSnotelTable(stations) {
   $('snotel-table').innerHTML = `<thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody>`;
 }
 
+// ================================================================ Daily climate stations (measured, Canada)
+// Environment Canada's climate stations on the ski area, read by hand once a day (snow on the ground
+// and new snow, in cm). They report in season only and with a delay, so every value keeps its date.
+const ECCC = 'https://api.weather.gc.ca/collections';
+const cmToIn = (v) => (v == null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v) / 2.54);
+// "Jan 20", with the year when it isn't this season (a last report from a past season says which one).
+const dayNice = (date) => new Date(date + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(date < seasonStartDate() ? { year: 'numeric' } : {}) });
+async function loadSnowDaily() {
+  const D = M.snowDaily;
+  if (!D) return null;
+  const today = localParts(new Date()).date;
+  // This season's reports (one request for all stations), and each station's last report date (any season).
+  const dailyUrl = `${ECCC}/climate-daily/items?f=json&bbox=${D.bbox}&datetime=${seasonStartDate()}/${today}&skipGeometry=true&limit=2000&sortby=LOCAL_DATE&properties=CLIMATE_IDENTIFIER,LOCAL_DATE,SNOW_ON_GROUND,TOTAL_SNOW`;
+  const stationsUrl = `${ECCC}/climate-stations/items?f=json&bbox=${D.bbox}&skipGeometry=true&properties=CLIMATE_IDENTIFIER,DLY_LAST_DATE`;
+  const [daily, meta] = await Promise.all([getJSONCached(dailyUrl, 30000, 120), getJSONCached(stationsUrl, 20000, 720).catch(() => null)]);
+  const rows = (daily.features || []).map((f) => f.properties);
+  return D.stations.map((s) => {
+    const mine = rows.filter((p) => p.CLIMATE_IDENTIFIER === s.id)
+      .map((p) => ({ date: String(p.LOCAL_DATE).slice(0, 10), depth: cmToIn(p.SNOW_ON_GROUND), snow: cmToIn(p.TOTAL_SNOW) }))
+      .filter((r) => r.depth != null || r.snow != null);
+    const last = [...mine].reverse().find((r) => r.depth != null) || null;
+    const ageDays = last ? Math.round((Date.parse(today) - Date.parse(last.date)) / 864e5) : null;
+    const lastAny = (meta?.features || []).find((f) => f.properties.CLIMATE_IDENTIFIER === s.id)?.properties.DLY_LAST_DATE;
+    return { ...s, rows: mine, last, ageDays, fresh: ageDays != null && ageDays <= (D.maxAgeDays || 3), lastReport: lastAny ? String(lastAny).slice(0, 10) : null };
+  });
+}
+// The highest station with a recent daily snow report, or null.
+const dailyLatest = () => (state.daily || []).filter((s) => s.fresh).sort((a, b) => b.ft - a.ft)[0] || null;
+// "No reports yet this season (last report Apr 6, 2026)" when nothing is recent.
+function dailyNone() {
+  const st = state.daily || [];
+  const last = st.map((s) => s.last?.date || s.lastReport).filter(Boolean).sort().at(-1);
+  const any = st.some((s) => s.last);
+  return `${any ? 'No report in the last few days' : 'No reports yet this season'}${last ? ` (last report ${dayNice(last)})` : ''}`;
+}
+function renderDailyTable(stations) {
+  const fig = $('fig-daily');
+  if (!fig) return;
+  fig.hidden = !M.snowDaily;
+  if (!stations) return;
+  const head = ['Station', 'Where', 'Elev ft', 'Latest report', 'Snow on ground "', 'New snow that day "', 'Status'];
+  $('daily-table').innerHTML = `<thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${stations.map((s) => `<tr>
+    <td>${esc(s.name)} <small>(${esc(s.id)})</small></td><td style="white-space:normal;text-align:left;min-width:160px">${esc(s.where)}</td><td>${ftFmt(s.ft)}</td>
+    <td>${esc(s.last ? dayNice(s.last.date) : s.lastReport ? `none this season (last ${dayNice(s.lastReport)})` : 'none')}</td>
+    <td>${s.last ? r0(s.last.depth) : '–'}</td><td>${s.last?.snow != null ? r1(s.last.snow) : '–'}</td>
+    <td${s.fresh ? '' : ' class="warn"'}>${s.fresh ? 'Recent' : 'No recent report'}</td></tr>`).join('')}</tbody>`;
+  $('daily-note').textContent = `Read by hand once a day by ${M.snowDaily.operator} observers, and converted from centimetres. They report in season only and appear with a delay of a day or more, so each value carries its date and none is shown as "right now".`;
+}
+
+// ================================================================ Model estimates for "Right now" (where nothing is measured)
+// Only for mountains where the owner allowed it (`nowModel`) and no station is live. Temperatures are
+// Open-Meteo's estimates at each elevation for this moment (between the hourly values); wind is the hourly
+// forecast's for this hour. Always labeled "Model, not measured".
+function modelNow() {
+  if (!state.elev) return null;
+  const now = Date.now();
+  const at = (times, vals) => {
+    for (let i = 0; i < times.length - 1; i++) {
+      const a = +times[i], b = +times[i + 1];
+      if (now >= a && now < b && vals[i] != null && vals[i + 1] != null) return vals[i] + ((vals[i + 1] - vals[i]) * (now - a)) / (b - a);
+    }
+    return null;
+  };
+  const zones = state.elev.map((z) => ({ ...z.zone, temp: at(z.times, z.hourly.temperature_2m) })).reverse(); // summit first
+  const row = (state.nws?.rows || []).find((r) => now >= +r.t && now < +r.t + 3600e3) || null;
+  return { zones, wind: row ? { wind: row.wind, gust: row.gust, dir: row.dir, ft: state.nws.elevFt } : null };
+}
+const useModelNow = () => !!M.nowModel && !(state.stations || []).some((s) => s.stats.fresh);
+
 // ================================================================ On-mountain stations (measured)
 // Observations from the National Weather Service network (api.weather.gov), which carries
 // stations run by the Central Oregon Avalanche Center, Oregon DOT and Oregon State University.
@@ -360,7 +438,35 @@ function expand(layer, accumulate = false) {
   }
   return out;
 }
+// The National Weather Service wind-chill formula (°F, mph). It applies at 50°F and below with wind over 3 mph.
+const windChill = (t, v) => (t != null && v != null && t <= 50 && v > 3 ? 35.74 + 0.6215 * t - 35.75 * v ** 0.16 + 0.4275 * t * v ** 0.16 : null);
+// Where there is no National Weather Service: the mountain's national weather model through Open-Meteo,
+// at mid-mountain elevation, in the same hourly rows. The model publishes no snow level or visibility.
+async function loadModelHourly() {
+  const z = midZone();
+  const url = 'https://api.open-meteo.com/v1/forecast'
+    + `?latitude=${M.lat}&longitude=${M.lon}&elevation=${Math.round(z.ft / 3.28084)}&models=${M.forecast.model}`
+    + '&hourly=temperature_2m,dew_point_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,cloud_cover,precipitation,snowfall,precipitation_probability'
+    + `&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=${encodeURIComponent(TZ)}&forecast_days=9`;
+  const d = await getJSONCached(url);
+  const h = d.hourly, off = d.utc_offset_seconds * 1000;
+  const startHour = Math.floor(Date.now() / 3600e3) * 3600e3;
+  const rows = [];
+  h.time.forEach((ts, i) => {
+    const t = Date.parse(ts + ':00Z') - off;
+    if (t < startHour || rows.length >= 192 || h.temperature_2m[i] == null) return;
+    const temp = h.temperature_2m[i], wind = h.wind_speed_10m[i];
+    rows.push({
+      t: new Date(t), temp, chill: windChill(temp, wind), dew: h.dew_point_2m[i], rh: h.relative_humidity_2m[i], wind, gust: h.wind_gusts_10m[i],
+      dir: h.wind_direction_10m[i], sky: h.cloud_cover[i], pop: h.precipitation_probability?.[i] ?? null, qpf: h.precipitation[i], snow: h.snowfall[i],
+      snowLevel: null, vis: null,
+    });
+  });
+  if (!rows.length) throw new Error('No model forecast rows');
+  return { rows, elevFt: z.ft, updated: null, model: true };
+}
 async function loadNws() {
+  if (!M.nws) return loadModelHourly();
   const { office, x, y } = M.nws;
   const grid = await getJSON(`https://api.weather.gov/gridpoints/${office}/${x},${y}`);
   const p = grid.properties;
@@ -385,8 +491,12 @@ async function loadNws() {
   return { rows, elevFt: toImperial(p.elevation?.value, 'wmoUnit:m'), updated: new Date(p.updateTime) };
 }
 function renderNwsTable(nws) {
-  $('nws-meta').textContent = `National Weather Service forecast for the ski area. This forecast area averages ${ftFmt(nws.elevFt)} ft, so expect stronger wind at the summit. Issued ${fmtTime(nws.updated, { weekday: 'short', hour: 'numeric', minute: '2-digit' })}.`;
-  const head = ['Time', 'Temp °F', 'Wind chill', 'Dewpt', 'RH %', 'Wind', 'Gust mph', 'Sky %', 'Precip %', 'Precip "', 'Snow "', 'Snow level ft', 'Vis mi'];
+  $('nws-meta').textContent = nws.model
+    ? `${FC.name}, adjusted to ${zShort(midZone()).toLowerCase()} (${ftFmt(nws.elevFt)} ft). There's no National Weather Service here: this is raw model output, not a forecaster's forecast, and it has no snow-level or visibility forecast. Expect stronger wind at the summit.`
+    : `National Weather Service forecast for the ski area. This forecast area averages ${ftFmt(nws.elevFt)} ft, so expect stronger wind at the summit. Issued ${fmtTime(nws.updated, { weekday: 'short', hour: 'numeric', minute: '2-digit' })}.`;
+  // Columns the source doesn't publish are left out rather than shown empty.
+  const hasLevel = nws.rows.some((r) => r.snowLevel != null), hasVis = nws.rows.some((r) => r.vis != null);
+  const head = ['Time', 'Temp °F', 'Wind chill', 'Dewpt', 'RH %', 'Wind', 'Gust mph', 'Sky %', 'Precip %', 'Precip "', 'Snow "', ...(hasLevel ? ['Snow level ft'] : []), ...(hasVis ? ['Vis mi'] : [])];
   let lastDay = '';
   const body = nws.rows.slice(0, 96).map((r) => {
     const day = localParts(r.t).date;
@@ -396,7 +506,7 @@ function renderNwsTable(nws) {
     return `<tr${brk}><td>${hourLabel(r.t)}</td><td>${r0(r.temp)}</td><td>${r0(r.chill)}</td><td>${r0(r.dew)}</td><td>${r0(r.rh)}</td>
       <td>${compass(r.dir)} ${r0(r.wind)}</td><td${r.gust >= 40 ? ' class="warn"' : ''}>${r0(r.gust)}</td><td>${r0(r.sky)}</td><td>${r0(r.pop)}</td>
       <td>${r.qpf != null ? r.qpf.toFixed(2) : '–'}</td><td${r.snow >= 0.5 ? ' class="hi"' : ''}>${r1(r.snow)}</td>
-      <td${rainy ? ' class="warn"' : ''}>${ftFmt(r.snowLevel)}</td><td>${r1(r.vis)}</td></tr>`;
+      ${hasLevel ? `<td${rainy ? ' class="warn"' : ''}>${ftFmt(r.snowLevel)}</td>` : ''}${hasVis ? `<td>${r1(r.vis)}</td>` : ''}</tr>`;
   });
   $('nws-table').innerHTML = `<thead><tr>${head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${body.join('')}</tbody>`;
 }
@@ -449,6 +559,19 @@ function skiWindow() {
   return { date: target, today: target === date };
 }
 
+// Where no snow-level forecast is published: the highest elevation zone (index into M.zones) whose
+// model temperature is at least RAIN_F during any of these wet hours, i.e. where it rains; -1 for none.
+function rainTopZone(wetTimes) {
+  const elev = state.elev;
+  if (!elev || !wetTimes.length) return -1;
+  const wet = new Set(wetTimes.map((t) => +t));
+  let top = -1;
+  elev.forEach((z, k) => {
+    if (z.times.some((t, i) => wet.has(+t) && z.hourly.temperature_2m[i] >= RAIN_F)) top = k;
+  });
+  return top;
+}
+
 function computeCall() {
   const { nws, elev, stations } = state;
   const win = skiWindow();
@@ -483,10 +606,21 @@ function computeCall() {
     const wet = winRows.filter((r) => r.qpf > 0.005);
     const wetIn = wet.reduce((a, r) => a + (r.qpf || 0), 0);
     const base = M.zones[0].ft, mid = M.zones[1].ft;
-    const snowLevel = wet.length ? Math.max(...wet.map((r) => r.snowLevel ?? 0)) : null;
-    c.rain = { wet: wet.length > 0, wetIn, snowLevel, cls: 'good' };
-    if (wet.length && snowLevel > mid) c.rain.cls = 'bad';
-    else if (wet.length && snowLevel > base) c.rain.cls = 'ok';
+    c.rain = { wet: wet.length > 0, wetIn, snowLevel: null, rainTo: null, cls: 'good' };
+    if (wet.some((r) => r.snowLevel != null)) {
+      const snowLevel = Math.max(...wet.map((r) => r.snowLevel ?? 0));
+      c.rain.snowLevel = snowLevel;
+      if (snowLevel > mid) c.rain.cls = 'bad';
+      else if (snowLevel > base) c.rain.cls = 'ok';
+    } else if (wet.length && !elev) {
+      // No snow-level forecast and the elevation temperatures didn't load: rain or snow is unknown, not assumed.
+      Object.assign(c.rain, { unknown: true, cls: 'neutral' });
+    } else if (wet.length) {
+      // No snow-level forecast here: rain falls where the model's temperature is above freezing.
+      const top = rainTopZone(wet.map((r) => r.t));
+      c.rain.rainTo = top >= 0 ? M.zones[top] : null;
+      c.rain.cls = top >= 1 ? 'bad' : top === 0 ? 'ok' : 'good';
+    }
 
     // Wind
     const gust = Math.max(...winRows.map((r) => r.gust ?? 0));
@@ -507,7 +641,7 @@ function computeCall() {
     c.sky.cls = sky >= 80 ? 'bad' : sky >= 50 ? 'ok' : 'good';
     const d24 = c.snow?.d24 || 0;
 
-    // Temperatures by zone during the window (Open-Meteo), plus NWS wind chill
+    // Temperatures by zone during the window (Open-Meteo), plus the hourly forecast's wind chill
     const chill = Math.min(...winRows.map((r) => r.chill ?? r.temp ?? 99));
     c.temp = { chill, zones: [], cls: 'neutral', why: null, highs: null };
     if (elev) {
@@ -538,7 +672,7 @@ function computeCall() {
   const icon = { good: '✓', ok: '!', bad: '✕', neutral: '•' };
   const push = (cls, label) => c.chips.push({ cls, label, icon: icon[cls] });
   if (c.snow) push(d24 >= 6 ? 'good' : d24 >= 2 ? 'ok' : 'neutral', d24 >= 2 ? `${r0(d24)}" new` : 'No new snow');
-  if (c.rain) push(c.rain.cls, c.rain.cls === 'good' ? (c.rain.wet ? 'Snow to the base' : 'Dry') : 'Rain risk');
+  if (c.rain) push(c.rain.cls, c.rain.unknown ? 'Precip, rain/snow unknown' : c.rain.cls === 'good' ? (c.rain.wet ? 'Snow to the base' : 'Dry') : 'Rain risk');
   if (c.wind) push(c.wind.cls, c.wind.cls === 'good' ? 'Light wind' : c.wind.cls === 'ok' ? 'Breezy' : 'Wind-hold risk');
   if (c.sky) push(c.sky.cls, c.sky.label);
   if (c.temp) {
@@ -737,21 +871,35 @@ function computeBriefing(c) {
   // Right now (morning-of check only)
   if (c.win.today) {
     const st = live.filter((s) => s.stats.temp != null).sort((a, b) => b.ft - a.ft)[0];
+    const est = !st && M.nowModel ? modelNow() : null;
+    const topEst = est?.zones.find((z) => z.temp != null);
     if (st) add(`Now: ${r0(st.stats.temp)}°F at ${st.name} (${ftFmt(st.ft)} ft${offSiteNote(st)})${st.stats.hasWind ? `, wind ${compass(st.stats.dir)} ${r0(st.stats.wind)} mph, gusts ${r0(st.stats.gustNow)}` : ''}.`);
+    else if (topEst) add(`Now, model estimate (not measured): ${r0(topEst.temp)}°F at the ${zShort(topEst).toLowerCase()} (${ftFmt(topEst.ft)} ft). No public station on the mountain reports in winter.`);
   }
 
   // Precipitation
+  const src = FC.short;
   const nightSnow = night.reduce((a, r) => a + (r.snow || 0), 0);
   const daySnowRows = win.filter((r) => (r.snow || 0) >= 0.05);
   const daySnow = win.reduce((a, r) => a + (r.snow || 0), 0);
-  if (nightSnow >= 0.5) add(`Snow before lifts open: ${r1(nightSnow)}" (NWS).`);
-  if (rain && rain.cls !== 'good' && rain.wet) {
-    const top = M.zones[M.zones.length - 1].ft;
-    add(`${rain.snowLevel >= top ? 'Rain to the summit' : `Rain below ${ftFmt(rain.snowLevel)} ft`} during ski hours, ${rain.wetIn.toFixed(2)}" of water (NWS).`, true);
+  const level = rain?.snowLevel != null ? ` Snow level ${ftFmt(rain.snowLevel)} ft.` : '';
+  if (nightSnow >= 0.5) add(`Snow before lifts open: ${r1(nightSnow)}" (${src}).`);
+  if (rain?.unknown) {
+    add(`Precipitation during ski hours: ${rain.wetIn.toFixed(2)}" of water (${src}). Rain or snow can't be told apart right now: the elevation temperatures didn't load.`);
+  } else if (rain && rain.cls !== 'good' && rain.wet) {
+    const top = M.zones[M.zones.length - 1];
+    if (rain.snowLevel != null) {
+      add(`${rain.snowLevel >= top.ft ? 'Rain to the summit' : `Rain below ${ftFmt(rain.snowLevel)} ft`} during ski hours, ${rain.wetIn.toFixed(2)}" of water (${src}).`, true);
+    } else {
+      // No snow-level forecast: rain where each elevation's model temperature is RAIN_F or warmer.
+      const z = rain.rainTo, at = `${zShort(z).toLowerCase()} (${ftFmt(z.ft)} ft)`;
+      const where = z.key === top.key ? 'Rain to the summit' : z.key === M.zones[0].key ? `Rain at the ${at}` : `Rain up to ${at}`;
+      add(`${where} during ski hours, ${rain.wetIn.toFixed(2)}" of water${z.key === top.key ? '' : '; snow or mixed higher up'} (${src}; rain where the model is ${RAIN_F}°F or warmer).`, true);
+    }
   } else if (daySnow >= 0.5) {
-    add(`Snow during ski hours: ${r1(daySnow)}", mostly ${hourRange(daySnowRows)} (NWS). Snow level ${ftFmt(rain?.snowLevel)} ft.`);
+    add(`Snow during ski hours: ${r1(daySnow)}", mostly ${hourRange(daySnowRows)} (${src}).${level}`);
   } else if (rain?.wet) {
-    add(`Light precipitation, snow level ${ftFmt(rain.snowLevel)} ft (NWS).`);
+    add(`Light precipitation (${src}).${level}`);
   } else if (sky) {
     add(`${sky.label}, ${r0(sky.avg)}% cloud, dry.`);
   }
@@ -778,6 +926,8 @@ function computeBriefing(c) {
     const x = sensor.stats, chg = depthChange(x.d24);
     add(`Measured at ${sensor.name} (${ftFmt(sensor.ft)} ft, ${sensor.where}): ${r0(x.depth)}" of snow on the ground${chg ? `, ${chg} in 24 hrs` : ''}${x.depth > 0 && x.swe != null ? `, water content ${r1(x.swe)}"` : ''}.`);
   }
+  const daily = dailyLatest();
+  if (daily) add(`Measured, daily report ${dayNice(daily.last.date)} at ${daily.name} (${ftFmt(daily.ft)} ft): ${r0(daily.last.depth)}" of snow on the ground${daily.last.snow != null ? `, ${r1(daily.last.snow)}" new that day` : ''}.`);
   const thaw = live.filter((s) => s.stats.hi24 != null && s.stats.lo24 != null).sort((a, b) => b.ft - a.ft)[0];
   if (thaw) add(`Last 24 hrs at ${thaw.name} (${ftFmt(thaw.ft)} ft${offSiteNote(thaw)}): high ${r0(thaw.stats.hi24)}°F, low ${r0(thaw.stats.lo24)}°F${thaw.stats.hi24 > 32 && thaw.stats.lo24 < 32 ? ' (freeze-thaw)' : ''}.`);
 
@@ -861,9 +1011,11 @@ function renderMountain(c) {
     svgEl('path', { d: `M${tx},${ty} l5,-14 l5,14 Z`, fill: cssVar('--forest'), opacity: 0.85 }, g);
   }
   const wet = !!c.rain?.wet;
-  const lineFt = wet ? c.rain.snowLevel : c.temp?.freezing;
+  // The snow level when it's wet and one is forecast; otherwise the freezing level.
+  const snowLine = wet && c.rain.snowLevel != null;
+  const lineFt = snowLine ? c.rain.snowLevel : c.temp?.freezing;
   const lineY = lineFt != null ? clamp(y(lineFt), -10, H) : H;
-  const tint = wet && c.rain.cls !== 'good' ? '--s1' : '--serious';
+  const tint = wet && (c.rain.cls === 'bad' || c.rain.cls === 'ok') ? '--s1' : '--serious';
   const warm = svgEl('rect', { x: 0, y: Math.max(0, lineY), width: W, height: Math.max(0, H - lineY), fill: color(cssVar(tint), 0.38) }, g);
   grow(warm, 'bottom', 1.6, 0.2);
   svgEl('path', { d: shape, fill: 'none', stroke: cssVar('--rock'), 'stroke-width': 1.5, opacity: 0.7 }, svg);
@@ -876,37 +1028,61 @@ function renderMountain(c) {
     const bw = 120, bh = 44;
     return { x: 4, y: clamp(p.y - bh / 2, 2, H - bh - 2), w: bw, h: bh, p };
   });
-  const avoid = [...boxes, ...boxes.map((b) => ({ x: b.p.x - 9, y: b.p.y - 9, w: 18, h: 18 }))]; // boxes + their dots
+  // Zones close together (a short pitch between mid-mountain and the summit) would put one box on top of
+  // another: push lower boxes down to keep a small gap. Their dashed leader lines still point at the right
+  // elevation. Boxes that already have room don't move.
+  const stack = [...boxes].sort((a, b) => a.y - b.y);
+  for (let k = 1; k < stack.length; k++) stack[k].y = Math.max(stack[k].y, stack[k - 1].y + stack[k - 1].h + 3);
+  const spill = stack.at(-1).y + stack.at(-1).h - (H - 26); // keep clear of the day label at the bottom
+  if (spill > 0) stack.forEach((b) => { b.y = Math.max(2, b.y - spill); });
+  // The wind label at the summit (drawn later), so the other labels can avoid it.
+  const ax = Math.min(peak.x + 4, R - 150), ay = peak.y - 30;
+  const avoid = [...boxes, ...boxes.map((b) => ({ x: b.p.x - 9, y: b.p.y - 9, w: 18, h: 18 })), ...(c.wind ? [{ x: ax - 8, y: ay - 12, w: 148, h: 24 }] : [])]; // boxes, their dots, wind label
   const hits = (x, yy, w, h) => avoid.some((b) => x < b.x + b.w && x + w > b.x && yy < b.y + b.h && yy + h > b.y);
 
   // The line itself, labeled on both sides
-  const lineName = wet ? 'Snow level' : 'Freezing level';
+  const lineName = snowLine ? 'Snow level' : 'Freezing level';
   let bannerDrop = 0; // moves the falling-snow/rain marks down when the top-left label is shown
-  const above = wet ? 'snow' : 'below freezing';
-  const below = wet ? (c.rain.cls === 'good' ? 'snow too' : 'rain') : 'above freezing';
+  const above = snowLine ? 'snow' : 'below freezing';
+  const below = snowLine ? (c.rain.cls === 'good' ? 'snow too' : 'rain') : 'above freezing';
   if (lineFt != null && lineY > 18 && lineY < H - 18) {
     const ln = svgEl('g', {}, svg);
     svgEl('line', { x1: 0, x2: R, y1: lineY, y2: lineY, stroke: cssVar('--s1'), 'stroke-width': 2, 'stroke-dasharray': '6 5' }, ln);
     const bwid = 148;
     const xs = []; for (let x = R - bwid - 4; x >= COL; x -= 8) xs.push(x);
-    const lx = xs.find((x) => !hits(x, lineY - 30, bwid, 60)) ?? R - bwid - 4;
+    const lx = xs.find((x) => !hits(x, lineY - 30, bwid, 60));
+    const cw = 236;
+    const cx2 = lx != null ? null : [...Array(Math.floor((R - cw) / 8)).keys()].map((k) => R - cw - 4 - k * 8).find((x) => x >= 4 && !hits(x, lineY - 9, cw, 18));
     if (lx != null) {
       pill(lx, lineY - 9, bwid, 18, ln);
       T({ x: lx + 74, y: lineY + 4, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 800 }, `${lineName} ${ftFmt(lineFt)} ft`, ln);
       if (lineY > 40) { pill(lx + 18, lineY - 28, 112, 16, ln); T({ x: lx + 74, y: lineY - 17, 'text-anchor': 'middle', 'font-size': 9.5, 'font-weight': 600, fill: cssVar('--text-2') }, `↑ ${above}`, ln); }
       if (lineY < H - 40) { pill(lx + 18, lineY + 12, 112, 16, ln); T({ x: lx + 74, y: lineY + 23, 'text-anchor': 'middle', 'font-size': 9.5, 'font-weight': 600, fill: cssVar('--text-2') }, `↓ ${below}`, ln); }
-    } else {
+      avoid.push({ x: lx, y: lineY - 30, w: bwid, h: 60 });
+    } else if (cx2 != null) {
       // No room for three labels: one compact label on the line.
-      const cw = 236, cx2 = [...Array(Math.floor((R - cw) / 8)).keys()].map((k) => R - cw - 4 - k * 8).find((x) => x >= 4 && !hits(x, lineY - 9, cw, 18)) ?? R - cw - 4;
       pill(cx2, lineY - 9, cw, 18, ln);
       T({ x: cx2 + 8, y: lineY + 4, 'font-size': 10.5, 'font-weight': 800 }, `${lineName} ${ftFmt(lineFt)} ft · ↑ ${above} · ↓ ${below}`, ln);
+      avoid.push({ x: cx2, y: lineY - 9, w: cw, h: 18 });
+    } else {
+      // No room on the line at all (it runs right past the summit or a zone marker): label it in the open
+      // sky at the top left instead. The dashed line still marks the height.
+      // A dashed sample ties the label to the line; kept short so it clears the wind label.
+      const l1 = `${lineName} ${ftFmt(lineFt)} ft`, l2 = snowLine ? `↑ snow · ↓ ${below}` : '↑ below 32°F · ↓ above 32°F';
+      const bw = Math.max(30 + l1.length * 6.3, l2.length * 5.8) + 14;
+      svgEl('rect', { x: 4, y: 4, width: bw, height: 34, rx: 9, fill: cssVar('--surface'), opacity: 0.94 }, ln);
+      svgEl('line', { x1: 12, x2: 30, y1: 14, y2: 14, stroke: cssVar('--s1'), 'stroke-width': 2, 'stroke-dasharray': '4 3' }, ln);
+      T({ x: 36, y: 18, 'font-size': 11, 'font-weight': 800 }, l1, ln);
+      T({ x: 12, y: 32, 'font-size': 9.5, 'font-weight': 600, fill: cssVar('--text-2') }, l2, ln);
+      avoid.push({ x: 4, y: 4, w: bw, h: 34 });
+      bannerDrop = 11; // just below the label, and above the summit's leader line
     }
   } else if (lineFt != null) {
     // The line is above the summit or below the base: a two-line label in the open sky at the top left,
     // with the same arrows as the line itself (the whole mountain is on one side of it).
     const top = lineY <= 18;
     const l1 = `${lineName} ${ftFmt(lineFt)} ft`;
-    const l2 = top ? `↓ ${wet ? 'rain' : 'above 32°F'} to the summit` : `↑ ${wet ? 'snow' : 'below 32°F'} top to bottom`;
+    const l2 = top ? `↓ ${snowLine ? 'rain' : 'above 32°F'} to the summit` : `↑ ${snowLine ? 'snow' : 'below 32°F'} top to bottom`;
     svgEl('rect', { x: 4, y: 4, width: Math.max(l1.length * 6.7, l2.length * 5.8) + 18, height: 34, rx: 9, fill: cssVar('--surface'), opacity: 0.94 }, svg);
     T({ x: 12, y: 18, 'font-size': 11, 'font-weight': 800 }, l1);
     T({ x: 12, y: 32, 'font-size': 9.5, 'font-weight': 600, fill: cssVar('--text-2') }, l2);
@@ -918,25 +1094,30 @@ function renderMountain(c) {
   const daySnow = winRows.reduce((a2, r) => a2 + (r.snow || 0), 0);
   const precip = svgEl('g', {}, svg);
   // The amount sits in the sky just under the summit's leader line, clear of the wind label and the
-  // summit marker. The hours it covers are on the day label at the bottom of the picture.
-  const precipLabel = (text) => { pill(COL + 4, peak.y + 9, text.length * 6.3 + 16, 17, precip); T({ x: COL + 12, y: peak.y + 21, 'font-weight': 700 }, text, precip); };
+  // summit marker; if a line label or zone marker is there, a little lower. The hours it covers are on
+  // the day label at the bottom of the picture.
+  const precipLabel = (text) => {
+    const w = text.length * 6.3 + 16;
+    const yy = [0, 1, 2, 3, 4, 5].map((k) => peak.y + 9 + k * 20).find((v) => v + 17 < H - 24 && !hits(COL + 4, v, w, 17)) ?? peak.y + 9;
+    pill(COL + 4, yy, w, 17, precip);
+    T({ x: COL + 12, y: yy + 12, 'font-weight': 700 }, text, precip);
+  };
   if (daySnow >= 0.1 || (wet && c.rain.cls === 'good')) {
     for (let i = 0; i < 8; i++) svgEl('circle', { cx: COL + 10 + (i % 4) * 14 + (i > 3 ? 7 : 0), cy: 31 + bannerDrop + (i > 3 ? 12 : 0), r: 2.4, fill: cssVar('--s1'), opacity: 0.8 }, precip);
     precipLabel(`❄ ${r1(daySnow)}" new snow`);
   } else if (wet) {
     for (let i = 0; i < 5; i++) svgEl('line', { x1: COL + 14 + i * 12, y1: 28 + bannerDrop + (i % 2) * 8, x2: COL + 11 + i * 12, y2: 36 + bannerDrop + (i % 2) * 8, stroke: cssVar('--s1'), 'stroke-width': 2, 'stroke-linecap': 'round' }, precip);
-    precipLabel(`Rain ${c.rain.wetIn.toFixed(2)}" water`);
+    precipLabel(`${c.rain.unknown ? 'Precip' : 'Rain'} ${c.rain.wetIn.toFixed(2)}" water`);
   }
 
   // Summit wind flag
   if (c.wind) {
     const fg = svgEl('g', {}, svg);
     const rot = ((c.wind.dir ?? 0) + 180) % 360;
-    const ax = Math.min(peak.x + 4, R - 150), ay = peak.y - 30;
-    const arr = svgEl('path', { d: 'M0,-11 L6,0 L2,0 L2,11 L-2,11 L-2,0 L-6,0 Z', fill: statusColor(c.wind.cls), transform: `translate(${ax} ${ay}) rotate(${rot})` }, fg);
+    const arr =svgEl('path', { d: 'M0,-11 L6,0 L2,0 L2,11 L-2,11 L-2,0 L-6,0 Z', fill: statusColor(c.wind.cls), transform: `translate(${ax} ${ay}) rotate(${rot})` }, fg);
     pill(ax + 12, ay - 9, 128, 18, fg);
     T({ x: ax + 19, y: ay + 4, 'font-weight': 700 }, `${compass(c.wind.dir)} wind, gusts ${r0(c.wind.gust)} mph`, fg);
-    bindTip(fg, `NWS forecast for about ${ftFmt(c.wind.elevFt)} ft: sustained up to ${r0(c.wind.wind)} mph from the ${compass(c.wind.dir)}, gusts to ${r0(c.wind.gust)} mph. Arrow points the way the wind blows.`);
+    bindTip(fg, `${FC.short} forecast for about ${ftFmt(c.wind.elevFt)} ft: sustained up to ${r0(c.wind.wind)} mph from the ${compass(c.wind.dir)}, gusts to ${r0(c.wind.gust)} mph. Arrow points the way the wind blows.`);
   }
 
   // Which day and hours this picture shows (it switches to tomorrow after 3pm)
@@ -1005,10 +1186,16 @@ function renderSnow(c) {
   $('snow-zones').innerHTML = (s.byZone || []).map((z) => `<span>${esc(z.key === 'base' ? 'Base' : zShort(z))} <b>${r1(z.d24)}"</b></span>`).join('');
   // Measured counterpart to the model numbers: the stake cam, or the mountain's snow sensor.
   $('stake-thumb-link').hidden = !M.snowStake;
-  $('snow-src').textContent = M.snowSensor ? 'Model + measured' : 'Model + cam';
+  $('snow-src').textContent = M.snowSensor ? 'Model + measured' : M.snowDaily ? (dailyLatest() ? 'Model + measured' : 'Model') : 'Model + cam';
   const box = $('snow-measured');
-  box.hidden = !M.snowSensor;
-  if (M.snowSensor) {
+  box.hidden = !M.snowSensor && !M.snowDaily;
+  if (!M.snowSensor && M.snowDaily) {
+    // Daily hand-read reports: the latest recent one, with its date; or a plain "none recently".
+    const d = dailyLatest();
+    box.innerHTML = d
+      ? `<span class="sm-k">Measured</span><span class="sm-v">${r0(d.last.depth)}"</span><span class="sm-l">on the ground</span>${d.last.snow != null ? `<span class="sm-l">${r1(d.last.snow)}" new that day</span>` : ''}<span class="sm-s">${esc(d.name)} · ${ftFmt(d.ft)} ft · daily report, ${esc(dayNice(d.last.date))}</span>`
+      : `<span class="sm-k">Measured</span><span class="sm-l">${state.daily ? `Daily snow reports: ${esc(dailyNone())}.` : 'Daily snow reports unavailable right now.'}</span>`;
+  } else if (M.snowSensor) {
     const sensor = c.now?.sensor, x = sensor?.stats, chg = x?.fresh ? depthChange(x.d24) : null;
     box.innerHTML = x?.fresh
       ? `<span class="sm-k">Measured</span><span class="sm-v">${r0(x.depth)}"</span><span class="sm-l">on the ground</span>${chg ? `<span class="sm-l">24 hrs: ${chg}</span>` : ''}<span class="sm-s">${esc(M.snowSensor.name)} · ${ftFmt(M.snowSensor.ft)} ft · ${ageText(x.depthAgeH)}</span>`
@@ -1035,7 +1222,7 @@ function renderWind(c) {
   const w = c.wind;
   const svg = $('wind-svg');
   svg.innerHTML = '';
-  if (!w) return;
+  if (!w) { $('wind-cap').textContent = `${FC.short} forecast unavailable right now. Refresh to try again.`; return; }
   const cx = 100, cy = 96, R = 78, maxG = 70;
   const A0 = -220, SPAN = 260;
   const ang = (v) => (A0 + (clamp(v, 0, maxG) / maxG) * SPAN) * Math.PI / 180;
@@ -1065,8 +1252,8 @@ function renderWind(c) {
   // Readout under the dial
   T({ x: cx, y: 176, 'font-size': 17, 'font-weight': 800, fill: cssVar('--text') }, `${r0(w.gust)} mph gusts`);
   T({ x: cx, y: 191, 'font-size': 10 }, `from the ${compass(w.dir)} · sustained ${r0(w.wind)} mph`);
-  bindTip(svg, `NWS forecast peak for 9am–4pm at about ${ftFmt(w.elevFt)} ft. The arrow points the way the wind blows. Upper lifts start to risk wind holds around 40 mph gusts.`);
-  $('wind-cap').textContent = `Peak, 9am–4pm · NWS at ~${ftFmt(w.elevFt)} ft`;
+  bindTip(svg, `${FC.short} forecast peak for 9am–4pm at about ${ftFmt(w.elevFt)} ft. The arrow points the way the wind blows. Upper lifts start to risk wind holds around 40 mph gusts.`);
+  $('wind-cap').textContent = `Peak, 9am–4pm · ${FC.short} at ~${ftFmt(w.elevFt)} ft`;
 }
 
 // --- Sky icon + hourly ribbon
@@ -1074,7 +1261,7 @@ function renderSky(c) {
   const s = c.sky;
   const svg = $('sky-icon');
   svg.innerHTML = '';
-  if (!s) return;
+  if (!s) { $('sky-label').textContent = '–'; $('sky-sub').textContent = `${FC.short} forecast unavailable right now. Refresh to try again.`; $('ribbon').innerHTML = ''; return; }
   const cover = clamp(s.avg / 100, 0, 1);
   const sun = svgEl('g', {}, svg);
   svgEl('circle', { cx: 44, cy: 38, r: 18, fill: cssVar('--warning') }, sun);
@@ -1107,8 +1294,37 @@ function renderSky(c) {
 }
 
 // --- Right now: live readings from on-mountain stations
+// Right now where nothing on the mountain is measured (owner's choice, `nowModel`): model estimates
+// at each elevation for this hour, labeled as such everywhere they appear.
+const NOW_MODEL_TAG = 'Model, not measured';
+function renderNowModel() {
+  const list = $('now-list');
+  const est = modelNow();
+  if (!est || !est.zones.some((z) => z.temp != null)) {
+    list.innerHTML = '<div class="lbl">No live station on the mountain, and the model estimates couldn\'t load right now.</div>';
+    $('now-cap').textContent = '';
+    return;
+  }
+  const w = est.wind, midKey = midZone().key;
+  const arrow = w?.dir != null ? `<svg viewBox="0 0 16 16" aria-hidden="true" style="transform:rotate(${(w.dir + 180) % 360}deg)"><path d="M8 1 L12 7 H9 V15 H7 V7 H4 Z" fill="currentColor"/></svg>` : '';
+  list.innerHTML = est.zones.map((z, i) => `<div class="now-row model" style="animation-delay:${i * 0.08}s" data-i="${i}">
+      <div class="nm">${esc(z.name)}<small>${ftFmt(z.ft)} ft · model estimate for this hour</small></div>
+      <div class="tv">${z.temp != null ? `${r0(z.temp)}°` : '–'}</div>
+      <div class="wv">${z.key === midKey && w ? `${arrow}${compass(w.dir)} ${r0(w.wind)}, gust ${r0(w.gust)} mph (${esc(FC.short)} model)` : ''}</div></div>`).join('');
+  list.querySelectorAll('.now-row[data-i]').forEach((row) => {
+    const z = est.zones[row.dataset.i];
+    bindTip(row, `${z.name} (${ftFmt(z.ft)} ft): Open-Meteo's model estimate for this moment, adjusted to this elevation. Not a measurement: no public weather station on the mountain reports in winter.${z.key === midKey && w ? ` Wind: ${FC.short} model at about ${ftFmt(w.ft)} ft.` : ''}`);
+  });
+  $('now-cap').innerHTML = '<span class="st neutral"><i aria-hidden="true">•</i>No public station on the mountain reports in winter</span>';
+}
 function renderNow(c) {
   const list = $('now-list');
+  const modelOn = useModelNow();
+  const tag = $('now-src');
+  tag.textContent = modelOn ? NOW_MODEL_TAG : 'Measured';
+  tag.className = `src ${modelOn ? 'e' : 'm'}`;
+  tag.title = modelOn ? 'Model: a computer-model estimate for this hour, not a measurement' : 'Measured: live readings from stations on the mountain';
+  if (modelOn) { renderNowModel(); return; }
   const sts = c.now?.stations || [];
   if (!sts.length && !M.snowSensor) { list.innerHTML = '<div class="lbl">Station data unavailable right now.</div>'; return; }
   const sensor = c.now?.sensor, sx = sensor?.stats, sOk = !!sx?.fresh;
@@ -1263,15 +1479,23 @@ function drawMeasuredCharts() {
 
 function drawForecastCharts() {
   const nws = state.nws;
-  if (!nws) return;
+  if (!nws) { $('nws-meta').textContent = `The ${FC.short} hourly forecast couldn't load right now. Refresh to try again.`; return; }
   const rows = nws.rows.slice(0, 72);
   const labels = rows.map((r) => hourLabel(r.t));
   drawChart('c-snowfall', { type: 'bar', data: { labels, datasets: [barDs('Snowfall', rows.map((r) => r.snow), '--s1')] }, options: chartOpts({ legend: false, yMin: 0 }) });
   drawChart('c-ftemp', { type: 'line', data: { labels, datasets: [lineDs('Temperature', rows.map((r) => r.temp), '--s1'), lineDs('Wind chill', rows.map((r) => r.chill), '--s2')] }, options: chartOpts({ refLines: [{ y: 32, label: '32°F' }] }) });
   drawChart('c-wind', { type: 'line', data: { labels, datasets: [lineDs('Sustained', rows.map((r) => r.wind), '--s1', true), lineDs('Gusts', rows.map((r) => r.gust), '--s2')] }, options: chartOpts({ yMin: 0, refLines: [{ y: 40, label: '40 mph hold risk' }] }) });
-  const lv = rows.map((r) => r.snowLevel);
   const zoneLines = M.zones.filter((z) => z.key !== 'mid').map((z) => ({ y: z.ft, label: `${z.name} ${ftFmt(z.ft)}′` }));
-  drawChart('c-snowlevel', { type: 'line', data: { labels, datasets: [lineDs('Snow level', lv, '--s1', true)] }, options: { ...chartOpts({ legend: false, refLines: zoneLines }), scales: { ...chartOpts().scales, y: { ...chartOpts().scales.y, suggestedMin: 4000, suggestedMax: 10000 } } } });
+  // Where no snow level is forecast, the same slot shows the freezing level (Open-Meteo), and says so.
+  const hasLevel = rows.some((r) => r.snowLevel != null);
+  let lv = rows.map((r) => r.snowLevel);
+  if (!hasLevel && state.elev?.[0]) {
+    const fl = new Map(state.elev[0].times.map((t, i) => [+t, state.elev[0].flFt[i]]));
+    lv = rows.map((r) => fl.get(+r.t) ?? null);
+  }
+  $('snowlevel-cap').textContent = hasLevel ? 'Snow level (ft)' : 'Freezing level (ft) · no snow-level forecast is published here';
+  const lo = Math.floor((M.zones[0].ft - 2000) / 1000) * 1000, hi = Math.ceil((M.zones.at(-1).ft + 1000) / 1000) * 1000;
+  drawChart('c-snowlevel', { type: 'line', data: { labels, datasets: [lineDs(hasLevel ? 'Snow level' : 'Freezing level', lv, '--s1', true)] }, options: { ...chartOpts({ legend: false, refLines: zoneLines }), scales: { ...chartOpts().scales, y: { ...chartOpts().scales.y, suggestedMin: hasLevel ? 4000 : lo, suggestedMax: hasLevel ? 10000 : hi } } } });
 }
 
 function drawElevationCharts() {
@@ -1543,7 +1767,15 @@ function renderAfd(prod) {
   });
 }
 
+// Where no weather service publishes a forecast discussion, say so and link the nearest equivalent.
+function renderNoAfd() {
+  const D = M.discussion || {};
+  $('afd-summary').textContent = 'No forecast discussion is published for this area.';
+  $('afd').innerHTML = `<p class="lead">${esc(D.none || 'No weather service writes a forecast discussion for this area.')}</p>${D.link ? `<p><a class="pill official" href="${esc(D.link.url)}" target="_blank" rel="noopener">${esc(D.link.label)} ↗</a></p>` : ''}`;
+  $('afd-fine').hidden = true;
+}
 async function loadAfd() {
+  if (!M.nws) { renderNoAfd(); return; }
   const list = await getJSON(`https://api.weather.gov/products/types/AFD/locations/${M.nws.office}`);
   const first = list['@graph']?.[0];
   if (!first) return;
@@ -1561,7 +1793,8 @@ const heroCam = () => allCams()[0];
 const camStill = (cam, thumb) => (cam.youtube ? `https://i.ytimg.com/vi/${cam.youtube}/${thumb ? 'mqdefault' : 'maxresdefault'}_live.jpg` : cam.src);
 // Preseason already shows the hero cam large at the top, so its carousel opens on the next cam.
 let camIndex = null;
-const camUrl = (src) => `${src}${src.includes('?') ? '&' : '?'}t=${Math.floor(Date.now() / 60000)}`;
+// A cache-busting stamp that changes every `everyMin` minutes, so the browser fetches a fresh image.
+const camUrl = (src, everyMin = 1) => `${src}${src.includes('?') ? '&' : '?'}t=${Math.floor(Date.now() / (60000 * everyMin)) * everyMin}`;
 function swapImg(img, src) {
   if (REDUCED) { img.src = src; return; }
   const pre = new Image();
@@ -1611,7 +1844,8 @@ function renderCams() {
     thumbs.innerHTML = allCams().map((c, i) => `<button role="tab" type="button" aria-selected="false" data-i="${i}"${c.youtube ? ' class="video"' : ''}><img alt="" loading="lazy"><span>${esc(c.name)}</span></button>`).join('');
     thumbs.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => showCam(Number(b.dataset.i), true)));
   }
-  thumbs.querySelectorAll('button').forEach((b) => { b.querySelector('img').src = camUrl(camStill(allCams()[b.dataset.i], true)); });
+  // Large (4K) stills are the same file as the full view, so their thumbnails refresh every 30 minutes, not every 5.
+  thumbs.querySelectorAll('button').forEach((b) => { const cam = allCams()[b.dataset.i]; b.querySelector('img').src = camUrl(camStill(cam, true), cam.heavy ? 30 : 1); });
   if (camIndex == null) camIndex = document.documentElement.dataset.mode === 'preseason' ? Math.min(1, allCams().length - 1) : 0;
   // A refresh must not cut off a live video the viewer is watching.
   if (!$('cam-frame').classList.contains('playing')) showCam(camIndex);
@@ -1665,23 +1899,31 @@ function setupReveal() {
 // ================================================================ Data sources
 function renderSources() {
   const mi = (M.snotel || []).map((x) => x.mi), ft = (M.snotel || []).map((x) => x.ft);
-  const sn = M.snowSensor;
+  const sn = M.snowSensor, sd = M.snowDaily;
   const rows = [
-    ['Live station readings', M.stations.map((s) => `${s.name} (${s.operator}, ${ftFmt(s.ft)} ft${offSiteNote(s)})`).join('; '), 'Measured', M.text.stationsNote],
+    M.stations.length
+      ? ['Live station readings', M.stations.map((s) => `${s.name} (${s.operator}, ${ftFmt(s.ft)} ft${offSiteNote(s)})`).join('; '), 'Measured', M.text.stationsNote]
+      : ['Live station readings', 'None', '–', M.text.stationsNote],
+    M.nowModel && ['Right now', 'Open-Meteo model estimates at each elevation', 'Model', `Only because no public station on the mountain reports. Labeled "${NOW_MODEL_TAG}" everywhere it appears.`],
     sn && ['Measured snow depth', `${sn.name} (${sn.operator}, ${ftFmt(sn.ft)} ft, ${sn.where})`, 'Measured', 'Hourly snow depth and water content at base level, checked against the resort\'s reported base depth. Nothing measures snow depth higher on the mountain.'],
+    sd && ['Measured snow (daily)', `${sd.operator} climate stations: ${sd.stations.map((s) => `${s.name} (${ftFmt(s.ft)} ft)`).join(', ')}`, 'Measured', 'Snow on the ground and new snow, read by hand once a day. In season only, with a delay of a day or more; each value shows its date.'],
     M.stationGraphic && ['Lift-top stations graphic', M.name, 'Measured', 'The resort\'s own summit, lift-top and base sensors. Image only.'],
     [M.snowStake ? 'Webcams & snow stake' : 'Webcams', M.text.camsSource, 'Live image', M.text.camsNote],
-    ['Hourly forecast', `National Weather Service (${M.nws.officeName || M.nws.office})`, 'Forecast', 'Official forecast for the 2.5 km grid cell over the ski area.'],
-    ['Preseason snowpack', 'Open-Meteo model snowfall at each elevation', 'Model', sn ? 'An estimate of snow that fell, not snow on the ground. Measured depth comes from the snow station above.' : 'An estimate of snow that fell, not snow on the ground. No snow-depth sensor on the mountain publishes data this site can use, so it is shown beside the snow stake cam.'],
-    ['7-day forecast', 'NWS official forecast + GFS, ECMWF, GEM, ICON models + GEFS (31) and ECMWF (51) ensemble runs, via Open-Meteo', 'Forecast', 'Ranges show where 80% of the 82 ensemble runs land. Confidence comes from how much the runs and models disagree. Accuracy drops after about day 3.'],
-    ['Base-to-summit forecast & new-snow estimate', 'Open-Meteo, blending NOAA and European models', 'Forecast / Model', 'Model data adjusted to each elevation. New-snow totals are estimates, not measurements.'],
+    FC.official
+      ? ['Hourly forecast', FC.name, 'Forecast', 'Official forecast for the 2.5 km grid cell over the ski area.']
+      : ['Hourly forecast', FC.name, 'Forecast (model)', `No National Weather Service here. Raw model output at mid-mountain elevation (${ftFmt(midZone().ft)} ft), with no snow-level or visibility forecast; rain vs. snow comes from each elevation's model temperature.`],
+    ['Preseason snowpack', 'Open-Meteo model snowfall at each elevation', 'Model', sn ? 'An estimate of snow that fell, not snow on the ground. Measured depth comes from the snow station above.' : sd ? 'An estimate of snow that fell, not snow on the ground. Measured depth comes from the daily climate-station reports above, in season.' : 'An estimate of snow that fell, not snow on the ground. No snow-depth sensor on the mountain publishes data this site can use, so it is shown beside the snow stake cam.'],
+    ['7-day forecast', `${FC.official ? 'NWS official forecast + ' : ''}GFS, ECMWF, GEM, ICON models + GEFS (31) and ECMWF (51) ensemble runs, via Open-Meteo`, 'Forecast', 'Ranges show where 80% of the 82 ensemble runs land. Confidence comes from how much the runs and models disagree. Accuracy drops after about day 3.'],
+    ['Base-to-summit forecast & new-snow estimate', M.text.elevSource || 'Open-Meteo, blending NOAA and European models', 'Forecast / Model', 'Model data adjusted to each elevation. New-snow totals are estimates, not measurements.'],
     // The lift list and the wind-hold estimate appear only when the estimate is switched on (it is shelved).
     M.features?.liftEstimate && M.lifts?.length && ['Lift list & stats', `${M.name} (official Mountain Stats page)`, 'Reference', 'Names, types, lengths, vertical rise.'],
     ['Official lift status', `${M.name} lift & trail page (${M.liftStatusEmbed ? 'embedded' : 'linked; the resort blocks embedding'})`, 'Live', 'Published by the resort, including maintenance and staffing closures.'],
     M.features?.liftEstimate && ['Wind-hold risk', 'Ra-Dar estimate from NWS forecast gusts', 'Estimate', 'Wind only. Rule-of-thumb thresholds (upper lifts around 40 mph gusts). Not official status.'],
     ['Season status', `${M.name} official site`, 'Reference', `Opening Day ${M.season?.openingDay || 'not announced yet'}, checked ${M.season?.checked || 'n/a'}. Updated by hand.`],
-    ['Forecaster notes', `National Weather Service (${M.nws.officeName || M.nws.office})`, 'Forecast', 'The forecasters\' written discussion.'],
-    ['Radar', 'RainViewer, using NOAA NEXRAD radar', 'Measured', 'Radar coverage over the Cascades is limited by terrain, so light snow can be missed.'],
+    M.nws
+      ? ['Forecaster notes', FC.name, 'Forecast', 'The forecasters\' written discussion.']
+      : ['Forecaster notes', 'None published for this area', '–', M.discussion?.link ? `Linked instead: ${M.discussion.link.label} (seasonal).` : ''],
+    ['Radar', M.text.radarSource || 'RainViewer, using NOAA NEXRAD radar', 'Measured', M.text.radarNote || 'Radar coverage over the Cascades is limited by terrain, so light snow can be missed.'],
     mi.length && ['Regional snow stations', 'USDA NRCS SNOTEL', 'Measured', `Reliable, but ${Math.floor(Math.min(...mi))}–${Math.round(Math.max(...mi))} mi away, at ${ftFmt(Math.min(...ft))}–${ftFmt(Math.max(...ft))} ft. Regional trend only. Not used in the summary.`],
   ].filter(Boolean);
   $('sources').innerHTML = `<thead><tr><th>What</th><th>Source</th><th>Type</th><th>Notes</th></tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td style="white-space:normal;text-align:left">${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody>`;
@@ -1711,6 +1953,19 @@ function setupMountain() {
   const mi = (M.snotel || []).map((x) => x.mi), ft = (M.snotel || []).map((x) => x.ft);
   $('snotel-summary').textContent = sn ? `Snow stations (SNOTEL): ${sn.name} at the ski area, plus regional reference` : 'Regional snow stations (SNOTEL) · reference only';
   $('snotel-note').textContent = !mi.length ? '' : `${sn ? `${sn.name} is ${sn.where}; it is the measured snow depth shown on this page. The other stations are regional: ` : 'These federal NRCS stations are reliable, but they are not at the ski area. They sit '}${Math.floor(Math.min(...mi))}–${Math.round(Math.max(...mi))} miles away, at ${ftFmt(Math.min(...ft))}–${ftFmt(Math.max(...ft))} ft${M.text.regionalWhy ? `, ${M.text.regionalWhy}` : ''}. Use them only for the regional trend.`;
+  // No live stations: the measured charts and table would be empty, so the slots are hidden (the lead says why).
+  const noStations = !M.stations.length;
+  ['fig-stemp', 'fig-swind', 'station-tbl', 'live-offline'].forEach((id) => { $(id).hidden = noStations; });
+  document.querySelector('[data-panel="measured"] .swipe-hint').hidden = noStations; // one card left: nothing to swipe to
+  document.querySelector('details.regional').hidden = !snotelConfigs().length;
+  $('fig-daily').hidden = !M.snowDaily;
+  $('week-src').textContent = `Forecast · ${FC.official ? 'NWS + ' : ''}4 models + 82 ensemble runs`;
+  $('footer-data').textContent = M.text.dataCredits || 'NRCS SNOTEL, National Weather Service, Open-Meteo, RainViewer, OpenStreetMap.';
+  if (M.snowDaily && !sn) {
+    // The Snowpack tab's measured chart shows the daily climate-station reports instead of a snow sensor.
+    $('fig-sp-measured').hidden = false;
+    $('sp-measured-name').textContent = `${M.snowDaily.operator} climate stations on the ski area (daily reports)`;
+  }
   $('lift-src').textContent = M.liftStatusEmbed ? `Live · ${M.name}` : `${M.name} · link`;
   $('lift-lead').textContent = M.liftStatusEmbed
     ? `${M.name}'s own lift & trail board, shown as published by the resort. It includes closures for maintenance, staffing and any other reason. If it doesn't load, open it directly.`
@@ -1730,6 +1985,7 @@ async function refreshData() {
   await Promise.all([
     run('stations', loadStations, renderStationTable),
     run('snotel', loadSnotel, renderSnotelTable),
+    ...(M.snowDaily ? [run('daily', loadSnowDaily, renderDailyTable)] : []),
     run('nws', loadNws, renderNwsTable),
     run('elev', loadElevation, renderElevTable),
     run('week', loadWeek),
@@ -1741,7 +1997,7 @@ async function refreshData() {
   try { state.weekView = buildWeek(); renderWeekStrip(state.weekView); } catch (e) { console.error('week', e); renderWeekStrip(null); }
   try { renderPreseason(); } catch (e) { console.error('preseason', e); }
   drawActiveTab();
-  const names = { stations: 'stations', snotel: 'SNOTEL', nws: 'NWS', elev: 'Open-Meteo', week: '7-day models', pre: 'snowpack model' };
+  const names = { stations: 'stations', snotel: 'SNOTEL', daily: 'daily snow reports', nws: FC.official ? 'NWS' : `${FC.short} forecast`, elev: 'Open-Meteo', week: '7-day models', pre: 'snowpack model' };
   $('updated').textContent = `Updated ${fmtTime(new Date(), { hour: 'numeric', minute: '2-digit' })}` + (errors.length ? ` · no ${errors.map((e) => names[e]).join(', ')}` : '');
   setTimeout(() => $('refresh').classList.remove('spin'), 600);
 }
