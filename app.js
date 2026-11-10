@@ -29,6 +29,21 @@ const FC = M.nws
 // Precipitation counts as rain at an elevation whose model temperature is at least this (°F), where no
 // snow-level forecast is published. Open-Meteo's own rain/snow split isn't adjusted for elevation.
 const RAIN_F = 35;
+// Open-Meteo's rain/snow split isn't adjusted for the elevation asked for (on 2026-11-10 it gave the same
+// "rain" at 41°F and at 31°F), so each elevation's precipitation is split by that elevation's own model
+// temperature: all snow at 32°F or colder, all rain at 36°F or warmer, a mix in between. Open-Meteo's own
+// ratio is kept: 1" of water = 7" of snow. Returns per-hour { snow, rain } arrays (inches).
+const SNOW_RATIO = 7;
+function splitPrecip(precip, temp) {
+  const snow = [], rain = [];
+  precip.forEach((p, i) => {
+    const w = p || 0, t = temp[i];
+    const share = t == null ? 0 : clamp((36 - t) / 4, 0, 1);
+    snow.push(w * share * SNOW_RATIO);
+    rain.push(w * (1 - share));
+  });
+  return { snow, rain };
+}
 const AWDB ='https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1';
 const DATA_REFRESH_MS = 10 * 60 * 1000;
 const CAM_REFRESH_MS = 5 * 60 * 1000;
@@ -517,19 +532,27 @@ async function loadElevation() {
   const rep = (v) => Array(n).fill(v).join(',');
   const url = 'https://api.open-meteo.com/v1/forecast'
     + `?latitude=${rep(M.lat)}&longitude=${rep(M.lon)}&elevation=${M.zones.map((z) => Math.round(z.ft / 3.28084)).join(',')}`
-    + '&hourly=temperature_2m,apparent_temperature,snowfall,rain,freezing_level_height,wind_gusts_10m,cloud_cover'
-    + '&daily=temperature_2m_max,temperature_2m_min,snowfall_sum,rain_sum,wind_speed_10m_max,wind_gusts_10m_max'
+    + '&hourly=temperature_2m,apparent_temperature,precipitation,freezing_level_height,wind_gusts_10m,cloud_cover'
+    + '&daily=temperature_2m_max,temperature_2m_min,wind_speed_10m_max,wind_gusts_10m_max'
     + `&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=${encodeURIComponent(TZ)}&forecast_days=9`;
   // Model estimate of snow that already fell (last 3 days), at the same elevations.
   const pastUrl = 'https://api.open-meteo.com/v1/forecast'
     + `?latitude=${rep(M.lat)}&longitude=${rep(M.lon)}&elevation=${M.zones.map((z) => Math.round(z.ft / 3.28084)).join(',')}`
-    + `&hourly=snowfall&past_days=3&forecast_days=1&precipitation_unit=inch&timezone=${encodeURIComponent(TZ)}`;
+    + `&hourly=precipitation,temperature_2m&past_days=3&forecast_days=1&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=${encodeURIComponent(TZ)}`;
   const [data, pastData] = await Promise.all([getJSONCached(url), getJSONCached(pastUrl).catch(() => null)]);
   const past = pastData ? (Array.isArray(pastData) ? pastData : [pastData]) : [];
   return (Array.isArray(data) ? data : [data]).map((d, i) => {
     const pd = past[i];
     const pOff = (pd?.utc_offset_seconds || 0) * 1000;
-    const pastSnow = pd ? pd.hourly.time.map((t, k) => ({ t: new Date(Date.parse(t + ':00Z') - pOff), v: pd.hourly.snowfall[k] ?? 0 })) : [];
+    const pSnow = pd ? splitPrecip(pd.hourly.precipitation, pd.hourly.temperature_2m).snow : [];
+    const pastSnow = pd ? pd.hourly.time.map((t, k) => ({ t: new Date(Date.parse(t + ':00Z') - pOff), v: pSnow[k] })) : [];
+    // Snow and rain at this elevation, hour by hour and per day (replacing Open-Meteo's elevation-blind split).
+    const split = splitPrecip(d.hourly.precipitation, d.hourly.temperature_2m);
+    d.hourly.snowfall = split.snow;
+    d.hourly.rain = split.rain;
+    const byDay = (arr) => d.daily.time.map((day) => d.hourly.time.reduce((a, t, k) => a + (t.startsWith(day) ? arr[k] : 0), 0));
+    d.daily.snowfall_sum = byDay(split.snow);
+    d.daily.rain_sum = byDay(split.rain);
     // Open-Meteo returns local wall-clock times for the requested zone; convert using its offset.
     const off = d.utc_offset_seconds * 1000;
     const times = d.hourly.time.map((t) => new Date(Date.parse(t + ':00Z') - off));
@@ -1914,7 +1937,7 @@ function renderSources() {
       : ['Hourly forecast', FC.name, 'Forecast (model)', `No National Weather Service here. Raw model output at mid-mountain elevation (${ftFmt(midZone().ft)} ft), with no snow-level or visibility forecast; rain vs. snow comes from each elevation's model temperature.`],
     ['Preseason snowpack', 'Open-Meteo model snowfall at each elevation', 'Model', sn ? 'An estimate of snow that fell, not snow on the ground. Measured depth comes from the snow station above.' : sd ? 'An estimate of snow that fell, not snow on the ground. Measured depth comes from the daily climate-station reports above, in season.' : 'An estimate of snow that fell, not snow on the ground. No snow-depth sensor on the mountain publishes data this site can use, so it is shown beside the snow stake cam.'],
     ['7-day forecast', `${FC.official ? 'NWS official forecast + ' : ''}GFS, ECMWF, GEM, ICON models + GEFS (31) and ECMWF (51) ensemble runs, via Open-Meteo`, 'Forecast', 'Ranges show where 80% of the 82 ensemble runs land. Confidence comes from how much the runs and models disagree. Accuracy drops after about day 3.'],
-    ['Base-to-summit forecast & new-snow estimate', M.text.elevSource || 'Open-Meteo, blending NOAA and European models', 'Forecast / Model', 'Model data adjusted to each elevation. New-snow totals are estimates, not measurements.'],
+    ['Base-to-summit forecast & new-snow estimate', M.text.elevSource || 'Open-Meteo, blending NOAA and European models', 'Forecast / Model', 'Model data adjusted to each elevation. Rain and snow are split by each elevation\'s own model temperature (snow at 32°F and colder, rain at 36°F and warmer). New-snow totals are estimates, not measurements.'],
     // The lift list and the wind-hold estimate appear only when the estimate is switched on (it is shelved).
     M.features?.liftEstimate && M.lifts?.length && ['Lift list & stats', `${M.name} (official Mountain Stats page)`, 'Reference', 'Names, types, lengths, vertical rise.'],
     ['Official lift status', `${M.name} lift & trail page (${M.liftStatusEmbed ? 'embedded' : 'linked; the resort blocks embedding'})`, 'Live', 'Published by the resort, including maintenance and staffing closures.'],

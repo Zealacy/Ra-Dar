@@ -59,7 +59,7 @@ async function loadPreseason() {
   const rep = (v) => Array(n).fill(v).join(',');
   const url = 'https://api.open-meteo.com/v1/forecast'
     + `?latitude=${rep(M.lat)}&longitude=${rep(M.lon)}&elevation=${M.zones.map((z) => Math.round(z.ft / 3.28084)).join(',')}`
-    + `&hourly=snowfall&past_days=${past}&forecast_days=8&precipitation_unit=inch&timezone=${encodeURIComponent(TZ)}`;
+    + `&hourly=precipitation,temperature_2m&past_days=${past}&forecast_days=8&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=${encodeURIComponent(TZ)}`;
   const data = await getJSONCached(url, 30000, 180);
   const arr = Array.isArray(data) ? data : [data];
   return arr.map((d, i) => {
@@ -67,7 +67,8 @@ async function loadPreseason() {
     const times = d.hourly.time.map((t) => new Date(Date.parse(t + ':00Z') - off));
     const unit = d.hourly_units?.snow_depth;
     const toIn = (v) => (v == null ? null : unit === 'm' ? v * 39.3701 : unit === 'ft' ? v * 12 : unit === 'cm' ? v / 2.54 : v);
-    return { zone: M.zones[i], times, keys: d.hourly.time, depth: (d.hourly.snow_depth || []).map(toIn), snow: d.hourly.snowfall.map((v) => v ?? 0), start };
+    // Snow at this elevation: its precipitation split by its own model temperature (see splitPrecip in app.js).
+    return { zone: M.zones[i], times, keys: d.hourly.time, depth: (d.hourly.snow_depth || []).map(toIn), snow: splitPrecip(d.hourly.precipitation, d.hourly.temperature_2m).snow, start };
   });
 }
 

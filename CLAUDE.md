@@ -24,10 +24,14 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
   - The sources table hides the shelved wind-hold estimate and lift list rows.
   - Ski-day chips state facts, per the owner's decision (see "Audience").
   - Before the deploy: `node --check`, and the browser test on both mountains, desktop and phone, both views. After it: all nine live files matched the deploy, both production addresses pointed at the new deployment, and the same browser test against the live site passed with every source loaded and no page errors. The owner's newly installed security plugins flagged nothing.
-- **Sun Peaks is built but NOT live yet** (Nov 9–10, Pacific). It's on GitLab `main` and passed every check: `node --check`, and the browser test on all three mountains, desktop and phone, both views, plus forced-failure tests (GEM blocked, elevation data blocked).
-  - **Why it isn't published:** the owner installed security plugins and asked to be told before publishing if they flag anything. The `security-guidance` plugin flagged `innerHTML` twice: the new daily-reports table and the preseason "Right now" line. Every value placed in that HTML was reviewed: all are escaped with `esc()` or are formatted numbers. The flags are generic, not a real hole. The owner was told and asked for a go-ahead.
-  - **Next step:** once the owner says to publish, run the Publishing steps (fresh browser test, Vercel deploy, live check).
-- **Mountains:** Mt. Bachelor and Willamette Pass are live (added Nov 9–10). Sun Peaks is built (see above). A switcher at the top of the page picks the mountain; see "Mountains" below.
+- **Sun Peaks is live** (published Nov 9, about 10:45pm Pacific, after the owner said "publish it"). It passed `node --check`, the browser test on all three mountains (desktop and phone, both views), forced-failure tests (GEM blocked, elevation data blocked), and the same test against the live site.
+  - Before publishing, the `security-guidance` plugin flagged `innerHTML` twice: the daily-reports table and the preseason "Right now" line. Every value placed in that HTML was reviewed: all are escaped with `esc()` or are formatted numbers. The owner was told, then approved.
+  - The owner asked to be told before publishing whenever the security plugins flag something. Keep doing that.
+- **Rain/snow split by elevation: fixed and live** (Nov 9, about 11pm Pacific, owner said yes). Open-Meteo's own rain/snow split isn't adjusted for elevation: at Sun Peaks on Nov 10 it gave the same "rain" at 41°F and 31°F, and at Pine Marten it called 27–29°F precipitation rain. So `splitPrecip()` in `app.js` splits each elevation's precipitation by that elevation's model temperature: all snow at 32°F and colder, all rain at 36°F and warmer, mixed in between, with Open-Meteo's 7:1 snow-to-water ratio.
+  - It's used for preseason snowfall since Oct 1, the Snowpack tab, Fresh snow by elevation, the Base to summit tab's daily snow and rain, and `week.js`'s fallback past NWS coverage.
+  - The week's snow ranges and the 4-model comparison (one elevation, the models' own split) are unchanged.
+  - Effect on Nov 9: Bachelor's last 7 days at 7,800 ft went from 0.1" to 2.4". Season snowfall now rises with elevation at every mountain (Sun Peaks 5.3 / 6.8 / 7.0", was 4" everywhere). It matches Willamette's measured 0" base and bare base cam.
+- **Mountains:** Mt. Bachelor, Willamette Pass and Sun Peaks are all live. A switcher at the top of the page picks the mountain; see "Mountains" below.
 - **Seasons:**
   - **Mt. Bachelor** is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 9, 9pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
   - **Sun Peaks** opens **Nov 21, 2026 (scheduled)**, season to Apr 4, 2027, per the resort's Winter Hours of Operation page (checked Nov 9, 10:20pm Pacific). Preseason mode until then.
@@ -45,9 +49,8 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
   - The resort's own West Village depth appears only inside its station *image*.
 - **Open items and ideas (none in progress):**
   - **More mountains.** Add each one to `mountains.js` and verify every station, camera and elevation for it the same careful way (see "Adding a mountain" below).
-  - *Owner decisions (Nov 9, Pacific) on Sun Peaks:* build it (done, waiting to publish). The owner **won't be getting the resort's permission** to use its live readings any time soon, so don't plan on them.
+  - *Owner decisions (Nov 9, Pacific) on Sun Peaks:* build it (done and live). The owner **won't be getting the resort's permission** to use its live readings any time soon, so don't plan on them.
   - *Owner decision (Nov 9, 10pm Pacific):* **Sun Peaks' "Right now" may show model estimates** (Open-Meteo, at base, mid and summit), clearly labeled **"Model, not measured"**, because no live public station exists and the alternative is no data at all. The owner judged them reliable and precise enough (on Nov 9 they were within about 2°F of the resort's own readings). This exception covers only a mountain with no usable measured station (`nowModel: true` in `mountains.js`). If a measured source becomes usable, it replaces the estimates. Every other mountain's "Right now" stays measured-only.
-  - **Found Nov 10, not fixed (ask the owner first; it changes numbers on all mountains):** Open-Meteo's rain/snow split is **not adjusted for elevation**. At Sun Peaks on Nov 10 it gave the same 0.139" of "rain" at the base (41°F) and the summit (31°F), and the same snowfall since Oct 1 at all three elevations. So "snowfall by elevation" (the preseason chart and Snowpack tab) and `week.js`'s fallback for days past NWS coverage (`baseRain`/`midRain`) aren't truly per elevation. A possible fix: split each hour's precipitation by that elevation's own model temperature, as the new rain check does (`rainTopZone`).
   - **Willamette Pass's "Eagle Peak" cam** (YouTube `uav7cBNVv0k`) is left out: its still was black and unchanged at night on Nov 8 and in daylight on Nov 9. Re-check it in daylight; if it shows a real view, label it by what its picture shows and add it to `cams`.
   - **Post-season.** Nothing handles the end of the season yet (the site would stay in ski-day mode).
 
@@ -94,7 +97,7 @@ The page layout is identical for every mountain. **Everything that differs lives
     - Stats: 5,120 / 6,683 ft, 1,563 ft vertical, 555 acres, 430" average snowfall.
     - Lifts: Eagle Peak Accelerator (six-seat); Peak 2, Twilight, Midway, Sleepy Hollow (triples); Magic Carpet. Frontside 9–4, Peak 2 9:30–3:30.
   - **No avalanche forecast zone covers it.** Don't link one.
-- **Sun Peaks, BC, Canada: built Nov 9–10 (Pacific), not published yet** (see Handoff). The owner accepts no live station reading if none exists ("having numbers is always best, but if none exist then so be it").
+- **Sun Peaks, BC, Canada: built and live since Nov 9 (Pacific).** The owner accepts no live station reading if none exists ("having numbers is always best, but if none exist then so be it").
   - **As built** (re-verified Nov 9, 10pm Pacific):
     - Point 50.893, -119.900. Zones: Village base 4,117 ft / Mid-mountain 6,086 ft / Top of the World (Burfield summit) 6,824 ft.
     - Hourly forecast: GEM (`gem_seamless`) at mid-mountain. Its gusts are real (they equal the sustained wind only in calm hours), and it has a chance of precipitation, but no freezing level, visibility or snow level.
