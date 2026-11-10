@@ -19,20 +19,17 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 
 ## Handoff: where things stand (updated 2026-11-10)
 
-- **First job for the next session: publish the pending fixes.**
-  - GitLab `main` has commit `26b92bd`, which isn't live yet. Vercel still serves `6c27880`. The commit makes three changes:
-    - Forecaster notes: the update headline is no longer shown as fake forecaster credits.
-    - The sources table hides the shelved wind-hold estimate and lift list rows.
-    - Ski-day chips state facts, per the owner's decision (see "Audience").
-  - It passed every check on Nov 9: `node --check`, and the browser test on both mountains, desktop and phone.
-  - The production deploy was then blocked by the session's Auto-mode safety check, which doesn't treat this file's standing permission as the owner's go-ahead.
-  - The owner wants it published from a new session, with newly installed security plugins active. Run the normal Publishing steps, including a fresh browser test, then confirm the live site.
+- **Live on Vercel: commit `26b92bd`** (published Nov 9 at about 10pm Pacific, with the owner's go-ahead in the conversation). It made three changes:
+  - Forecaster notes: the update headline is no longer shown as fake forecaster credits.
+  - The sources table hides the shelved wind-hold estimate and lift list rows.
+  - Ski-day chips state facts, per the owner's decision (see "Audience").
+  - Before the deploy: `node --check`, and the browser test on both mountains, desktop and phone, both views. After it: all nine live files matched the deploy, both production addresses pointed at the new deployment, and the same browser test against the live site passed with every source loaded and no page errors. The owner's newly installed security plugins flagged nothing.
 - **Two mountains are live: Mt. Bachelor and Willamette Pass** (added Nov 9–10). A switcher at the top of the page picks the mountain; see "Mountains" below.
 - **Seasons:**
   - **Mt. Bachelor** is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 9, 9pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
   - **Willamette Pass** is closed with **no Opening Day announced** ("Opening Soon for 2026/2027!", checked Nov 9). `season: { openingDay: null, closed: true }` keeps preseason on and shows "TBA". **Set the date when they post one.**
     - Since Nov 9, 9pm, `www.willamettepass.ski` answers cloud sessions with a Cloudflare bot check (HTTP 403, "Attention Required"). Don't get around it. Ask the owner to check the resort's Hours of Operation page instead. The site's links to the resort are unaffected for visitors.
-- **Everything below is built and live** (except the pending fixes above). The last real-data check (Nov 9, 9:20pm Pacific) passed for both mountains: every source loaded with no page errors on desktop and phone. Open-Meteo dropped some requests from the sandbox (once a real 503), and the page showed its "unavailable" notes as designed.
+- **Everything below is built and live.** The last real-data check (Nov 9, 10:01pm Pacific, on the live site) passed for both mountains with every source loaded. The check before it (Nov 9, 9:20pm Pacific) also passed for both mountains: every source loaded with no page errors on desktop and phone. Open-Meteo dropped some requests from the sandbox (once a real 503), and the page showed its "unavailable" notes as designed.
 - **No scheduled check-ins or routines are pending.**
 - **Decided against: measured snow depth for Mt. Bachelor.** The owner decided on Nov 8 that the stake cam is enough. **Don't propose it again unless the owner asks.** (Willamette Pass is different: a public SNOTEL sensor sits at its base, so it shows measured depth; see Mountains.) What the Bachelor research found (Nov 8):
   - The OSU snow pillow `OSUSP` does measure snow depth and SWE every 10 minutes. It reports in bursts: 4.45" depth and 1.42" SWE at noon on Nov 7, which matched the resort's sensor.
