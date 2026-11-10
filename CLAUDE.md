@@ -34,7 +34,7 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
     - NOAA's NOHRSC doesn't carry this sensor.
   - The resort's own West Village depth appears only inside its station *image*.
 - **Open items and ideas (none in progress):**
-  - **More mountains.** Add each one to `mountains.js` and verify every station, camera and elevation for it the same careful way (see "Adding a mountain" below).
+  - **More mountains.** Add each one to `mountains.js` and verify every station, camera and elevation for it the same careful way (see "Adding a mountain" below). **Sun Peaks (BC) is researched and wanted, but not built** (see "Mountains").
   - **Willamette Pass's "Eagle Peak" cam** (YouTube `uav7cBNVv0k`) is left out: its still was black and unchanged at night on Nov 8 and in daylight on Nov 9. Re-check it in daylight; if it shows a real view, label it by what its picture shows and add it to `cams`.
   - **Post-season.** Nothing handles the end of the season yet (the site would stay in ski-day mode).
 
@@ -73,6 +73,45 @@ The page layout is identical for every mountain. **Everything that differs lives
     - Stats: 5,120 / 6,683 ft, 1,563 ft vertical, 555 acres, 430" average snowfall.
     - Lifts: Eagle Peak Accelerator (six-seat); Peak 2, Twilight, Midway, Sleepy Hollow (triples); Magic Carpet. Frontside 9–4, Peak 2 9:30–3:30.
   - **No avalanche forecast zone covers it.** Don't link one.
+- **Sun Peaks, BC, Canada: researched Nov 9–10, not built yet.** The owner wants it added. The owner accepts no live station reading if none exists ("having numbers is always best, but if none exist then so be it").
+  - **Basics** (resort's Trail Maps & Stats and Hours pages, checked Nov 9):
+    - Village base 1,255 m (4,117 ft). Mid-mountain 1,855 m (6,086 ft), the resort's own mid-mountain weather point, about the top of Sunburst Express (1,850 m). Summit "Top of the World", the top of Burfield, 2,080 m (6,824 ft).
+    - West Bowl Express tops out at 2,093 m. Mt. Tod's summit (2,152 m) is outside the boundary. Vertical 896 m (2,940 ft).
+    - Village about 50.889, -119.883. Time zone America/Vancouver.
+    - Season **Nov 21, 2026 to Apr 4, 2027 (scheduled)**.
+    - Lifts mostly 9:00 or 9:30am to 4:00pm (from Feb 1, about 30 min earlier), so the site's 9am–4pm ski day fits.
+    - The resort sends `X-Frame-Options: SAMEORIGIN`, so its lift board (`/ski-ride/weather-conditions-cams/lifts-trail-status`) can only be linked.
+  - **No NWS in Canada.** Every NWS piece (stations, hourly gridpoint, written forecast, AFD) needs a Canadian replacement or an honest "none published here".
+  - **Live measured weather: none on the mountain in winter.**
+    - BC Wildfire station CAHILTY (`BC_WMB_253`, 1,543 m, 3 km E of the village) is fire-season only. Last report Oct 31, with temperature, wind, RH and rain but no snow.
+    - ECCC SWOB and Avalanche Canada's station list have nothing else nearby but valley or highway sensors (Barriere 390 m, Squilax 366 m, Kamloops A 345 m), which don't represent the mountain.
+    - The resort's web page shows live temperature and wind for Top of the World 2,080 m, Mid-mountain 1,855 m, Top of Morrisey 1,675 m and Valley 1,255 m. The page builds them into its own HTML; there's no public feed. Use them for by-eye cross-checks only, unless the owner gets the resort's permission.
+  - **Measured snow:** ECCC climate stations on the ski area, via `api.weather.gc.ca/collections/climate-daily` (CORS `*`):
+    - SUN PEAKS LOWER `116Q20D` (1,311 m), SUN PEAKS MOUNTAIN `1168204` (1,847 m), SUN PEAKS UPPER `116QK0M` (2,055 m, about 50.902, -119.918).
+    - Daily, hand-read: SNOW_ON_GROUND (cm), TOTAL_SNOW, MAX/MIN_TEMPERATURE, TOTAL_PRECIPITATION. They have gaps and report in season only (Jan–Apr 2026; Upper read 190 cm on Mar 31). Days appear with a delay; measure it once the season starts.
+    - Good for a measured season chart, labeled with dates. Not "right now".
+  - **No regional snow-pillow reference.** BC's snow pillows (`bc-env-snow`) reach browsers only through the Datamart (`dd.weather.gc.ca`, no CORS), and the nearest, Deadman River `1C32P`, is 56 km away at 1,460 m.
+  - **Forecast:**
+    - Open-Meteo works at Sun Peaks (grid point 50.883, -119.914). On Nov 9 at 9:30pm, model temperatures at 1,255 / 1,855 / 2,080 m (2 / −2 / −3.5°C) matched the resort's readings (1 / −2 / −3°C).
+    - Canada's HRDPS 2.5 km model is available as `models=gem_hrdps_continental` (48 h; cell averages 1,692 m). It's the natural replacement for the NWS hourly gridpoint.
+    - ECCC's nearest city-page forecast is Kamloops (`bc-45`, valley, 45 km), which doesn't represent the mountain.
+    - ECCC publishes no forecast discussion (the FX bulletins are aviation tables).
+    - Avalanche Canada's written Mountain Weather Forecast is seasonal (it "has ended for the season", last issued Nov 4) and isn't in their documented API, so link it only.
+  - **Avalanche Canada:**
+    - Documented public API (`/api-docs`): `api.avalanche.ca` / `avcan-services-api.prod.avalanche.ca` (`/forecasts/{lang}/areas|metadata|products|products/point`) and `weather.prod.avalanche.ca` (`/stations`, measurements). CORS `*`.
+    - Sun Peaks sits in the single early-season BC area until regular regions start; re-check its winter region then. Link it like COAC for Bachelor.
+  - **Radar:** RainViewer covers it (echoes over Sun Peaks at 05:30 UTC Nov 10, while the Mt. Tod cam showed snow).
+  - **Cams:** nine resort stills at `https://www.sunpeaksresort.com/sites/default/files/spr_website_data/webcams/<file>.jpg`, checked Nov 9 against each picture.
+    - None has an on-image time stamp. They pause at night (last update about 5pm). They're large (up to 3840×2160, 1.6 MB). There's no snow stake cam.
+    - By caption and file: Crystal Bowl (`Wild flowers 1`) and Juniper Ridge (`Wild flowers 2`), both top of Burfield 2,080 m; Mt. Tod, view from Mt. Morrisey (`view of mt todd`, top of Morrisey Express 1,672 m); Sundance (`sundance`, top of Sundance Express 1,731 m); Elevation (`ele_view_of_morrisey`) and Base of OSV (`ele_view_of_OSV`), both at the base of the Elevation chair, 1,600 m; Village Day Lodge Slopeside, Valley, Village Clock Tower (village 1,255 m).
+    - The two Burfield-top cams are the most useful (alpine snow surface).
+  - **Roads:** no DriveBC camera or road sensor on Sun Peaks Road. The nearest are valley highway cams 16–44 km away.
+  - **Code work needed:**
+    1. A non-NWS forecast path (HRDPS/GEM hourly via Open-Meteo) for the ski-day graphics, briefing, Hour by hour and Week ahead.
+    2. An ECCC climate-daily loader for measured snow depth.
+    3. Honest "none published here" states for the live station, written forecast and forecaster notes (link Avalanche Canada's Mountain Weather Forecast).
+    4. Metric-to-imperial conversion.
+    5. Then test all three mountains.
 - **Adding a mountain:**
   1. Research and verify every station, camera, elevation and the forecast grid cell. Find the cell with `api.weather.gov/points/<lat>,<lon>` and check its elevation.
   2. Check the resort's pages for frame-blocking headers, and its cams' on-image stamps.
@@ -180,6 +219,7 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
   - `api.rainviewer.com`, `tilecache.rainviewer.com`, `tile.openstreetmap.org`, `cdnjs.cloudflare.com`
   - `ra-dar-alpha.vercel.app` (live-site checks), plus `gitlab.com`, `api.vercel.com` and `api.cloudflare.com` via saved network secrets
   - `tripcheck.com`, `i.ytimg.com`, `www.youtube.com`, `www.willamettepass.ski` (Willamette Pass cams and source checks)
+  - For Sun Peaks (added Nov 9 with the owner's approval): `api.weather.gc.ca`, `dd.weather.gc.ca`, `weather.gc.ca`, `www.sunpeaksresort.com`, `sunpeaksresort.com`, `avalanche.ca`, `www.avalanche.ca`, `api.avalanche.ca`, `www2.gov.bc.ca`, `www.env.gov.bc.ca`, `www.drivebc.ca`. Not yet allowed: `weather.prod.avalanche.ca` and `avcan-services-api.prod.avalanche.ca` (Avalanche Canada's documented station and forecast APIs).
   - plus a few used only for research (MesoWest, Synoptic, COAC, NOHRSC and others)
 - Libraries (from cdnjs): Leaflet 1.9.4, Chart.js 4.4.1.
 
