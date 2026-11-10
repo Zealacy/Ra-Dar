@@ -42,8 +42,8 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 - **Open items and ideas (none in progress):**
   - **More mountains.** Add each one to `mountains.js` and verify every station, camera and elevation for it the same careful way (see "Adding a mountain" below). **Sun Peaks (BC) is researched and wanted, but not built** (see "Mountains"). It opens Nov 21. Waiting on the owner:
     - Whether to start building it.
-    - Whether Sun Peaks' "Right now" may show model estimates at base, mid and summit, clearly labeled "Model, not measured", since no live public station exists. This bends the "measured Right now" rule, so only with the owner's yes.
     - The owner may ask the resort for permission to use its own live readings (four elevations on its web page).
+  - *Owner decision (Nov 9, 10pm Pacific):* **Sun Peaks' "Right now" may show model estimates** (Open-Meteo, at base, mid and summit), clearly labeled **"Model, not measured"**, because no live public station exists and the alternative is no data at all. The owner judged them reliable and precise enough (on Nov 9 they were within about 2°F of the resort's own readings). This exception covers only a mountain with no usable measured station. If a measured source becomes usable (for example, the resort grants permission), it replaces the estimates. Every other mountain's "Right now" stays measured-only.
   - **Willamette Pass's "Eagle Peak" cam** (YouTube `uav7cBNVv0k`) is left out: its still was black and unchanged at night on Nov 8 and in daylight on Nov 9. Re-check it in daylight; if it shows a real view, label it by what its picture shows and add it to `cams`.
   - **Post-season.** Nothing handles the end of the season yet (the site would stay in ski-day mode).
 
