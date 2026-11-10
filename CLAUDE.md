@@ -20,9 +20,10 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 
 - **Two mountains are live: Mt. Bachelor and Willamette Pass** (added Nov 9–10). A switcher at the top of the page picks the mountain; see "Mountains" below.
 - **Seasons:**
-  - **Mt. Bachelor** is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 7, 10pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
-  - **Willamette Pass** is closed with **no Opening Day announced** ("Opening Soon for 2026/2027!", checked Nov 9). `season: { openingDay: null, closed: true }` keeps preseason on and shows "TBA". **Re-check the resort's Hours of Operation page when working on the site, and set the date when they post one.**
-- **Everything below is built and live.** The last real-data check (Nov 9, 8:28pm Pacific) passed for both mountains: every source loaded with no page errors on desktop and phone.
+  - **Mt. Bachelor** is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 9, 9pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
+  - **Willamette Pass** is closed with **no Opening Day announced** ("Opening Soon for 2026/2027!", checked Nov 9). `season: { openingDay: null, closed: true }` keeps preseason on and shows "TBA". **Set the date when they post one.**
+    - Since Nov 9, 9pm, `www.willamettepass.ski` answers cloud sessions with a Cloudflare bot check (HTTP 403, "Attention Required"). Don't get around it. Ask the owner to check the resort's Hours of Operation page instead. The site's links to the resort are unaffected for visitors.
+- **Everything below is built and live.** The last real-data check (Nov 9, 9:20pm Pacific) passed for both mountains: every source loaded with no page errors on desktop and phone. Open-Meteo dropped some requests from the sandbox (once a real 503), and the page showed its "unavailable" notes as designed.
 - **No scheduled check-ins or routines are pending.**
 - **Decided against: measured snow depth for Mt. Bachelor.** The owner decided on Nov 8 that the stake cam is enough. **Don't propose it again unless the owner asks.** (Willamette Pass is different: a public SNOTEL sensor sits at its base, so it shows measured depth; see Mountains.) What the Bachelor research found (Nov 8):
   - The OSU snow pillow `OSUSP` does measure snow depth and SWE every 10 minutes. It reports in bursts: 4.45" depth and 1.42" SWE at noon on Nov 7, which matched the resort's sensor.
@@ -95,7 +96,7 @@ Good data is the backbone of this site. These rules come from mistakes the owner
 - **Approved sources**, all of which allow browser requests (CORS):
   - **NWS observations** (`api.weather.gov/stations/{id}/observations`) for ODOT Century Dr `OD131` (6,424 ft) and the OSU West Village snow pillow `OSUSP` (6,375 ft; NWS carries only its temperature, silent since Oct 31) at the base, and COAC Moon Mountain `MOONM` (7,450 ft).
     - Moon Mountain is **5 mi N of the summit, not on the ski area**. It's kept, at the owner's choice on Nov 9, because it's the only public station at upper-mountain height, and its readings track the resort's own mid-mountain sensors.
-    - Its `offSite` field in `mountains.js` makes every label say so: Right now, the preseason readout, the briefing, the charts, the station table and the sources.
+    - Its `offSite` field in `mountains.js` makes every label say so: Right now, the preseason readout, the briefing, the charts, the station table and the sources. A status chip is too short to carry that label, so off-site stations don't feed the chips (for example, the freeze-thaw chip).
     - Its thermometer sometimes drops out for a few hourly reports while wind keeps coming in. `stationStats` then uses the latest temperature only if it's within `stationMaxAgeHours` and shows that temperature's own age; otherwise the card says "no temp in 3 hrs".
   - **NWS gridpoint forecast** `PDT/23,40` (grid cell averages ~7,638 ft), its written 7-day forecast (`/forecast`), and the forecast discussions (AFD, Pendleton).
   - **Open-Meteo:** forecasts and snowfall at each elevation (base 6,300 / mid 7,800 / summit 9,065 ft); the 4-model comparison (GFS, ECMWF, GEM, ICON); and the ensembles (`ensemble-api.open-meteo.com`: GEFS 31 + ECMWF 51 runs) behind the 7-day ranges and confidence. Never show a single far-out snow number without its range and confidence.
@@ -116,6 +117,7 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 - **Don't make decisions for them:** no gear or pack lists, no "best day to go", no verdicts like "mediocre day", and no instructions ("cover exposed skin", "bring chains"). State the facts, such as the road sensor's low temperature, and leave the conclusion to the reader.
 - *Correction from the owner:* a "Pack" list was added to the briefing and then removed for this reason.
 - *Owner decision (Nov 9):* the 1–10 ski score was removed everywhere because it didn't work well, along with its one-line verdict ("Powder day", "Firm, mixed conditions") and the "Mainly because…" line. **Don't bring back a score or verdict unless the owner asks.**
+- *Owner decision (Nov 9):* **the ski-day status chips state the fact behind them, never a verdict.** "Good temps", "Soft / icy snow" and "Bitter cold" became "Highs 41–51°F" (neutral dot, not a green check), "Base above 40°F", "Freeze-thaw last 24 hrs" and "Wind chill −12°F". Keep any new chip to a plain fact.
 - *Owner decision (Nov 9):* **no lift-status data in our own graphics.** The owner cares most about weather during the season and snow during preseason. Keep showing the resort's official lift board as it is: embedded for Bachelor, or a link where a resort blocks embedding. Don't propose lift-status features unless the owner asks.
 
 ## Design preferences
