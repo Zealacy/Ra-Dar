@@ -14,16 +14,25 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
   - Saving work: commit, then `git push origin HEAD:main`. **Check `git remote -v` first:** after a container restart the harness may point `origin` back at the old GitHub address. GitLab is then the `gitlab` remote, so push with `git push gitlab HEAD:main`.
   - The tag `archive/2026-11-08-old-host-final` marks the last version published on the previous host. It's history only.
 - **GitHub is not used. Don't push there, open pull requests there, or point the owner to it.** The project started on GitHub, but GitHub locked the owner's account on Nov 8, 2026, and the old `github.io` address is dead. The owner has an appeal open; if access comes back, ask the owner before using it for anything. Don't suggest a second GitHub account, since GitHub allows one free account per person.
+  - On Nov 9 the session's automatic checkout of the GitHub repository *succeeded* (an old Nov 8 copy), so access may be back. The owner was told and kept the rule: GitLab only.
 - **Cloudflare Pages was tried and doesn't work from cloud sessions. Don't retry it.** The proxy injects the saved token into every request to `api.cloudflare.com`, overwriting the short-lived upload JWT, so asset uploads fail (code 8000013). An empty `ra-dar` Pages project and a Pages-only token remain on the owner's Cloudflare account.
 
 ## Handoff: where things stand (updated 2026-11-10)
 
+- **First job for the next session: publish the pending fixes.**
+  - GitLab `main` has commit `26b92bd`, which isn't live yet. Vercel still serves `6c27880`. The commit makes three changes:
+    - Forecaster notes: the update headline is no longer shown as fake forecaster credits.
+    - The sources table hides the shelved wind-hold estimate and lift list rows.
+    - Ski-day chips state facts, per the owner's decision (see "Audience").
+  - It passed every check on Nov 9: `node --check`, and the browser test on both mountains, desktop and phone.
+  - The production deploy was then blocked by the session's Auto-mode safety check, which doesn't treat this file's standing permission as the owner's go-ahead.
+  - The owner wants it published from a new session, with newly installed security plugins active. Run the normal Publishing steps, including a fresh browser test, then confirm the live site.
 - **Two mountains are live: Mt. Bachelor and Willamette Pass** (added Nov 9–10). A switcher at the top of the page picks the mountain; see "Mountains" below.
 - **Seasons:**
   - **Mt. Bachelor** is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 9, 9pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
   - **Willamette Pass** is closed with **no Opening Day announced** ("Opening Soon for 2026/2027!", checked Nov 9). `season: { openingDay: null, closed: true }` keeps preseason on and shows "TBA". **Set the date when they post one.**
     - Since Nov 9, 9pm, `www.willamettepass.ski` answers cloud sessions with a Cloudflare bot check (HTTP 403, "Attention Required"). Don't get around it. Ask the owner to check the resort's Hours of Operation page instead. The site's links to the resort are unaffected for visitors.
-- **Everything below is built and live.** The last real-data check (Nov 9, 9:20pm Pacific) passed for both mountains: every source loaded with no page errors on desktop and phone. Open-Meteo dropped some requests from the sandbox (once a real 503), and the page showed its "unavailable" notes as designed.
+- **Everything below is built and live** (except the pending fixes above). The last real-data check (Nov 9, 9:20pm Pacific) passed for both mountains: every source loaded with no page errors on desktop and phone. Open-Meteo dropped some requests from the sandbox (once a real 503), and the page showed its "unavailable" notes as designed.
 - **No scheduled check-ins or routines are pending.**
 - **Decided against: measured snow depth for Mt. Bachelor.** The owner decided on Nov 8 that the stake cam is enough. **Don't propose it again unless the owner asks.** (Willamette Pass is different: a public SNOTEL sensor sits at its base, so it shows measured depth; see Mountains.) What the Bachelor research found (Nov 8):
   - The OSU snow pillow `OSUSP` does measure snow depth and SWE every 10 minutes. It reports in bursts: 4.45" depth and 1.42" SWE at noon on Nov 7, which matched the resort's sensor.
@@ -34,7 +43,10 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
     - NOAA's NOHRSC doesn't carry this sensor.
   - The resort's own West Village depth appears only inside its station *image*.
 - **Open items and ideas (none in progress):**
-  - **More mountains.** Add each one to `mountains.js` and verify every station, camera and elevation for it the same careful way (see "Adding a mountain" below). **Sun Peaks (BC) is researched and wanted, but not built** (see "Mountains").
+  - **More mountains.** Add each one to `mountains.js` and verify every station, camera and elevation for it the same careful way (see "Adding a mountain" below). **Sun Peaks (BC) is researched and wanted, but not built** (see "Mountains"). It opens Nov 21. Waiting on the owner:
+    - Whether to start building it.
+    - Whether Sun Peaks' "Right now" may show model estimates at base, mid and summit, clearly labeled "Model, not measured", since no live public station exists. This bends the "measured Right now" rule, so only with the owner's yes.
+    - The owner may ask the resort for permission to use its own live readings (four elevations on its web page).
   - **Willamette Pass's "Eagle Peak" cam** (YouTube `uav7cBNVv0k`) is left out: its still was black and unchanged at night on Nov 8 and in daylight on Nov 9. Re-check it in daylight; if it shows a real view, label it by what its picture shows and add it to `cams`.
   - **Post-season.** Nothing handles the end of the season yet (the site would stay in ski-day mode).
 
@@ -239,6 +251,7 @@ The owner wants finished changes to go live without extra approval steps, and ha
      - **Never write account, team or project IDs into the repo** (the owner asked).
   5. Check the live site: confirm `https://ra-dar-alpha.vercel.app/` serves the new files, then run the Playwright test against it.
   6. Tell the owner what went live and give the link.
+- **The Auto-mode safety check can block the production deploy** (it did on Nov 9), because it doesn't count this file as the owner's go-ahead. If it blocks, don't work around it: ask the owner to say "publish it" in the conversation, or to switch the session's mode menu to "Accept edits" and approve the deploy prompt.
 - Vercel's default Deployment Protection ("all except custom domains") puts a Vercel login in front of the individual deployment URLs. The production addresses above stay public, so leave the setting alone.
 - **Limits on this permission:**
   - Never publish a change that failed its checks. Fix it, or tell the owner what's broken.
