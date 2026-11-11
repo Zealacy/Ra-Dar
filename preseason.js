@@ -78,14 +78,24 @@ function computePreseason() {
   if (!P) return null;
   const now = Date.now();
   const in7 = now + 7 * 864e5;
-  const zones = P.map((z) => {
+  // The next 7 days: the middle of the 82 ensemble runs at mid-mountain (the same number as the "Snow next 7
+  // days" tile), spread over the other elevations the way the one-model forecast spreads its snow (its rain/snow
+  // split follows each elevation). The hours keep that forecast's timing, scaled to the new total.
+  const w = ensNext7();
+  const midI = Math.max(0, P.findIndex((z) => z.zone.key === midZone().key));
+  const det = P.map((z) => z.times.reduce((a, t, k) => a + (t > now && t <= in7 ? z.snow[k] : 0), 0));
+  const share = (i) => (det[midI] >= 0.1 ? det[i] / det[midI] : i === midI ? 1 : 0);
+  const zones = P.map((z0, zi) => {
+    const coming = w ? w.p50 * share(zi) : det[zi];
+    const scale = det[zi] > 0 ? coming / det[zi] : 0;
+    const z = w ? { ...z0, snow: z0.times.map((t, k) => (t > now && t <= in7 ? z0.snow[k] * scale : z0.snow[k])) } : z0;
     let nowIdx = -1, futIdx = -1;
     z.times.forEach((t, k) => {
       if (t <= now && z.depth[k] != null) nowIdx = k;
       if (t <= in7 && z.depth[k] != null) futIdx = k;
     });
     const seasonSnow = z.times.reduce((a, t, k) => a + (t >= Date.parse(z.start + 'T00:00:00') && t <= now ? z.snow[k] : 0), 0);
-    const next7 = z.times.reduce((a, t, k) => a + (t > now && t <= in7 ? z.snow[k] : 0), 0);
+    const next7 = coming;
     const last7 = z.times.reduce((a, t, k) => a + (t <= now && t > now - 7 * 864e5 ? z.snow[k] : 0), 0);
     // Daily samples at noon for charts
     const daily = [];
@@ -102,7 +112,7 @@ function computePreseason() {
   const open = M.season.openingDay;
   const today = localParts(new Date()).date;
   const daysToOpen = open ? Math.round((Date.parse(open) - Date.parse(today)) / 864e5) : null;
-  return { zones, daysToOpen, open, week: state.weekView?.weekEns || null, start: P[0]?.start };
+  return { zones, daysToOpen, open, week: w, start: P[0]?.start };
 }
 
 // ---------------------------------------------------------------- summary card
@@ -199,7 +209,8 @@ function renderSnowfallBars(p) {
     T({ x: cx, y: bot + 28, 'text-anchor': 'middle', 'font-size': 9.5 }, `${ftFmt(z.ft)} ft`);
   });
   svgEl('line', { x1: 40, x2: W - 6, y1: bot, y2: bot, stroke: cssVar('--text-2'), 'stroke-width': 1.2 }, svg);
-  bindTip(svg, `Model snowfall at each elevation since ${since} (solid), plus the model forecast for the next 7 days (dashed). This is snow that fell, not snow on the ground: melting and wind are not counted. ${M.snowSensor ? `The ${M.snowSensor.name} snow station measures the ground.` : M.snowStake ? 'The stake cam shows the ground.' : M.snowDaily ? 'The daily climate-station reports measure the ground, in season.' : 'The cams show the ground.'}`);
+  const w = p.week;
+  bindTip(svg, `Model snowfall at each elevation since ${since} (solid), plus the next 7 days (dashed): ${w ? `the middle of ${w.n} ensemble runs at ${ftFmt(midZone().ft)} ft (80% of runs: ${r1(w.p10)}–${r1(w.p90)}"), spread over the other elevations the way the model forecast spreads its snow` : 'the model forecast'}. This is snow that fell, not snow on the ground: melting and wind are not counted. ${M.snowSensor ? `The ${M.snowSensor.name} snow station measures the ground.` : M.snowStake ? 'The stake cam shows the ground.' : M.snowDaily ? 'The daily climate-station reports measure the ground, in season.' : 'The cams show the ground.'}`);
 }
 
 // ---------------------------------------------------------------- in-depth tab
@@ -265,7 +276,7 @@ function drawSnowpackTab() {
     data: { labels: days.map((d) => nice(d.date)), datasets: [{ ...barDs(`Daily snowfall at ${ftFmt(mid.ft)} ft`, days.map((d) => mid.daily.find((x) => x.date === d.date)?.snow ?? null), '--s1'), backgroundColor: days.map((d) => (d.date > today ? color(cssVar('--s1'), 0.4) : cssVar('--s1'))) }] },
     options: chartOpts({ legend: false, yMin: 0, xTicks: 8 }),
   });
-  $('sp-lead').textContent = `Model snowfall at each elevation since ${nice(p.start)}: snow that fell, not snow on the ground (melting and wind aren't counted). Dashed and lighter parts are forecasts. ${M.text.snowDepthNote}`;
+  $('sp-lead').textContent = `Model snowfall at each elevation since ${nice(p.start)}: snow that fell, not snow on the ground (melting and wind aren't counted). Dashed and lighter parts are forecasts${p.week ? `: the model's timing, scaled to the middle of the ${p.week.n} ensemble runs (the "Snow next 7 days" number)` : ''}. ${M.text.snowDepthNote}`;
   const head = ['Date', ...p.zones.map((z) => `${zShort(z)} snowfall "`)];
   $('sp-table').innerHTML = `<thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${days.slice().reverse().map((d) => `<tr${d.date > today ? ' class="fc"' : ''}><td>${esc(new Date(d.date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }))}${d.date > today ? ' (forecast)' : ''}</td>${p.zones.map((z) => `<td>${r1(z.daily.find((x) => x.date === d.date)?.snow)}</td>`).join('')}</tr>`).join('')}</tbody>`;
 }

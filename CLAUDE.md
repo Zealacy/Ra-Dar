@@ -29,10 +29,12 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
     - The past, hours beyond the NWS forecast, and Sun Peaks keep the temperature split.
     - It's used for the "next 7 days" part of the preseason chart, the Snowpack tab, the Base to summit tab and the week fallback. The sources table says so.
     - Effect on Nov 10, next 7 days: Stevens base 5.2 to 3.4 in, Bachelor base 3.3 to 4.4 in, Willamette base 1.7 to 2.3 in. Mid and summit barely changed.
-  - **It did NOT fix the disagreement it was meant to fix, and the owner hasn't decided the next step yet.** At Stevens mid-mountain on Nov 10, the preseason chart said about +10 in this week, the 82-run tile 0–4 in (middle 1.1), and the NWS's own snowfall at its 4,879 ft cell only 0.2 in.
-    - **Cause:** the chart's "coming" comes from one forecast, Open-Meteo's default model, which was wetter and colder than the NWS. It had 1.9 in of water vs. 1.0 in, and 30–32°F vs. 35–37°F at mid-mountain during Sunday–Monday. In those hours the NWS snow level (about 4,600 ft) is below mid-mountain, so both rules call it snow.
-    - The 4 models disagreed too: American 8.5 in, European 2.0, Canadian 0, German 0. So the tile isn't wrong. The chart shows a single model's far-out snow number without its range, which breaks the rule above.
-    - **Options put to the owner:** show the 82-run middle (and range) for the chart's "coming" part; or keep it, labeled "one model" with the 82-run range beside it.
+  - **The preseason chart's "coming" part now uses the 82-run middle** (owner, Nov 10: "do whatever is most similar to the UI for the other mountains"; held with Stevens, not published). The chart looks exactly the same as before. Only the dashed "+X coming" number changed:
+    - **Why:** the snow-level rule alone didn't fix the chart/tile disagreement. At Stevens mid-mountain the chart said about +10 in, the tile 0–4 in (middle 1.2), and the NWS's own snowfall 0.2 in. The cause wasn't rain vs. snow: the chart followed one forecast (Open-Meteo's default) that was wetter and colder than the NWS (1.9 vs. 1.0 in of water; 30–32°F vs. 35–37°F).
+    - **Now:** mid-mountain "coming" = the middle of the 82 runs over the next 7 days (`ensNext7()` in `week.js`). The "Snow next 7 days" tile uses the same hours (now to 7 days ahead; it used to start at 4pm yesterday), so the two always agree.
+    - Base and summit get that number scaled by how the one-model forecast (with its elevation-aware rain/snow split) spreads snow across elevations. The Snowpack tab keeps that forecast's timing, scaled to the same totals.
+    - **Not used:** the 82 runs' own snowfall at base and summit. Requested at three heights in one call on Nov 10, it gave Willamette's base more snow than mid-mountain, and Bachelor the same at all three heights.
+    - Nov 10 results (base / mid / summit, next 7 days): Stevens +0.2 / +1.2 / +1.9 in; Bachelor +3.6 / +5.2 / +5.2; Willamette +0.6 / +2.0 / +3.4; Sun Peaks about 0.
   - **WSDOT road cams: the owner said keep them** (Nov 10), credited "© WSDOT".
   - The owner declined a private preview link of the draft (Nov 10).
 - **Live on Vercel: commit `26b92bd`** (published Nov 9 at about 10pm Pacific, with the owner's go-ahead in the conversation). It made three changes:

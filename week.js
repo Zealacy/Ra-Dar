@@ -59,6 +59,27 @@ const dayLong = (date) => new Date(date + 'T12:00').toLocaleDateString('en-US', 
 const snowWindow = (date) => [`${addDays(date, -1)}T16:00`, `${date}T16:00`]; // [start, end)
 const inSki = (key, date) => key.slice(0, 10) === date && +key.slice(11, 13) >= 9 && +key.slice(11, 13) < 16;
 
+// Snow over the next 7 days (from now) at mid-mountain, across the 82 runs: the range, the middle and the
+// chance of reaching each amount. Only at mid-mountain: the runs' own rain/snow split isn't reliable at other
+// heights (on 2026-11-10 they gave Willamette's base more snow than mid-mountain, and Bachelor the same snow
+// at all three heights).
+function ensNext7() {
+  const e = state.week?.ens;
+  if (!e?.hourly?.time) return null;
+  const off = (e.utc_offset_seconds || 0) * 1000, now = Date.now(), end = now + 7 * 864e5;
+  const times = e.hourly.time.map((t) => Date.parse(t + ':00Z') - off);
+  const runs = ensembleMembers(e, 'snowfall');
+  const idx = times.map((t, k) => (t > now && t <= end ? k : -1)).filter((k) => k >= 0);
+  if (!runs.length || idx.length < 24 * 5) return null;
+  const totals = runs.map((m) => idx.reduce((a, k) => a + (m[k] || 0), 0));
+  const tot = [...totals].sort((a, b) => a - b);
+  const p50 = pct(tot, 0.5);
+  return {
+    n: runs.length, p10: pct(tot, 0.1), p50, p90: pct(tot, 0.9),
+    chance: Object.fromEntries([1, 3, 6, 12, 24].map((th) => [th, Math.round(100 * tot.filter((v) => v >= th).length / tot.length)])),
+  };
+}
+
 // Collect member series from an Open-Meteo ensemble response: { var: [[...member values]] }
 function ensembleMembers(ens, variable) {
   const out = [];
@@ -195,16 +216,9 @@ function buildWeek() {
   const open = M.season?.openingDay;
   days.forEach((d) => { d.closed = open ? d.date < open : !!M.season?.closed; });
 
-  // Whole-week snow per ensemble run (summing each run, not the daily ranges).
-  let weekEns = null;
-  if (ensSnow.length && dates.length) {
-    const ws = snowWindow(dates[0])[0], we = snowWindow(dates[dates.length - 1])[1];
-    const idx = []; ensTimes.forEach((t, k) => { if (t >= ws && t < we) idx.push(k); });
-    if (idx.length >= 24 * 5) {
-      const tot = ensSnow.map((m) => idx.reduce((a, k) => a + (m[k] || 0), 0)).sort((a, b) => a - b);
-      weekEns = { p10: pct(tot, 0.1), p50: pct(tot, 0.5), p90: pct(tot, 0.9), chance: Object.fromEntries([1, 3, 6, 12, 24].map((th) => [th, Math.round(100 * tot.filter((v) => v >= th).length / tot.length)])) };
-    }
-  }
+  // Snow over the next 7 days at mid-mountain per ensemble run (summing each run, not the daily ranges). The same
+  // hours as the preseason chart's "coming" part, so the tile and the chart's mid-mountain bar always agree.
+  const weekEns = ensNext7();
   // Flag the snowiest day only when it clearly leads (a calculated fact, not a recommendation).
   const mid = (d) => d.ens?.p50 ?? d.snow ?? 0;
   const bySnow = [...days].sort((a, b) => mid(b) - mid(a));
