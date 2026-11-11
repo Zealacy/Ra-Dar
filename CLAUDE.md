@@ -24,6 +24,8 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 - **Mt. Spokane is built on GitLab `main` but NOT published** (Nov 10, about 10:15pm Pacific). The owner said "build" (Nov 10) after choosing Quartz Peak as regional only ("3 miles is a lil too much").
   - It passed `node --check` and the browser test on all five mountains (desktop and phone, both views), with no page errors and nothing blocked.
   - **Held for:** a daylight check of its eight YouTube cams (all showed the resort's title cards at night). Confirm each picture matches its caption, then publish when the owner says so.
+    - The owner said "check cams and publish" at 10:45pm Pacific on Nov 10, too dark to check. All 8 Mt. Spokane stills were still the resort's title cards, unchanged for an hour. The snow-stake title card is an old photo of a snowy stake: shown as the "measured" stake, it would pass an old picture off as current, so it wasn't published.
+    - A one-time check-in is scheduled for **Nov 11, 8:30am Pacific** (trigger `trig_01MCLgeZKNZ9eD3B1cCRd2sG`). It checks the Spokane and Stevens cams in daylight, then runs the checks and publishes.
   - **"Right now" shows labeled model estimates** (`nowModel: true`). The owner said (Nov 10) "if the data is sufficiently accurate include it".
     - Checked over 7 days, hour by hour, with the model at each station's own location and height: at Quartz Peak it missed by 1.7°F on average (84% of hours within 3°F); at Ragged Mountain, 2.3°F.
     - Same test as a yardstick: Stevens Pass's on-mountain station 2.4°F, its SNOTEL 2.6°F. The script is in the session scratchpad (`spokane/verify.py`); re-run it if in doubt.
