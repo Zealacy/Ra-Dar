@@ -1801,7 +1801,8 @@ async function loadAfd() {
   if (!M.nws) { renderNoAfd(); return; }
   const list = await getJSON(`https://api.weather.gov/products/types/AFD/locations/${M.nws.office}`);
   const first = list['@graph']?.[0];
-  if (!first) return;
+  // The product's own address comes from the response, so only follow it on the weather service's server.
+  if (!first || !/^https:\/\/api\.weather\.gov\/products\/[\w-]+$/.test(first['@id'] || '')) return;
   const prod = await getJSON(first['@id']);
   renderAfd(prod);
 }
@@ -1884,7 +1885,9 @@ async function initRadar() {
   L.circleMarker([M.lat, M.lon], { radius: 7, color: '#fff', weight: 2, fillColor: cssVar('--s2'), fillOpacity: 1 }).addTo(map).bindPopup(M.name);
   try {
     const data = await getJSON('https://api.rainviewer.com/public/weather-maps.json');
-    radarFrames = data.radar.past;
+    // Tile addresses are built from the response, so only use RainViewer's own tile server and path format.
+    if (!/^https:\/\/[a-z0-9-]+\.rainviewer\.com$/.test(data.host || '')) throw new Error('unexpected radar host');
+    radarFrames = (data.radar?.past || []).filter((f) => /^\/v2\/radar\/[\w-]+$/.test(f.path || ''));
     radarLayers = radarFrames.map((f) => L.tileLayer(`${data.host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, { opacity: 0, maxNativeZoom: 7, maxZoom: 12, attribution: 'Radar &copy; RainViewer' }).addTo(map));
     radarPos = radarFrames.length - 1;
     showRadarFrame(radarPos);

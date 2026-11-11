@@ -141,7 +141,7 @@ The page layout is identical for every mountain. **Everything that differs lives
   - **Mountain picture fix that came with it:** Sun Peaks' mid-mountain is only 738 ft below the summit, so the temperature boxes overlapped, and its freezing level ran just under the summit. Now boxes that would overlap are pushed apart, and a line label with no room goes to the open sky at the top left with a dashed sample. The old "compact label" fallback could never run because of a `??` default; that's fixed. Layouts that already fit don't move (Bachelor checked against the live version).
 - **Adding a mountain:**
   1. Research and verify every station, camera, elevation and the forecast grid cell. Find the cell with `api.weather.gov/points/<lat>,<lon>` and check its elevation.
-  2. Check the resort's pages for frame-blocking headers, and its cams' on-image stamps.
+  2. Check the resort's pages for frame-blocking headers, and its cams' on-image stamps. Add every new host to the Content Security Policy in `index.html`.
   3. Add a block to `mountains.js`.
   4. Test both views on desktop and phone for **every** mountain, since shared code changes affect all of them.
 
@@ -176,6 +176,20 @@ Good data is the backbone of this site. These rules come from mistakes the owner
   - **RainViewer** radar; OpenStreetMap tiles.
   - **Mt. Bachelor:** webcams and the station graphic (public image URLs), the official Lift & Trail Status page (embedded), and the Mountain Stats page (the lift list).
 - **Lifts:** there is no public live lift-status feed at either resort. The notes below are for Mt. Bachelor; Willamette Pass's board can only be linked. The resort's feed is the private API, and Liftie sits behind a Cloudflare bot check. The per-lift wind-hold **estimate** is **shelved** (`features.liftEstimate: false` in `mountains.js`): the owner found it confusing and didn't want to send people to the wrong area. **Don't bring it back unless the owner asks.** The Lifts tab shows only the resort's official board, embedded and shifted up by `liftStatusOffsetPx` (1040) so it opens at the lift list. If the resort redesigns that page, re-measure the offset. `season.openingDay` is set by hand from the official page, so re-check it when working on the site. Their board counts 14 lifts (including 2 surface carpets); the stats list in `mountains.js` has the 12 chairlifts.
+
+## Security (reviewed Nov 10, 2026)
+
+- **Review, Nov 10:** the owner asked for a full security review. The Claude Security plugin's full scan couldn't run in that session (it needs the Workflow tool), and the `security-review` skill covers only diffs, so the whole codebase was reviewed by hand.
+  - Every `innerHTML` sink was traced: outside data is either escaped with `esc()` or turned into a number (`r0`/`r1`/`ftFmt`, and math such as `(dir + 180) % 360`, which makes bad input NaN).
+  - No secrets or Vercel IDs are anywhere in the git history. Every `target="_blank"` link has `rel="noopener"`. `?mtn=` only accepts real keys (`Object.hasOwn`).
+  - No vulnerability was found. Four hardening fixes went live (below).
+- **Content Security Policy** (a `<meta>` tag at the top of `index.html`): the only hosts the page may load scripts, data, images and frames from.
+  - **When adding a mountain or source, add its hosts there**, or they'll be blocked: `connect-src` for data, `img-src` for cams and tiles, `frame-src` for embeds.
+  - Test for violations by listening for `securitypolicyviolation` in Playwright. A test injecting `<img onerror>` and an outside script was blocked.
+  - Style attributes are inline, so styles allow `'unsafe-inline'`. There are no inline scripts or `on…=` handlers; keep it that way.
+- **Subresource Integrity** on Leaflet and Chart.js: they now load `leaflet.js`, `leaflet.css` and `chart.umd.js`, whose cdnjs copies are byte-identical to the npm packages. The hashes were checked against both. If you change a version, recompute the hash from the npm package. (cdnjs re-minifies its `.min` files, so those can't be checked against npm.)
+- **Data-built URLs are allowlisted:** the AFD product `@id` must be `https://api.weather.gov/products/…`, and RainViewer's tile host must be `*.rainviewer.com`, with paths `/v2/radar/…`.
+- **The owner wants to be told before publishing whenever the security plugins flag something.**
 
 ## Units
 
