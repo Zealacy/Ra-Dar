@@ -16,6 +16,8 @@
 // A cam with `video` (a player page) shows its still and opens that page in a new tab for live video.
 // `snowStake` can be a still (`src`) or a YouTube stream (`youtube`), like any cam.
 // `season.projected: true` says "projected" instead of "scheduled" for an Opening Day the resort calls projected.
+// `draft: true` keeps a finished mountain off the site (out of the switcher and unreachable by ?mtn=)
+// until it's ready to publish. Set it to false to test the mountain locally.
 
 const MOUNTAINS = {
   bachelor: {
@@ -272,8 +274,8 @@ const MOUNTAINS = {
     // own names only: RE-CHECK IN DAYLIGHT and describe what each picture shows. The two base cams
     // were checked against their pictures. Washington DOT's cams carry their own name and time stamp.
     cams: [
-      { name: 'Skyline (resort cam)', why: 'Resort camera named for the Skyline Express lift. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/stevenspassskyline', video: 'https://player.brownrice.com/embed/stevenspassskyline' },
-      { name: 'Jupiter (resort cam)', why: 'Resort camera named for the Jupiter Express lift. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/stevenspassjupiter', video: 'https://player.brownrice.com/embed/stevenspassjupiter' },
+      { name: 'Skyline (resort cam)', why: 'Resort camera high on the front side, looking down across the ski area toward the valley: snow cover on the upper runs and cloud below. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/stevenspassskyline', video: 'https://player.brownrice.com/embed/stevenspassskyline' },
+      { name: 'Jupiter (resort cam)', why: 'Resort camera named for the Jupiter Express lift, on the back side: a close view of a lift building and the ground around it, good for snow on the ground and visibility. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/stevenspassjupiter', video: 'https://player.brownrice.com/embed/stevenspassjupiter' },
       { name: 'Ski & Snowboard School (base)', why: 'Resort camera at the base, looking at the bottom of a chairlift and the lower slope: snow on the ground at the bottom of the mountain.', src: 'https://player.brownrice.com/snapshot/stevenspassschool', video: 'https://player.brownrice.com/embed/stevenspassschool' },
       { name: 'Courtyard (base area)', why: 'Resort camera over the base-area courtyard and lodges: what is falling at base level.', src: 'https://player.brownrice.com/snapshot/stevenspasscourtyard', video: 'https://player.brownrice.com/embed/stevenspasscourtyard' },
       { name: 'US 2 at the summit, east side', why: 'Highway 2 at Stevens Pass (4,061 ft), by the ski area: the road and what is falling at the pass. © WSDOT.', src: 'https://images.wsdot.wa.gov/nc/002vc06458.jpg', small: true },
@@ -309,6 +311,8 @@ const MOUNTAINS = {
   },
 
   spokane: {
+    // Held back on Nov 11: all 8 resort streams, the snow stake included, still showed title cards in daylight.
+    draft: true,
     name: 'Mt. Spokane',
     region: 'Selkirk Mountains, Mount Spokane State Park · Washington, USA',
     // A point on the ski area between the base lodge and the summit. Open-Meteo uses one grid cell
@@ -489,3 +493,6 @@ const MOUNTAINS = {
     },
   },
 };
+
+// Mountains marked `draft` aren't published (see the note at the top).
+for (const k of Object.keys(MOUNTAINS)) if (MOUNTAINS[k].draft) delete MOUNTAINS[k];
