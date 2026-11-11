@@ -44,6 +44,39 @@ function splitPrecip(precip, temp) {
   });
   return { snow, rain };
 }
+// Where the National Weather Service forecasts a snow level (its forecasters' number), that decides rain or
+// snow at each elevation for the hours it covers: all snow 500 ft or more above it, all rain 500 ft or more
+// below, a mix in between. Other hours (the past, beyond its forecast, Canada) keep the temperature split.
+const LEVEL_BAND_FT = 500;
+function splitWithLevel(times, precip, temp, ft, levels) {
+  const out = splitPrecip(precip, temp);
+  times.forEach((t, i) => {
+    const L = levels.get(+t);
+    if (L == null) return;
+    const w = precip[i] || 0, share = clamp((ft - (L - LEVEL_BAND_FT)) / (2 * LEVEL_BAND_FT), 0, 1);
+    out.snow[i] = w * share * SNOW_RATIO;
+    out.rain[i] = w * (1 - share);
+  });
+  return out;
+}
+// Per-day sums of an hourly series in an Open-Meteo response (local dates).
+const sumByDay = (d, arr) => d.daily.time.map((day) => d.hourly.time.reduce((a, t, k) => a + (t.startsWith(day) ? arr[k] : 0), 0));
+// Runs once every source has loaded (the snow level comes from the NWS forecast, which loads in parallel).
+// Recomputes from the raw precipitation and temperature each time, so running it again changes nothing.
+function applySnowLevel() {
+  const levels = new Map();
+  (state.nws?.rows || []).forEach((r) => { if (r.snowLevel != null) levels.set(+r.t, r.snowLevel); });
+  if (!levels.size) return;
+  (state.elev || []).forEach((d) => {
+    const split = splitWithLevel(d.times, d.hourly.precipitation, d.hourly.temperature_2m, d.zone.ft, levels);
+    d.hourly.snowfall = split.snow;
+    d.hourly.rain = split.rain;
+    d.daily.snowfall_sum = sumByDay(d, split.snow);
+    d.daily.rain_sum = sumByDay(d, split.rain);
+  });
+  (state.pre || []).forEach((z) => { z.snow = splitWithLevel(z.times, z.precip, z.temp, z.zone.ft, levels).snow; });
+  if (state.elev) renderElevTable(state.elev);
+}
 const AWDB ='https://wcc.sc.egov.usda.gov/awdbRestApi/services/v1';
 const DATA_REFRESH_MS = 10 * 60 * 1000;
 const CAM_REFRESH_MS = 5 * 60 * 1000;
@@ -550,9 +583,8 @@ async function loadElevation() {
     const split = splitPrecip(d.hourly.precipitation, d.hourly.temperature_2m);
     d.hourly.snowfall = split.snow;
     d.hourly.rain = split.rain;
-    const byDay = (arr) => d.daily.time.map((day) => d.hourly.time.reduce((a, t, k) => a + (t.startsWith(day) ? arr[k] : 0), 0));
-    d.daily.snowfall_sum = byDay(split.snow);
-    d.daily.rain_sum = byDay(split.rain);
+    d.daily.snowfall_sum = sumByDay(d, split.snow);
+    d.daily.rain_sum = sumByDay(d, split.rain);
     // Open-Meteo returns local wall-clock times for the requested zone; convert using its offset.
     const off = d.utc_offset_seconds * 1000;
     const times = d.hourly.time.map((t) => new Date(Date.parse(t + ':00Z') - off));
@@ -1961,7 +1993,7 @@ function renderSources() {
       : ['Hourly forecast', FC.name, 'Forecast (model)', `No National Weather Service here. Raw model output at mid-mountain elevation (${ftFmt(midZone().ft)} ft), with no snow-level or visibility forecast; rain vs. snow comes from each elevation's model temperature.`],
     ['Preseason snowpack', 'Open-Meteo model snowfall at each elevation', 'Model', sn ? 'An estimate of snow that fell, not snow on the ground. Measured depth comes from the snow station above.' : sd ? 'An estimate of snow that fell, not snow on the ground. Measured depth comes from the daily climate-station reports above, in season.' : 'An estimate of snow that fell, not snow on the ground. No snow-depth sensor on the mountain publishes data this site can use, so it is shown beside the snow stake cam.'],
     ['7-day forecast', `${FC.official ? 'NWS official forecast + ' : ''}GFS, ECMWF, GEM, ICON models + GEFS (31) and ECMWF (51) ensemble runs, via Open-Meteo`, 'Forecast', 'Ranges show where 80% of the 82 ensemble runs land. Confidence comes from how much the runs and models disagree. Accuracy drops after about day 3.'],
-    ['Base-to-summit forecast & new-snow estimate', M.text.elevSource || 'Open-Meteo, blending NOAA and European models', 'Forecast / Model', 'Model data adjusted to each elevation. Rain and snow are split by each elevation\'s own model temperature (snow at 32°F and colder, rain at 36°F and warmer). New-snow totals are estimates, not measurements.'],
+    ['Base-to-summit forecast & new-snow estimate', M.text.elevSource || 'Open-Meteo, blending NOAA and European models', 'Forecast / Model', `Model data adjusted to each elevation. Rain or snow at each elevation: ${M.nws ? 'the NWS forecast snow level where it covers the hours (snow 500 ft above it, rain 500 ft below, mixed between); otherwise ' : ''}each elevation\'s own model temperature (snow at 32°F and colder, rain at 36°F and warmer). New-snow totals are estimates, not measurements.`],
     // The lift list and the wind-hold estimate appear only when the estimate is switched on (it is shelved).
     M.features?.liftEstimate && M.lifts?.length && ['Lift list & stats', `${M.name} (official Mountain Stats page)`, 'Reference', 'Names, types, lengths, vertical rise.'],
     ['Official lift status', `${M.name} lift & trail page (${M.liftStatusEmbed ? 'embedded' : 'linked; the resort blocks embedding'})`, 'Live', 'Published by the resort, including maintenance and staffing closures.'],
@@ -2050,6 +2082,7 @@ async function refreshData() {
     ...(preseasonActive() ? [run('pre', loadPreseason)] : []),
     loadAfd().catch((e) => console.error('afd', e)),
   ]);
+  applySnowLevel();
   state.call = computeCall();
   renderCall(state.call);
   try { state.weekView = buildWeek(); renderWeekStrip(state.weekView); } catch (e) { console.error('week', e); renderWeekStrip(null); }

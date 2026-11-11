@@ -24,10 +24,17 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
   - It passed `node --check` and the browser test on all four mountains (desktop and phone, both views), with no page errors and nothing blocked by the Content Security Policy.
   - The commit also changes shared code, so publishing it changes the live mountains too: the phone header (the mountain row scrolls and fades at the edge), the forecaster-notes parser (two fixes), and the cam player button.
   - **Before publishing, in daylight:** look at the resort's "Skyline" and "Jupiter" cams. They were dark and rain-smeared at 8:30pm, so they carry the resort's names only. Describe what each picture shows and where it looks (see "Mountains").
-  - **Told to the owner, waiting for a decision (affects every mountain):** the page's two snow forecasts disagree when temperatures are near freezing. On Nov 10 at Stevens, mid-mountain, the chart's "+10.3 in coming" (our split by temperature) sat next to the tile's "0–4 in" (82 ensemble runs).
-    - The ensemble and 4-model snowfall is Open-Meteo's own rain/snow split, which isn't adjusted for elevation: its members showed 0 in of snow in wet hours at 32.6–34.5°F. Over 8 days it gave a median of 1.5 in; the same members split by temperature gave 6.5 in.
-    - The temperature split can be too snowy when cold air pools at a pass under warm air (Stevens that day: 33–36°F measured at 5,180 ft while the NWS put the snow level near 6,000 ft, and the stake board looked almost clean).
-    - Options put to the owner: use the NWS snow level to decide rain vs. snow where NWS covers the hours; apply the temperature split to the ensemble runs too; or leave both and label the difference.
+  - **NWS snow level now decides rain vs. snow (owner said yes, Nov 10; held with Stevens, not published).** In `app.js`, `applySnowLevel()` runs after every source loads.
+    - Where the NWS forecast covers the hours, each elevation's precipitation is snow 500 ft or more above the NWS snow level, rain 500 ft or more below it, and mixed in between (`splitWithLevel`, `LEVEL_BAND_FT`).
+    - The past, hours beyond the NWS forecast, and Sun Peaks keep the temperature split.
+    - It's used for the "next 7 days" part of the preseason chart, the Snowpack tab, the Base to summit tab and the week fallback. The sources table says so.
+    - Effect on Nov 10, next 7 days: Stevens base 5.2 to 3.4 in, Bachelor base 3.3 to 4.4 in, Willamette base 1.7 to 2.3 in. Mid and summit barely changed.
+  - **It did NOT fix the disagreement it was meant to fix, and the owner hasn't decided the next step yet.** At Stevens mid-mountain on Nov 10, the preseason chart said about +10 in this week, the 82-run tile 0–4 in (middle 1.1), and the NWS's own snowfall at its 4,879 ft cell only 0.2 in.
+    - **Cause:** the chart's "coming" comes from one forecast, Open-Meteo's default model, which was wetter and colder than the NWS. It had 1.9 in of water vs. 1.0 in, and 30–32°F vs. 35–37°F at mid-mountain during Sunday–Monday. In those hours the NWS snow level (about 4,600 ft) is below mid-mountain, so both rules call it snow.
+    - The 4 models disagreed too: American 8.5 in, European 2.0, Canadian 0, German 0. So the tile isn't wrong. The chart shows a single model's far-out snow number without its range, which breaks the rule above.
+    - **Options put to the owner:** show the 82-run middle (and range) for the chart's "coming" part; or keep it, labeled "one model" with the 82-run range beside it.
+  - **WSDOT road cams: the owner said keep them** (Nov 10), credited "© WSDOT".
+  - The owner declined a private preview link of the draft (Nov 10).
 - **Live on Vercel: commit `26b92bd`** (published Nov 9 at about 10pm Pacific, with the owner's go-ahead in the conversation). It made three changes:
   - Forecaster notes: the update headline is no longer shown as fake forecaster credits.
   - The sources table hides the shelved wind-hold estimate and lift list rows.

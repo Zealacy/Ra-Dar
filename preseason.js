@@ -67,8 +67,9 @@ async function loadPreseason() {
     const times = d.hourly.time.map((t) => new Date(Date.parse(t + ':00Z') - off));
     const unit = d.hourly_units?.snow_depth;
     const toIn = (v) => (v == null ? null : unit === 'm' ? v * 39.3701 : unit === 'ft' ? v * 12 : unit === 'cm' ? v / 2.54 : v);
-    // Snow at this elevation: its precipitation split by its own model temperature (see splitPrecip in app.js).
-    return { zone: M.zones[i], times, keys: d.hourly.time, depth: (d.hourly.snow_depth || []).map(toIn), snow: splitPrecip(d.hourly.precipitation, d.hourly.temperature_2m).snow, start };
+    // Snow at this elevation: its precipitation split by its own model temperature (see splitPrecip in app.js);
+    // where the NWS forecasts a snow level, applySnowLevel() redoes the hours it covers.
+    return { zone: M.zones[i], times, keys: d.hourly.time, depth: (d.hourly.snow_depth || []).map(toIn), precip: d.hourly.precipitation, temp: d.hourly.temperature_2m, snow: splitPrecip(d.hourly.precipitation, d.hourly.temperature_2m).snow, start };
   });
 }
 
