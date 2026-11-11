@@ -94,7 +94,9 @@ function computePreseason() {
       if (t <= now && z.depth[k] != null) nowIdx = k;
       if (t <= in7 && z.depth[k] != null) futIdx = k;
     });
-    const seasonSnow = z.times.reduce((a, t, k) => a + (t >= Date.parse(z.start + 'T00:00:00') && t <= now ? z.snow[k] : 0), 0);
+    // From the mountain's own midnight on the start date (its local time stamps, not the viewer's clock); the
+    // 00:00 stamp is the last hour of the day before.
+    const seasonSnow = z.times.reduce((a, t, k) => a + (z.keys[k] > `${z.start}T00:00` && t <= now ? z.snow[k] : 0), 0);
     const next7 = coming;
     const last7 = z.times.reduce((a, t, k) => a + (t <= now && t > now - 7 * 864e5 ? z.snow[k] : 0), 0);
     // Daily samples at noon for charts

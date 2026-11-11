@@ -69,8 +69,8 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
   - **Stevens Pass** has **no Opening Day announced**: the resort's Hours of Operation page lists "Winter 2026/27: Skiing & Riding TBD" (checked Nov 10). `season: { openingDay: null, closed: true }` keeps preseason on. **Set the date when they post one.**
   - **Mt. Bachelor** is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 9, 9pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
   - **Sun Peaks** opens **Nov 21, 2026 (scheduled)**, season to Apr 4, 2027, per the resort's Winter Hours of Operation page (checked Nov 9, 10:20pm Pacific). Preseason mode until then.
-  - **Willamette Pass** is closed with **no Opening Day announced** ("Opening Soon for 2026/2027!", checked Nov 9). `season: { openingDay: null, closed: true }` keeps preseason on and shows "TBA". **Set the date when they post one.**
-    - Since Nov 9, 9pm, `www.willamettepass.ski` answers cloud sessions with a Cloudflare bot check (HTTP 403, "Attention Required"). Don't get around it. Ask the owner to check the resort's Hours of Operation page instead. The site's links to the resort are unaffected for visitors.
+  - **Willamette Pass** opens **Dec 11, 2026 (scheduled)**: the resort's home page headline reads "Scheduled Opening Date: December 11!" (page last edited Nov 5 UTC; found in the Nov 10 audit). Its Hours of Operation page, last edited Oct 9, still said "Opening Soon for 2026/2027!", so check the home page too.
+    - Its site blocked cloud sessions with a Cloudflare bot check (HTTP 403) from Nov 9, 9pm, but answered normally on Nov 10 at 11pm. If it blocks again, don't get around it: ask the owner to check the resort's pages.
 - **Everything below is built and live.** The last real-data check (Nov 9, 10:01pm Pacific, on the live site) passed for both mountains with every source loaded. The check before it (Nov 9, 9:20pm Pacific) also passed for both mountains: every source loaded with no page errors on desktop and phone. Open-Meteo dropped some requests from the sandbox (once a real 503), and the page showed its "unavailable" notes as designed.
 - **No scheduled check-ins or routines are pending.**
 - **Decided against: measured snow depth for Mt. Bachelor.** The owner decided on Nov 8 that the stake cam is enough. **Don't propose it again unless the owner asks.** (Willamette Pass is different: a public SNOTEL sensor sits at its base, so it shows measured depth; see Mountains.) What the Bachelor research found (Nov 8):
@@ -253,6 +253,38 @@ Good data is the backbone of this site. These rules come from mistakes the owner
   - **RainViewer** radar; OpenStreetMap tiles.
   - **Mt. Bachelor:** webcams and the station graphic (public image URLs), the official Lift & Trail Status page (embedded), and the Mountain Stats page (the lift list).
 - **Lifts:** there is no public live lift-status feed at either resort. The notes below are for Mt. Bachelor; Willamette Pass's board can only be linked. The resort's feed is the private API, and Liftie sits behind a Cloudflare bot check. The per-lift wind-hold **estimate** is **shelved** (`features.liftEstimate: false` in `mountains.js`): the owner found it confusing and didn't want to send people to the wrong area. **Don't bring it back unless the owner asks.** The Lifts tab shows only the resort's official board, embedded and shifted up by `liftStatusOffsetPx` (1040) so it opens at the lift list. If the resort redesigns that page, re-measure the offset. `season.openingDay` is set by hand from the official page, so re-check it when working on the site. Their board counts 14 lifts (including 2 surface carpets); the stats list in `mountains.js` has the 12 chairlifts.
+
+## Data audit (Nov 10, 2026, 11pm Pacific)
+
+The owner asked for every number to be double-checked ("we cant be having shoddy numbers").
+
+- **Method:** for each mountain, the page was loaded and every raw response it received was saved. A separate program, written from the definitions rather than the site's code, recomputed every displayed number and compared it with the page's:
+  - hourly forecast rows and unit conversions
+  - station readings (latest, 24-hour high and low, gusts, freshness)
+  - SNOTEL depth, change and water content
+  - elevation temperatures in the 9am–4pm window, freezing level, and the rain/snow split
+  - fresh snow over 24 and 72 hours
+  - the ski-day summary (gusts, wind direction, cloud, visibility, wind chill, snow to 4pm)
+  - 82-run ranges, chances and the 4 models per ski day
+  - the next-7-days tile
+  - the preseason chart (since Oct 1, last 7 days, coming)
+  - model Right now, and ECCC daily reports
+
+  The scripts are in the session scratchpad (`audit/capture.js`, `audit.py`, `meta.py`). **Re-run them after any change to how numbers are computed.**
+- **Config checked against the sources' records:** every station, SNOTEL and ECCC elevation matches its owner's record exactly. Each NWS cell's height matches its comment.
+- **Fixed:**
+  1. **Sun Peaks' time zone.** British Columbia stopped changing its clocks on Nov 1, 2026 and stays on UTC−7 (tz database 2026e; Open-Meteo and the resort's own page times agree). Browsers with older time-zone data still put `America/Vancouver` on UTC−8, which shifted every Sun Peaks time and its 9am–4pm window by an hour. Sun Peaks now uses `Etc/GMT+7` (that's UTC−7). **If BC ever changes its clocks again, revisit this.**
+  2. **Open-Meteo hours are stamped at their end** (the 4pm value is 3–4pm); the NWS stamps the start.
+     - The ski day's 4pm-to-4pm snow (82 runs and 4 models) now counts the hours stamped after 16:00 the day before, up to 16:00 (`t > ws && t <= we`).
+     - Ensemble gusts and the week's model fallback use `inSkiEnd` (stamps 10:00–16:00).
+     - The NWS snow level applied to Open-Meteo precipitation now uses the hour the precipitation fell in.
+  3. **Preseason "since Oct 1"** now starts at the mountain's own midnight (from its local time stamps), not the viewer's.
+  4. **Willamette Pass Opening Day:** Dec 11 (scheduled), replacing "TBA".
+  5. **Regional snow-station distances** are all measured from each mountain's point (`lat`/`lon`), and the table column says "Miles from ski area". A few moved by 0.1–0.5 mi.
+- **Checked and left alone:**
+  - Mt. Spokane's site point falls in NWS cell 152,100 (4,144 ft, base height). The config uses 152,101 (4,806 ft, holds the summit) on purpose, as nearer mid-mountain.
+  - The date labels that use the viewer's clock (`new Date(date + 'T12:00')`) only name a calendar day, which is right in any time zone.
+  - For hours before Nov 1, Open-Meteo responses carry a single UTC offset, so past hours from before the clock change are shifted an hour. That only moves Oct snow between neighboring hours, never the totals.
 
 ## Security (reviewed Nov 10, 2026)
 

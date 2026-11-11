@@ -51,7 +51,8 @@ const LEVEL_BAND_FT = 500;
 function splitWithLevel(times, precip, temp, ft, levels) {
   const out = splitPrecip(precip, temp);
   times.forEach((t, i) => {
-    const L = levels.get(+t);
+    // Precipitation stamped at t fell in the hour before t; the NWS snow level is stamped at its hour's start.
+    const L = levels.get(+t - 3600e3) ?? levels.get(+t);
     if (L == null) return;
     const w = precip[i] || 0, share = clamp((ft - (L - LEVEL_BAND_FT)) / (2 * LEVEL_BAND_FT), 0, 1);
     out.snow[i] = w * share * SNOW_RATIO;
@@ -310,7 +311,7 @@ function snotelStats(s) {
 }
 
 function renderSnotelTable(stations) {
-  const head = ['Station', 'Elev ft', 'Miles', 'Depth "', '24h Δ"', '48h Δ"', '72h Δ"', 'SWE "', '24h ΔSWE', '72h ΔSWE', 'SWE % med', 'Density 72h', 'Temp °F', '24h Hi/Lo', 'Precip 24h"', 'Reported'];
+  const head = ['Station', 'Elev ft', 'Miles from ski area', 'Depth "', '24h Δ"', '48h Δ"', '72h Δ"', 'SWE "', '24h ΔSWE', '72h ΔSWE', 'SWE % med', 'Density 72h', 'Temp °F', '24h Hi/Lo', 'Precip 24h"', 'Reported'];
   const rows = stations.map((s) => {
     const x = s.stats;
     const med = s.daily.WTEQ?.last;

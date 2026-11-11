@@ -58,6 +58,10 @@ const dayName = (date) => {
 const dayLong = (date) => new Date(date + 'T12:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 const snowWindow = (date) => [`${addDays(date, -1)}T16:00`, `${date}T16:00`]; // [start, end)
 const inSki = (key, date) => key.slice(0, 10) === date && +key.slice(11, 13) >= 9 && +key.slice(11, 13) < 16;
+// Open-Meteo stamps an hourly sum or maximum (snowfall, rain, gusts) at the END of its hour, so 9am-4pm is the
+// hours stamped 10:00 to 16:00, and a 4pm-to-4pm ski day is the hours stamped after 16:00 the day before, up to
+// and including 16:00. (The NWS stamps the start of the hour, so its rows use inSki and [start, end).)
+const inSkiEnd = (key, date) => key.slice(0, 10) === date && +key.slice(11, 13) > 9 && +key.slice(11, 13) <= 16;
 
 // Snow over the next 7 days (from now) at mid-mountain, across the 82 runs: the range, the middle and the
 // chance of reaching each amount. Only at mid-mountain: the runs' own rain/snow split isn't reliable at other
@@ -132,9 +136,9 @@ function buildWeek() {
     // Ensemble: per-member snow for the ski day, high temp, peak ski-hour gust
     const idxSnow = [], idxDay = [], idxSki = [];
     ensTimes.forEach((t, k) => {
-      if (t >= ws && t < we) idxSnow.push(k);
+      if (t > ws && t <= we) idxSnow.push(k);
       if (t.slice(0, 10) === date) idxDay.push(k);
-      if (inSki(t, date)) idxSki.push(k);
+      if (inSkiEnd(t, date)) idxSki.push(k);
     });
     // Today's window has partly passed, so accept the remaining hours for day 0.
     const complete = idxSnow.length >= (i === 0 ? 6 : 20);
@@ -154,7 +158,7 @@ function buildWeek() {
       const arr = W.models?.hourly?.[`snowfall_${m.key}`];
       if (!arr) return { ...m, snow: null };
       let s = 0, n = 0;
-      mTimes.forEach((t, k) => { if (t >= ws && t < we && arr[k] != null) { s += arr[k]; n++; } });
+      mTimes.forEach((t, k) => { if (t > ws && t <= we && arr[k] != null) { s += arr[k]; n++; } });
       return { ...m, snow: n >= (i === 0 ? 6 : 20) ? s : null };
     });
 
@@ -182,11 +186,13 @@ function buildWeek() {
       d.condSource = FC.short;
     } else if (elev?.[1]) {
       const z = elev[1], b = elev[0];
-      const idx = z.times.map((t, k) => [localKey(t), k]).filter(([k]) => inSki(k, date)).map(([, k]) => k);
-      d.gust = d.ens?.gust50 ?? (idx.length ? Math.max(...idx.map((k) => z.hourly.wind_gusts_10m[k] ?? 0)) : null);
+      const keys = z.times.map((t, k) => [localKey(t), k]);
+      const idx = keys.filter(([k]) => inSki(k, date)).map(([, k]) => k); // cloud cover: a value at each hour
+      const idxEnd = keys.filter(([k]) => inSkiEnd(k, date)).map(([, k]) => k); // gusts and rain: the hour before
+      d.gust = d.ens?.gust50 ?? (idxEnd.length ? Math.max(...idxEnd.map((k) => z.hourly.wind_gusts_10m[k] ?? 0)) : null);
       d.sky = idx.length && z.hourly.cloud_cover ? avg(idx.map((k) => z.hourly.cloud_cover[k] ?? 0)) : null;
-      const baseRain = idx.reduce((a, k) => a + (b.hourly.rain?.[k] || 0), 0);
-      const midRain = idx.reduce((a, k) => a + (z.hourly.rain?.[k] || 0), 0);
+      const baseRain = idxEnd.reduce((a, k) => a + (b.hourly.rain?.[k] || 0), 0);
+      const midRain = idxEnd.reduce((a, k) => a + (z.hourly.rain?.[k] || 0), 0);
       d.wetIn = baseRain + midRain;
       d.snowLevel = midRain > 0.02 ? M.zones[1].ft + 500 : baseRain > 0.02 ? M.zones[0].ft + 500 : null;
       d.condSource = 'models';

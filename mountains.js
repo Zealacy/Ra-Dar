@@ -165,9 +165,10 @@ const MOUNTAINS = {
     snowSensor: { id: '388:OR:SNTL', name: 'Cascade Summit', operator: 'USDA NRCS SNOTEL', ft: 5100, mi: 1.4, where: '1.4 mi W of the base area, at base elevation', maxAgeHours: 6 },
     // Regional reference only (collapsed in Live readings); never feeds the summary.
     snotel: [
-      { id: '729:OR:SNTL', name: 'Salt Creek Falls', ft: 4220, mi: 4.2 },
-      { id: '660:OR:SNTL', name: 'New Crescent Lake', ft: 4910, mi: 6.7 },
-      { id: '801:OR:SNTL', name: 'Summit Lake', ft: 5610, mi: 11.6 },
+      // Distances from this mountain's point above (re-measured 2026-11-10 from the NRCS station records).
+      { id: '729:OR:SNTL', name: 'Salt Creek Falls', ft: 4220, mi: 4.6 },
+      { id: '660:OR:SNTL', name: 'New Crescent Lake', ft: 4910, mi: 6.8 },
+      { id: '801:OR:SNTL', name: 'Summit Lake', ft: 5610, mi: 12.1 },
     ],
     // There is no snow stake cam and no resort station graphic here.
     // Cameras (verified 2026-11-09, 2:40pm):
@@ -183,10 +184,10 @@ const MOUNTAINS = {
       { name: 'OR-58 at the pass, looking west', why: 'Highway 58 at Willamette Pass (5,090 ft), 0.3 mi from the base lodge: what is falling at base level, and the road. Camera courtesy of ODOT.', src: 'https://tripcheck.com/roadcams/cams/Willamette%20Pass_pid3351.JPG', small: true },
       { name: 'OR-58 at the pass, looking east', why: 'Highway 58 at Willamette Pass (5,090 ft), looking toward the ski area entrance. Camera courtesy of ODOT.', src: 'https://tripcheck.com/roadcams/cams/WillamettePass_pid658.jpg', small: true },
     ],
-    // Season status, from the resort's site (checked 2026-11-09): "Willamette Pass is currently
-    // closed" and "Opening Soon for 2026/2027!" with no date. `closed: true` keeps preseason mode on
-    // until a date is set here. Re-check the resort's Hours of Operation page when working on the site.
-    season: { openingDay: null, closed: true, checked: '2026-11-09' },
+    // Season status: the resort's home page headline reads "Scheduled Opening Date: December 11!" (page last
+    // edited 2026-11-05 UTC; checked 2026-11-10). Its Hours of Operation page (last edited Oct 9) still says
+    // "Opening Soon for 2026/2027!". Re-check both when working on the site.
+    season: { openingDay: '2026-12-11', checked: '2026-11-10' },
     liftStatusUrl: 'https://www.willamettepass.ski/weather-conditions-webcams/lifts-trails/',
     // The resort's pages send "X-Frame-Options: DENY", so the board can only be linked, not embedded.
     liftStatusEmbed: false,
@@ -250,9 +251,10 @@ const MOUNTAINS = {
     snowSensor: { id: '791:WA:SNTL', name: 'Stevens Pass', operator: 'USDA NRCS SNOTEL', ft: 3940, mi: 0.2, where: 'at the pass, 0.2 mi from the base lodge, at base elevation', maxAgeHours: 6 },
     // Regional reference only (collapsed in Live readings); never feeds the summary.
     snotel: [
-      { id: '1338:WA:SNTL', name: 'Icicle Creek', ft: 4550, mi: 14.2 },
-      { id: '478:WA:SNTL', name: 'Fish Lake', ft: 3440, mi: 14.5 },
-      { id: '912:WA:SNTL', name: 'Skookum Creek', ft: 3320, mi: 24.6 },
+      // Distances from this mountain's point above (re-measured 2026-11-10 from the NRCS station records).
+      { id: '1338:WA:SNTL', name: 'Icicle Creek', ft: 4550, mi: 14.1 },
+      { id: '478:WA:SNTL', name: 'Fish Lake', ft: 3440, mi: 14.2 },
+      { id: '912:WA:SNTL', name: 'Skookum Creek', ft: 3320, mi: 24.3 },
     ],
     // The resort's cams are live video on Brownrice's player; each has a public snapshot image
     // (the player page's own preview image), refreshed continuously. `video` is the player page,
@@ -338,8 +340,9 @@ const MOUNTAINS = {
     windHoldLifts: 'Upper-mountain',
     // Regional reference only (collapsed in Live readings); never feeds the summary.
     snotel: [
-      { id: '707:WA:SNTL', name: 'Quartz Peak', ft: 4710, mi: 3.1 },
-      { id: '1081:ID:SNTL', name: 'Ragged Mountain', ft: 4210, mi: 5.7 },
+      // Distances from this mountain's point above (Quartz Peak is 3.1 mi from the summit itself).
+      { id: '707:WA:SNTL', name: 'Quartz Peak', ft: 4710, mi: 2.9 },
+      { id: '1081:ID:SNTL', name: 'Ragged Mountain', ft: 4210, mi: 5.6 },
     ],
     // The resort streams its cams on YouTube (as Willamette Pass does). Captions are the resort's own
     // (webcams page, 2026-11-10). At 9:50pm every live still was the resort's title card (an old photo
@@ -376,8 +379,8 @@ const MOUNTAINS = {
     afdWords: ['mt\\.? spokane', 'mount spokane', 'spokane area', 'northern mountains', 'idaho panhandle', 'northeast washington', 'selkirks?'],
     text: {
       liveLead: 'No public weather station on the ski area. The nearest, the Quartz Peak snow station, sits 3 mi SE of the summit on a separate peak, so it appears only as a regional reference below.',
-      stationsNote: 'No public weather station on the ski area. The nearest, the Quartz Peak snow station (3.1 mi SE), is a regional reference only.',
-      snowDepthNote: 'No snow-depth sensor on the ski area; the snow stake cam shows the ground. The nearest snow station, Quartz Peak (3.1 mi SE), is a regional reference.',
+      stationsNote: 'No public weather station on the ski area. The nearest, the Quartz Peak snow station (about 3 mi SE of the summit), is a regional reference only.',
+      snowDepthNote: 'No snow-depth sensor on the ski area; the snow stake cam shows the ground. The nearest snow station, Quartz Peak (about 3 mi SE of the summit), is a regional reference.',
       regionalWhy: 'on separate peaks away from the ski runs, so their snow can differ from the ski area\'s',
       camsSource: 'Mt. Spokane Ski & Snowboard Park (YouTube live)',
       camsNote: 'Resort cameras: each shows its stream\'s live still, refreshed about every 5 minutes; tap one for live video in YouTube\'s player.',
@@ -391,7 +394,11 @@ const MOUNTAINS = {
     // A point on the ski area between the village and the top of Burfield.
     lat: 50.893,
     lon: -119.900,
-    timezone: 'America/Vancouver',
+    // British Columbia stopped changing its clocks on 2026-11-01 and stays on UTC-7 (tz database 2026e; Open-Meteo
+    // and the resort's own page times agree). Browsers with older time-zone data still put 'America/Vancouver'
+    // on UTC-8 in winter, which shifted every Sun Peaks time and the 9am-4pm window by an hour (found 2026-11-10).
+    // A fixed UTC-7 zone is right for every date since March 2026. (POSIX sign: 'Etc/GMT+7' means UTC-7.)
+    timezone: 'Etc/GMT+7',
     // The resort's own figures (Trail Maps & Stats, checked 2026-11-09): village base 1,255 m,
     // Burfield chair summit ("Top of the World") 2,080 m. Mid-mountain is the resort's own
     // mid-mountain weather point, 1,855 m, about the top of Sunburst Express (1,850 m).
