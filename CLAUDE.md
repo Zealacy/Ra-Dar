@@ -1,6 +1,6 @@
 # Ra-Dar: notes for Claude
 
-Ra-Dar is a **ski weather tracker** website for **Mt. Bachelor** and **Willamette Pass** (Oregon), **Stevens Pass** and **Mt. Spokane** (Washington; Mt. Spokane built, not published yet) and **Sun Peaks** (British Columbia), with a switcher at the top of the page. More mountains can be added through `mountains.js`.
+Ra-Dar is a **ski weather tracker** website for **Mt. Bachelor** and **Willamette Pass** (Oregon), **Stevens Pass** and **Mt. Spokane** (Washington; Mt. Spokane built but held as a draft) and **Sun Peaks** (British Columbia), with a switcher at the top of the page. More mountains can be added through `mountains.js`.
 It's a static site published on **Vercel** at **https://ra-dar-alpha.vercel.app/**. There's no build step, no server and no API keys in the code.
 
 The owner isn't a programmer. Explain things in plain language, keep setup steps they have to do themselves to a minimum, and tell them plainly what went live and what didn't work.
@@ -17,42 +17,18 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
   - On Nov 9 the session's automatic checkout of the GitHub repository *succeeded* (an old Nov 8 copy), so access may be back. The owner was told and kept the rule: GitLab only.
 - **Cloudflare Pages was tried and doesn't work from cloud sessions. Don't retry it.** The proxy injects the saved token into every request to `api.cloudflare.com`, overwriting the short-lived upload JWT, so asset uploads fail (code 8000013). An empty `ra-dar` Pages project and a Pages-only token remain on the owner's Cloudflare account.
 
-## Handoff: where things stand (updated 2026-11-10, 9pm Pacific)
+## Handoff: where things stand (updated 2026-11-11, 8:45am Pacific)
 
-- **Vercel serves commit `4e8d246`** (published Nov 10, about 9:35pm Pacific, after the owner said "publish it"): all four mountains, Mt. Bachelor, Willamette Pass, Stevens Pass and Sun Peaks.
-  - It passed `node --check`, the browser test on all four mountains (desktop and phone, both views), and the same test against the live site. No page errors and nothing blocked by the Content Security Policy.
-- **Mt. Spokane is built on GitLab `main` but NOT published** (Nov 10, about 10:15pm Pacific). The owner said "build" (Nov 10) after choosing Quartz Peak as regional only ("3 miles is a lil too much").
-  - It passed `node --check` and the browser test on all five mountains (desktop and phone, both views), with no page errors and nothing blocked.
-  - **Held for:** a daylight check of its eight YouTube cams (all showed the resort's title cards at night). Confirm each picture matches its caption, then publish when the owner says so.
-    - The owner said "check cams and publish" at 10:45pm Pacific on Nov 10, too dark to check. All 8 Mt. Spokane stills were still the resort's title cards, unchanged for an hour. The snow-stake title card is an old photo of a snowy stake: shown as the "measured" stake, it would pass an old picture off as current, so it wasn't published.
-    - A one-time check-in is scheduled for **Nov 11, 8:30am Pacific** (trigger `trig_01MCLgeZKNZ9eD3B1cCRd2sG`). It checks the Spokane and Stevens cams in daylight, then runs the checks and publishes.
-  - **"Right now" shows labeled model estimates** (`nowModel: true`). The owner said (Nov 10) "if the data is sufficiently accurate include it".
-    - Checked over 7 days, hour by hour, with the model at each station's own location and height: at Quartz Peak it missed by 1.7°F on average (84% of hours within 3°F); at Ragged Mountain, 2.3°F.
-    - Same test as a yardstick: Stevens Pass's on-mountain station 2.4°F, its SNOTEL 2.6°F. The script is in the session scratchpad (`spokane/verify.py`); re-run it if in doubt.
-    - The wording now comes from `text.noStation` (default "No public weather station on the ski area"; Sun Peaks keeps "…reports in winter"). The wind line names the NWS as a "forecast", not a "model".
-    - Without estimates, a mountain with no station shows "No public weather station on the ski area" with a "No station" badge.
-  - Shared changes in this build:
-    - A YouTube snow stake cam (`snowStake.youtube`).
-    - `season.projected` ("projected" instead of "scheduled").
-    - An honest "no station" state in Right now.
-    - On wider screens the mountain switcher moves to its own header row when it doesn't fit beside the other buttons (five mountains don't fit at 1280 px); phones keep the scrolling row.
-- **Stevens Pass is live** (it was held as a draft first, at the owner's request).
-  - **Still open: the daylight cam check.** The resort's "Skyline" and "Jupiter" cams were dark when it was published, so they carry the resort's names only. Look at them in daylight, describe what each shows, and republish.
-  - That release also changed shared code on the other mountains: the phone header (the mountain row scrolls and fades at the edge), the forecaster-notes parser (two fixes), and the cam player button.
-  - **NWS snow level now decides rain vs. snow (owner said yes, Nov 10; live since Nov 10).** In `app.js`, `applySnowLevel()` runs after every source loads.
-    - Where the NWS forecast covers the hours, each elevation's precipitation is snow 500 ft or more above the NWS snow level, rain 500 ft or more below it, and mixed in between (`splitWithLevel`, `LEVEL_BAND_FT`).
-    - The past, hours beyond the NWS forecast, and Sun Peaks keep the temperature split.
-    - It's used for the "next 7 days" part of the preseason chart, the Snowpack tab, the Base to summit tab and the week fallback. The sources table says so.
-    - Effect on Nov 10, next 7 days: Stevens base 5.2 to 3.4 in, Bachelor base 3.3 to 4.4 in, Willamette base 1.7 to 2.3 in. Mid and summit barely changed.
-  - **The preseason chart's "coming" part now uses the 82-run middle** (owner, Nov 10: "do whatever is most similar to the UI for the other mountains"; live since Nov 10). The chart looks exactly the same as before. Only the dashed "+X coming" number changed:
-    - **Why:** the snow-level rule alone didn't fix the chart/tile disagreement. At Stevens mid-mountain the chart said about +10 in, the tile 0–4 in (middle 1.2), and the NWS's own snowfall 0.2 in. The cause wasn't rain vs. snow: the chart followed one forecast (Open-Meteo's default) that was wetter and colder than the NWS (1.9 vs. 1.0 in of water; 30–32°F vs. 35–37°F).
-    - **Now:** mid-mountain "coming" = the middle of the 82 runs over the next 7 days (`ensNext7()` in `week.js`). The "Snow next 7 days" tile uses the same hours (now to 7 days ahead; it used to start at 4pm yesterday), so the two always agree.
-    - Base and summit get that number scaled by how the one-model forecast (with its elevation-aware rain/snow split) spreads snow across elevations. The Snowpack tab keeps that forecast's timing, scaled to the same totals.
-    - **Not used:** the 82 runs' own snowfall at base and summit. Requested at three heights in one call on Nov 10, it gave Willamette's base more snow than mid-mountain, and Bachelor the same at all three heights.
-    - Nov 10 results (base / mid / summit, next 7 days): Stevens +0.2 / +1.2 / +1.9 in; Bachelor +3.6 / +5.2 / +5.2; Willamette +0.6 / +2.0 / +3.4; Sun Peaks about 0.
-  - **WSDOT road cams: the owner said keep them** (Nov 10), credited "© WSDOT".
-  - The owner declined a private preview link of the draft (Nov 10).
-- **Live on Vercel: commit `26b92bd`** (published Nov 9 at about 10pm Pacific, with the owner's go-ahead in the conversation). It made three changes:
+- **Vercel serves commit `02288eb`** (published Nov 11, about 8:40am Pacific, from the owner's "check cams and publish" and "ok publish it in the morning"): Mt. Bachelor, Willamette Pass, Stevens Pass and Sun Peaks, with the Nov 10 data-audit fixes (see "Data audit" below).
+  - It passed `node --check` and the browser test on all four mountains (desktop and phone, both views), locally and against the live site. No page errors and nothing blocked by the Content Security Policy.
+- **Mt. Spokane is built but held back (`draft: true` in `mountains.js`).** A draft mountain is removed from the site entirely (switcher and `?mtn=`); set `draft: false` to test it locally.
+  - **Why:** at 8:30am on Nov 11, in daylight, all eight of its YouTube streams, the snow stake included, still showed the resort's title cards (old winter photos behind a "Live Stream" box). The streams look switched off for the off-season. Showing the old snowy stake photo as the "measured" stake would pass an old picture off as current. **The owner has been asked** whether to wait for the streams or publish without the cams.
+  - Everything else about it is ready: the owner said "build" (Nov 10), Quartz Peak is regional only ("3 miles is a lil too much"), and "Right now" shows labeled model estimates (`nowModel: true`; the owner said "if the data is sufficiently accurate include it").
+    - Model accuracy, checked over 7 days hour by hour at each station's own location and height: Quartz Peak missed by 1.7°F on average (84% of hours within 3°F), Ragged Mountain 2.3°F. Yardstick: Stevens Pass's on-mountain station 2.4°F, its SNOTEL 2.6°F. Script: session scratchpad `spokane/verify.py`.
+  - Shared code it brought (already live, used only where configured): YouTube snow stake (`snowStake.youtube`), `season.projected`, the "no station" Right now state (`text.noStation`), and the switcher's own header row when five mountains don't fit at 1280 px.
+- **Stevens Pass cams checked in daylight (Nov 11):** Skyline looks down across the front side from high on the mountain (dusting of snow on the upper runs, cloud in the valley); Jupiter is a close view of a lift building on the back side (fogged in). Their `why` text says so.
+- **Mission Ridge, WA: researched, not built** (Nov 11; see its section below). Its three YouTube cams were live in daylight: Sunspot looks down over the snowmaking-whitened upper runs to the cloud-filled valley; Midway shows a chair's bottom terminal beside a lodge deck, bare ground; Mimi looks up a lower run with a snow gun. **Waiting on the owner:** Upper Wheeler as measured snow depth or regional only, and Opening Day (the resort's site blocks this sandbox).
+- **Earlier publish, commit `26b92bd`** (Nov 9 at about 10pm Pacific, with the owner's go-ahead in the conversation). It made three changes:
   - Forecaster notes: the update headline is no longer shown as fake forecaster credits.
   - The sources table hides the shelved wind-hold estimate and lift list rows.
   - Ski-day chips state facts, per the owner's decision (see "Audience").
