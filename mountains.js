@@ -329,6 +329,11 @@ const MOUNTAINS = {
     // to show it only as a regional reference, not in "Right now".
     stations: [],
     stationMaxAgeHours: 3,
+    // Owner decision (2026-11-10): "if the data is sufficiently accurate include it". Checked the same day over
+    // 7 days, hour by hour, at the nearby snow stations: the model missed by 1.7°F on average at Quartz Peak
+    // (84% of hours within 3°F) and 2.3°F at Ragged Mountain, as good as at Stevens Pass's on-mountain station
+    // (2.4°F). So "Right now" shows labeled model estimates, as at Sun Peaks.
+    nowModel: true,
     snowZone: 'mid',
     windHoldLifts: 'Upper-mountain',
     // Regional reference only (collapsed in Live readings); never feeds the summary.
@@ -471,6 +476,7 @@ const MOUNTAINS = {
       elevSource: 'Open-Meteo, blending national weather models',
       radarSource: 'RainViewer, combining national weather radars',
       radarNote: 'Mountains block parts of the radar beam in the BC Interior, so light snow can be missed.',
+      noStation: 'No public station on the mountain reports in winter',
       dataCredits: 'Environment and Climate Change Canada, Open-Meteo, RainViewer, OpenStreetMap.',
       footer: 'Webcams © Sun Peaks Resort. Official sources: the Sun Peaks weather & snow report and Avalanche Canada.',
     },

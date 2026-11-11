@@ -145,7 +145,7 @@ function renderPreseason() {
   $('pre-now').innerHTML = live.length || snOk
     ? `<span class="pn-h">Right now <span class="src m">Measured</span></span>${snowNow}${live.map((st) => `<span class="pn"><b>${r0(st.stats.temp)}°F</b> ${esc(st.name)} · ${ftFmt(st.ft)} ft${st.offSite ? ` · <b class="off">${esc(st.offSite)}</b>` : ''} · ${ageText(st.stats.tempAgeH ?? st.stats.ageH)}</span>`).join('')}`
     : est?.zones.some((z) => z.temp != null)
-      ? `<span class="pn-h">Right now <span class="src e" title="Model: a computer-model estimate for this hour, not a measurement">${esc(NOW_MODEL_TAG)}</span></span>${est.zones.filter((z) => z.temp != null).map((z) => `<span class="pn"><b>${r0(z.temp)}°F</b> ${esc(zShort(z))} · ${ftFmt(z.ft)} ft</span>`).join('')}<span class="pn">No public station on the mountain reports in winter.</span>`
+      ? `<span class="pn-h">Right now <span class="src e" title="Model: a computer-model estimate for this hour, not a measurement">${esc(NOW_MODEL_TAG)}</span></span>${est.zones.filter((z) => z.temp != null).map((z) => `<span class="pn"><b>${r0(z.temp)}°F</b> ${esc(zShort(z))} · ${ftFmt(z.ft)} ft</span>`).join('')}<span class="pn">${esc(noStationNote())}.</span>`
       : `<span class="pn-h">Right now</span><span class="pn">${M.stations.length || M.snowSensor ? 'No live station readings available.' : 'No public weather station on the ski area. The cams show conditions.'}</span>`;
   const fig = document.querySelector('.pre-fig');
   if (!p) {

@@ -397,6 +397,10 @@ function modelNow() {
 }
 // "projected" or "scheduled": what the resort calls its Opening Day.
 const openWord = () => (M.season?.projected ? 'projected' : 'scheduled');
+// Why there's no measured "Right now" at a mountain (its own wording, or a plain default).
+const noStationNote = () => M.text.noStation || 'No public weather station on the ski area';
+// The hourly source's name for the wind line: the NWS is a forecast, anything else is a model.
+const fcKind = () => (FC.official ? `${FC.short} forecast` : `${FC.short} model`);
 const useModelNow = () => !!M.nowModel && !(state.stations || []).some((s) => s.stats.fresh);
 
 // ================================================================ On-mountain stations (measured)
@@ -931,7 +935,7 @@ function computeBriefing(c) {
     const est = !st && M.nowModel ? modelNow() : null;
     const topEst = est?.zones.find((z) => z.temp != null);
     if (st) add(`Now: ${r0(st.stats.temp)}°F at ${st.name} (${ftFmt(st.ft)} ft${offSiteNote(st)})${st.stats.hasWind ? `, wind ${compass(st.stats.dir)} ${r0(st.stats.wind)} mph, gusts ${r0(st.stats.gustNow)}` : ''}.`);
-    else if (topEst) add(`Now, model estimate (not measured): ${r0(topEst.temp)}°F at the ${zShort(topEst).toLowerCase()} (${ftFmt(topEst.ft)} ft). No public station on the mountain reports in winter.`);
+    else if (topEst) add(`Now, model estimate (not measured): ${r0(topEst.temp)}°F at the ${zShort(topEst).toLowerCase()} (${ftFmt(topEst.ft)} ft). ${noStationNote()}.`);
   }
 
   // Precipitation
@@ -1372,12 +1376,12 @@ function renderNowModel() {
   list.innerHTML = est.zones.map((z, i) => `<div class="now-row model" style="animation-delay:${i * 0.08}s" data-i="${i}">
       <div class="nm">${esc(z.name)}<small>${ftFmt(z.ft)} ft · model estimate for this hour</small></div>
       <div class="tv">${z.temp != null ? `${r0(z.temp)}°` : '–'}</div>
-      <div class="wv">${z.key === midKey && w ? `${arrow}${compass(w.dir)} ${r0(w.wind)}, gust ${r0(w.gust)} mph (${esc(FC.short)} model)` : ''}</div></div>`).join('');
+      <div class="wv">${z.key === midKey && w ? `${arrow}${compass(w.dir)} ${r0(w.wind)}, gust ${r0(w.gust)} mph (${esc(fcKind())})` : ''}</div></div>`).join('');
   list.querySelectorAll('.now-row[data-i]').forEach((row) => {
     const z = est.zones[row.dataset.i];
-    bindTip(row, `${z.name} (${ftFmt(z.ft)} ft): Open-Meteo's model estimate for this moment, adjusted to this elevation. Not a measurement: no public weather station on the mountain reports in winter.${z.key === midKey && w ? ` Wind: ${FC.short} model at about ${ftFmt(w.ft)} ft.` : ''}`);
+    bindTip(row, `${z.name} (${ftFmt(z.ft)} ft): Open-Meteo's model estimate for this moment, adjusted to this elevation. Not a measurement: ${noStationNote().charAt(0).toLowerCase()}${noStationNote().slice(1)}.${z.key === midKey && w ? ` Wind: ${fcKind()} for about ${ftFmt(w.ft)} ft.` : ''}`);
   });
-  $('now-cap').innerHTML = '<span class="st neutral"><i aria-hidden="true">•</i>No public station on the mountain reports in winter</span>';
+  $('now-cap').innerHTML = `<span class="st neutral"><i aria-hidden="true">•</i>${esc(noStationNote())}</span>`;
 }
 function renderNow(c) {
   const list = $('now-list');

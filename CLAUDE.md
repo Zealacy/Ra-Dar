@@ -24,7 +24,11 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 - **Mt. Spokane is built on GitLab `main` but NOT published** (Nov 10, about 10:15pm Pacific). The owner said "build" (Nov 10) after choosing Quartz Peak as regional only ("3 miles is a lil too much").
   - It passed `node --check` and the browser test on all five mountains (desktop and phone, both views), with no page errors and nothing blocked.
   - **Held for:** a daylight check of its eight YouTube cams (all showed the resort's title cards at night). Confirm each picture matches its caption, then publish when the owner says so.
-  - **Ask the owner:** its "Right now" box says "No public weather station on the ski area" (badge "No station"). Labeled model estimates (`nowModel`, as at Sun Peaks) were approved for Sun Peaks only, so they're not used here unless the owner says so.
+  - **"Right now" shows labeled model estimates** (`nowModel: true`). The owner said (Nov 10) "if the data is sufficiently accurate include it".
+    - Checked over 7 days, hour by hour, with the model at each station's own location and height: at Quartz Peak it missed by 1.7°F on average (84% of hours within 3°F); at Ragged Mountain, 2.3°F.
+    - Same test as a yardstick: Stevens Pass's on-mountain station 2.4°F, its SNOTEL 2.6°F. The script is in the session scratchpad (`spokane/verify.py`); re-run it if in doubt.
+    - The wording now comes from `text.noStation` (default "No public weather station on the ski area"; Sun Peaks keeps "…reports in winter"). The wind line names the NWS as a "forecast", not a "model".
+    - Without estimates, a mountain with no station shows "No public weather station on the ski area" with a "No station" badge.
   - Shared changes in this build:
     - A YouTube snow stake cam (`snowStake.youtube`).
     - `season.projected` ("projected" instead of "scheduled").
@@ -78,7 +82,7 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 - **Open items and ideas (none in progress):**
   - **More mountains.** Add each one to `mountains.js` and verify every station, camera and elevation for it the same careful way (see "Adding a mountain" below).
   - *Owner decisions (Nov 9, Pacific) on Sun Peaks:* build it (done and live). The owner **won't be getting the resort's permission** to use its live readings any time soon, so don't plan on them.
-  - *Owner decision (Nov 9, 10pm Pacific):* **Sun Peaks' "Right now" may show model estimates** (Open-Meteo, at base, mid and summit), clearly labeled **"Model, not measured"**, because no live public station exists and the alternative is no data at all. The owner judged them reliable and precise enough (on Nov 9 they were within about 2°F of the resort's own readings). This exception covers only a mountain with no usable measured station (`nowModel: true` in `mountains.js`). If a measured source becomes usable, it replaces the estimates. Every other mountain's "Right now" stays measured-only.
+  - *Owner decision (Nov 9, 10pm Pacific):* **Sun Peaks' "Right now" may show model estimates** (Open-Meteo, at base, mid and summit), clearly labeled **"Model, not measured"**, because no live public station exists and the alternative is no data at all. The owner judged them reliable and precise enough (on Nov 9 they were within about 2°F of the resort's own readings). This exception covers only a mountain with no usable measured station (`nowModel: true` in `mountains.js`). The owner extended it to Mt. Spokane on Nov 10, on the condition that the estimates are accurate enough (see Handoff). If a measured source becomes usable, it replaces the estimates. Every other mountain's "Right now" stays measured-only.
   - **Willamette Pass's "Eagle Peak" cam** (YouTube `uav7cBNVv0k`) is left out: its still was black and unchanged at night on Nov 8 and in daylight on Nov 9. Re-check it in daylight; if it shows a real view, label it by what its picture shows and add it to `cams`.
   - **Post-season.** Nothing handles the end of the season yet (the site would stay in ski-day mode).
 
