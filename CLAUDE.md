@@ -1,6 +1,6 @@
 # Ra-Dar: notes for Claude
 
-Ra-Dar is a **ski weather tracker** website for **Mt. Bachelor** and **Willamette Pass** (Oregon) and **Sun Peaks** (British Columbia), with a switcher at the top of the page. More mountains can be added through `mountains.js`.
+Ra-Dar is a **ski weather tracker** website for **Mt. Bachelor** and **Willamette Pass** (Oregon), **Stevens Pass** (Washington; built, not published yet) and **Sun Peaks** (British Columbia), with a switcher at the top of the page. More mountains can be added through `mountains.js`.
 It's a static site published on **Vercel** at **https://ra-dar-alpha.vercel.app/**. There's no build step, no server and no API keys in the code.
 
 The owner isn't a programmer. Explain things in plain language, keep setup steps they have to do themselves to a minimum, and tell them plainly what went live and what didn't work.
@@ -17,8 +17,17 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
   - On Nov 9 the session's automatic checkout of the GitHub repository *succeeded* (an old Nov 8 copy), so access may be back. The owner was told and kept the rule: GitLab only.
 - **Cloudflare Pages was tried and doesn't work from cloud sessions. Don't retry it.** The proxy injects the saved token into every request to `api.cloudflare.com`, overwriting the short-lived upload JWT, so asset uploads fail (code 8000013). An empty `ra-dar` Pages project and a Pages-only token remain on the owner's Cloudflare account.
 
-## Handoff: where things stand (updated 2026-11-10)
+## Handoff: where things stand (updated 2026-11-10, 9pm Pacific)
 
+- **Vercel serves commit `2b192c6`** (the security hardening, published Nov 10 after the owner said "publish it"): Mt. Bachelor, Willamette Pass and Sun Peaks.
+- **Stevens Pass is built on GitLab `main` but NOT published.** The owner asked (Nov 10) for a complete draft held "just shy of publishing". **Don't deploy it until the owner says so.**
+  - It passed `node --check` and the browser test on all four mountains (desktop and phone, both views), with no page errors and nothing blocked by the Content Security Policy.
+  - The commit also changes shared code, so publishing it changes the live mountains too: the phone header (the mountain row scrolls and fades at the edge), the forecaster-notes parser (two fixes), and the cam player button.
+  - **Before publishing, in daylight:** look at the resort's "Skyline" and "Jupiter" cams. They were dark and rain-smeared at 8:30pm, so they carry the resort's names only. Describe what each picture shows and where it looks (see "Mountains").
+  - **Told to the owner, waiting for a decision (affects every mountain):** the page's two snow forecasts disagree when temperatures are near freezing. On Nov 10 at Stevens, mid-mountain, the chart's "+10.3 in coming" (our split by temperature) sat next to the tile's "0–4 in" (82 ensemble runs).
+    - The ensemble and 4-model snowfall is Open-Meteo's own rain/snow split, which isn't adjusted for elevation: its members showed 0 in of snow in wet hours at 32.6–34.5°F. Over 8 days it gave a median of 1.5 in; the same members split by temperature gave 6.5 in.
+    - The temperature split can be too snowy when cold air pools at a pass under warm air (Stevens that day: 33–36°F measured at 5,180 ft while the NWS put the snow level near 6,000 ft, and the stake board looked almost clean).
+    - Options put to the owner: use the NWS snow level to decide rain vs. snow where NWS covers the hours; apply the temperature split to the ensemble runs too; or leave both and label the difference.
 - **Live on Vercel: commit `26b92bd`** (published Nov 9 at about 10pm Pacific, with the owner's go-ahead in the conversation). It made three changes:
   - Forecaster notes: the update headline is no longer shown as fake forecaster credits.
   - The sources table hides the shelved wind-hold estimate and lift list rows.
@@ -31,8 +40,9 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
   - It's used for preseason snowfall since Oct 1, the Snowpack tab, Fresh snow by elevation, the Base to summit tab's daily snow and rain, and `week.js`'s fallback past NWS coverage.
   - The week's snow ranges and the 4-model comparison (one elevation, the models' own split) are unchanged.
   - Effect on Nov 9: Bachelor's last 7 days at 7,800 ft went from 0.1" to 2.4". Season snowfall now rises with elevation at every mountain (Sun Peaks 5.3 / 6.8 / 7.0", was 4" everywhere). It matches Willamette's measured 0" base and bare base cam.
-- **Mountains:** Mt. Bachelor, Willamette Pass and Sun Peaks are all live. A switcher at the top of the page picks the mountain; see "Mountains" below.
+- **Mountains:** Mt. Bachelor, Willamette Pass and Sun Peaks are all live; Stevens Pass is built but not published (see above). A switcher at the top of the page picks the mountain; see "Mountains" below.
 - **Seasons:**
+  - **Stevens Pass** has **no Opening Day announced**: the resort's Hours of Operation page lists "Winter 2026/27: Skiing & Riding TBD" (checked Nov 10). `season: { openingDay: null, closed: true }` keeps preseason on. **Set the date when they post one.**
   - **Mt. Bachelor** is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 9, 9pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
   - **Sun Peaks** opens **Nov 21, 2026 (scheduled)**, season to Apr 4, 2027, per the resort's Winter Hours of Operation page (checked Nov 9, 10:20pm Pacific). Preseason mode until then.
   - **Willamette Pass** is closed with **no Opening Day announced** ("Opening Soon for 2026/2027!", checked Nov 9). `season: { openingDay: null, closed: true }` keeps preseason on and shows "TBA". **Set the date when they post one.**
@@ -59,6 +69,7 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 The page layout is identical for every mountain. **Everything that differs lives in `mountains.js`**, and no code names a mountain. Where a mountain lacks something, the same slot shows its nearest equivalent or says plainly that there is none.
 
 - **Choosing the mountain:** `?mtn=<key>` in the address wins, then the last one this browser showed (localStorage `radar-mtn`), then the first in `MOUNTAINS`. The switcher in the header is plain links (`?mtn=key`), so every view can be shared. The preseason/ski-day choice is remembered per mountain (`radar-view:<key>`).
+  - On a phone the switcher row scrolls sideways once the mountains don't fit (four don't): the current one is brought into view and the row fades at the edge where more are hidden (`data-more` on `#mtn-switch`).
 - **Settings a mountain can have** (see the comments in `mountains.js`):
   - `zones` with a `short` name for labels, and `nws` with `officeName`.
   - `stations` (NWS observation ids). Use `offSite` for a station that isn't on the ski area, `road` for a road sensor (the briefing's road line), and `sheltered` for a sensor whose wind isn't representative (no lift-hold line on its wind chart).
@@ -78,6 +89,26 @@ The page layout is identical for every mountain. **Everything that differs lives
   - `snowDaily`: Environment Canada's daily climate stations (measured snow on the ground and new snow, cm → in), read with one bounding-box request (`climate-daily`) plus their last report dates (`climate-stations`). They're shown with their dates in the Fresh snow card, a preseason tile, the briefing, a Live readings table and the Snowpack tab, never as "right now". A report counts as recent for `maxAgeDays` (3).
   - Cams can be `heavy: true` (4K stills): their thumbnails refresh every 30 minutes instead of every 5, to save data.
 - **Mt. Bachelor:** see "Approved sources" below.
+- **Stevens Pass, WA** (sources verified Nov 10, 7–9pm Pacific; built, not published):
+  - **Basics** (resort's Mountain Info & Stats page): base 4,061 ft, highest elevation 5,845 ft, 1,125 acres, 460 in average snowfall. Mid-mountain is the halfway elevation, 4,950 ft (the resort names none). Model point 47.7405, -121.095, where Open-Meteo uses one grid cell for all three elevations. At the base lodge's own coordinates it picked a different cell for each elevation.
+  - **Measured:**
+    - Northwest Avalanche Center (NWAC) stations on the ski area, through the NWS feed, hourly: Tye Mill `STS54` (5,180 ft; temperature, wind and gusts), Brooks `STB48` (4,800 ft; temperature, humidity), Schmidt Haus `STS40` (3,950 ft; temperature, humidity).
+    - **Their reports arrive 1 to 1.7 hours late**, so "2 hr ago" is normal. With `stationMaxAgeHours` 3, one missed report shows a station offline for up to an hour.
+    - Cross-checks: Schmidt Haus 39.3°F vs. the SNOTEL sensor beside it 38.8°F; each station within 1°F of the model at its elevation; WSDOT's pass report 41°F at road level.
+    - **Left out:** Skyline `STS52` (5,250 ft) read 3–4°F warmer than Tye Mill at the same height, and warmer than stations 460 ft lower, in steady rain, and jumped about 3°F hour to hour. Re-check before adding. Grace Lakes `STS48` (4,790 ft, temperature) and Old Faithful `STS46` (4,590 ft, wind only) sit just west of the lifts at heights already covered. `SVNW1` has no observations.
+    - Snow depth: Stevens Pass SNOTEL `791:WA:SNTL` (3,940 ft, 0.2 mi from the base lodge, hourly; depth about every other hour). It read 0 in while the base cams showed bare ground and WSDOT reported "bare and wet". It's `snowSensor`, so it feeds the summary.
+    - Regional reference only: Icicle Creek `1338` (4,550 ft, 14.2 mi), Fish Lake `478` (3,440 ft, 14.5 mi), Skookum Creek `912` (3,320 ft, 24.6 mi).
+    - WSDOT's road weather and pass report need an access code (its Traveler API) or its page's internal API. Don't use either.
+  - **Forecast:** NWS **Seattle** `SEW/165,67` (averages 4,879 ft; holds the base and lower front side). The cell south, `165,66` (5,167 ft), holds the upper mountain; on Nov 10 they differed by 2 mph in gusts and under 3°F. Zone WAZ302. It publishes snow level and visibility. AFDs come from SEW.
+  - **Cams:**
+    - Five resort cams run on Brownrice's player (`player.brownrice.com/embed/<name>`): `stevenspasssnowstake`, `…skyline`, `…jupiter`, `…school`, `…courtyard`. Each has a public snapshot (`/snapshot/<name>`, the player page's own preview image; 1280×720, no time stamp, refreshed within a minute, no referrer check).
+    - The site shows the snapshot and links to the player page in a new tab (`video` in `mountains.js`). An inline player wasn't tried: it would need `frame-src` for Brownrice in the CSP and a check that their player isn't locked to the resort's domain.
+    - **Snow stake cam:** a white board with a stake numbered 1–24 in. The resort doesn't say where on the mountain it stands or when the board is cleared, and the page says so. On Nov 10 it showed patchy snow around it while the base was bare, so it's probably above the base.
+    - WSDOT road cams at the pass (335 px wide, own name and time stamp): `images.wsdot.wa.gov/nc/002vc06458.jpg` ("E Stevens Summit") and `002vc06430.jpg` ("W Stevens Summit"). `002vc06190.jpg` ("W Stevens Pass", lower on the west side) isn't used.
+    - **WSDOT permission:** WSDOT offers its camera images to third parties through its Traveler Information API, which hands out these same image addresses, but no written "you may display them" statement like ODOT's was found. They're credited "© WSDOT". The owner was told.
+  - **Resort (stevenspass.com, Vail Resorts):** its pages send `X-Frame-Options: SAMEORIGIN`, so the Lifts tab links to its Lift & Terrain Status page. Its weather page is a forecast, not sensors.
+  - **Avalanche:** NWAC, `nwac.us/forecasts/avalanche/stevens-pass` (linked). NWAC's own site is a JavaScript app; its data API wasn't used.
+  - **First mountain with both a stake cam and a snow sensor:** the Fresh snow card shows the measured box with a "New snow: stake cam" link, in place of the stake thumbnail.
 - **Willamette Pass** (sources verified Nov 8–9):
   - **Measured:**
     - Base weather: ODOT `ODT03` "OR58 at Willamette Pass" (5,121 ft, 0.3 mi from the base lodge, NWS feed). Temperature, wind and gust, but its wind is sheltered at road level.
@@ -184,7 +215,7 @@ Good data is the backbone of this site. These rules come from mistakes the owner
   - No secrets or Vercel IDs are anywhere in the git history. Every `target="_blank"` link has `rel="noopener"`. `?mtn=` only accepts real keys (`Object.hasOwn`).
   - No vulnerability was found. Four hardening fixes went live (below).
 - **Content Security Policy** (a `<meta>` tag at the top of `index.html`): the only hosts the page may load scripts, data, images and frames from.
-  - **When adding a mountain or source, add its hosts there**, or they'll be blocked: `connect-src` for data, `img-src` for cams and tiles, `frame-src` for embeds.
+  - **When adding a mountain or source, add its hosts there**, or they'll be blocked: `connect-src` for data, `img-src` for cams and tiles, `frame-src` for embeds. (Stevens Pass added `player.brownrice.com` and `images.wsdot.wa.gov` to `img-src`.)
   - Test for violations by listening for `securitypolicyviolation` in Playwright. A test injecting `<img onerror>` and an outside script was blocked.
   - Style attributes are inline, so styles allow `'unsafe-inline'`. There are no inline scripts or `on…=` handlers; keep it that way.
 - **Subresource Integrity** on Leaflet and Chart.js: they now load `leaflet.js`, `leaflet.css` and `chart.umd.js`, whose cdnjs copies are byte-identical to the npm packages. The hashes were checked against both. If you change a version, recompute the hash from the npm package. (cdnjs re-minifies its `.min` files, so those can't be checked against npm.)
@@ -215,7 +246,7 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 - **Keep the page short vertically:** use tabs, carousels and collapsible sections instead of long stacks.
 - **The layout must work on every device:** JS sets `<html data-device="mobile|tablet|desktop">`, and CSS and charts adapt to it. Test phone and desktop every time.
 - **Smooth animations are wanted**, but always respect `prefers-reduced-motion`.
-- **Snow stake camera** (Mt. Bachelor only. Willamette Pass's Base Area cam and Sun Peaks' Juniper Ridge cam, at the top of Burfield, take the same slot): always included, with high visual priority, but **only one large stake image per view.** In preseason the big stake sits in the snowpack section and the cam carousel opens on the next camera; in the ski-day view the carousel opens on the stake. The stake is the first entry in the carousel. *Correction from the owner:* two large stake cams at once was too much.
+- **Snow stake camera** (Mt. Bachelor and Stevens Pass. Willamette Pass's Base Area cam and Sun Peaks' Juniper Ridge cam, at the top of Burfield, take the same slot): always included, with high visual priority, but **only one large stake image per view.** In preseason the big stake sits in the snowpack section and the cam carousel opens on the next camera; in the ski-day view the carousel opens on the stake. The stake is the first entry in the carousel. *Correction from the owner:* two large stake cams at once was too much.
 - **Other cams:** pick them by how useful they are for judging ski conditions, and **label them by their real location**. Check each camera's own on-image stamp. *Mistake that was corrected:* camera 3 was labeled "The Cone (summit)", but it sits at West Village. **No camera is at the summit**; the highest are three cameras at the top of Outback (mid-mountain).
 - **Tab labels are plain words:** Snowpack (preseason only) · Live readings · Hour by hour · Next 7 days · Base to summit · Lifts · Radar loop · Forecaster notes.
 - **Preseason mode** (`preseason.js`): turns on automatically before `season.openingDay` and off on Opening Day. A closed resort with no date announced (`openingDay: null, closed: true`) stays in preseason. It leads with:
@@ -229,6 +260,7 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 
   It hides the ski-day cards (the ski-day forecast and briefing). A header button switches to the ski-day view; the choice is remembered (localStorage) until Opening Day.
 - **Forecaster notes can be technical but must be readable by people.** Never show raw teletype text (`000 FXUS66…`, `&&`, `$$`) as the main view. Parse it into sections, highlight ski-relevant sentences, explain jargon on tap, and keep the original at the bottom.
+  - Offices format these differently, so check a new office's notes against the original text at the bottom. Seattle puts the first words of a section on the header line after a `/subtitle/` (they were being dropped; fixed Nov 10) and wraps long warning lists (an indented line now continues the alert above it).
 - **Charts** follow the dataviz rules: one y-axis per chart (no dual axes), the validated palette (`--s1`…`--s4`), hairline grids, hover tooltips, and a table for every chart. Status colors always come with an icon and a label. Set axis ranges before drawing, never mid-animation (that once misplaced a line).
 - **Link preview:** `preview.png` (1200×630) and `icon.svg`/`icon-180.png` are referenced by the Open Graph tags in `index.html`. The preview has no live numbers on purpose, so it never goes stale. The Open Graph tags point at `https://ra-dar-alpha.vercel.app/`. The very first version of the site showed London, and some apps cached that preview; adding `?v=2` (or a higher number) to a shared link forces a fresh one.
 - Support light and dark mode.
@@ -274,6 +306,7 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
   - `ra-dar-alpha.vercel.app` (live-site checks), plus `gitlab.com`, `api.vercel.com` and `api.cloudflare.com` via saved network secrets
   - `tripcheck.com`, `i.ytimg.com`, `www.youtube.com`, `www.willamettepass.ski` (Willamette Pass cams and source checks)
   - For Sun Peaks (added Nov 9 with the owner's approval): `api.weather.gc.ca`, `dd.weather.gc.ca`, `weather.gc.ca`, `www.sunpeaksresort.com`, `sunpeaksresort.com`, `avalanche.ca`, `www.avalanche.ca`, `api.avalanche.ca`, `www2.gov.bc.ca`, `www.env.gov.bc.ca`, `www.drivebc.ca`. Not yet allowed: `weather.prod.avalanche.ca` and `avcan-services-api.prod.avalanche.ca` (Avalanche Canada's documented station and forecast APIs).
+  - For Stevens Pass (added Nov 10 with the owner's approval): `www.stevenspass.com`, `stevenspass.com`, `nwac.us`, `www.nwac.us`, `images.wsdot.wa.gov`, `wsdot.com`, `www.wsdot.com`, `wsdot.wa.gov`, `player.brownrice.com`. Not allowed: Brownrice's video servers (`live6.brownrice.com` and others), so live video can't be tested from the sandbox.
   - plus a few used only for research (MesoWest, Synoptic, COAC, NOHRSC and others)
 - Libraries (from cdnjs): Leaflet 1.9.4, Chart.js 4.4.1.
 

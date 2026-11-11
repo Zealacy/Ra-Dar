@@ -943,7 +943,7 @@ function computeBriefing(c) {
 
   // Snow surface inputs: new snow (model) and freeze-thaw (measured)
   const d24 = snow.d24 ?? 0, d72 = snow.d72 ?? 0;
-  if (snow.zone) add(`New snow, model estimate at ${ftFmt(snow.zone.ft)} ft: ${r1(d24)}" in 24 hrs, ${r1(d72)}" in 72 hrs.${M.snowStake ? ' No measured total available; see the stake cam.' : ''}`);
+  if (snow.zone) add(`New snow, model estimate at ${ftFmt(snow.zone.ft)} ft: ${r1(d24)}" in 24 hrs, ${r1(d72)}" in 72 hrs.${!M.snowStake ? '' : M.snowSensor ? ' The stake cam shows new snow.' : ' No measured total available; see the stake cam.'}`);
   const sensor = c.now?.sensor;
   if (sensor?.stats.fresh) {
     const x = sensor.stats, chg = depthChange(x.d24);
@@ -1208,7 +1208,8 @@ function renderSnow(c) {
   countUp($('snowF'), s.forecast ?? null, 1);
   $('snow-zones').innerHTML = (s.byZone || []).map((z) => `<span>${esc(z.key === 'base' ? 'Base' : zShort(z))} <b>${r1(z.d24)}"</b></span>`).join('');
   // Measured counterpart to the model numbers: the stake cam, or the mountain's snow sensor.
-  $('stake-thumb-link').hidden = !M.snowStake;
+  // With both a stake cam and a snow sensor there's room for one: the measured box, which links to the stake cam.
+  $('stake-thumb-link').hidden = !M.snowStake || !!M.snowSensor;
   $('snow-src').textContent = M.snowSensor ? 'Model + measured' : M.snowDaily ? (dailyLatest() ? 'Model + measured' : 'Model') : 'Model + cam';
   const box = $('snow-measured');
   box.hidden = !M.snowSensor && !M.snowDaily;
@@ -1223,6 +1224,10 @@ function renderSnow(c) {
     box.innerHTML = x?.fresh
       ? `<span class="sm-k">Measured</span><span class="sm-v">${r0(x.depth)}"</span><span class="sm-l">on the ground</span>${chg ? `<span class="sm-l">24 hrs: ${chg}</span>` : ''}<span class="sm-s">${esc(M.snowSensor.name)} · ${ftFmt(M.snowSensor.ft)} ft · ${ageText(x.depthAgeH)}</span>`
       : `<span class="sm-k">Measured</span><span class="sm-l">${sensor ? `${esc(M.snowSensor.name)} snow station is offline${x?.depthAgeH != null ? ` (last report ${ageText(x.depthAgeH)})` : ''}.` : 'Snow station data unavailable right now.'}</span>`;
+    if (M.snowStake) {
+      box.insertAdjacentHTML('beforeend', '<a class="sm-a" href="#cams">New snow: stake cam ↓</a>');
+      box.querySelector('.sm-a').addEventListener('click', () => showCam(0));
+    }
   }
   $('snow-cap').textContent = s.zone ? `Model estimate at ${ftFmt(s.zone.ft)} ft · 24 hrs by elevation above` : 'Model estimate unavailable';
 
@@ -1674,7 +1679,9 @@ function parseAfd(raw) {
       cur = { title: title.trim(), sub, lines: [] };
       const rest = head[2].trim();
       // Short trailing text is a subtitle; anything longer is the start of the section body.
-      if (rest && rest.length <= 40 && !/[a-z]\.\s/.test(rest)) cur.sub = cur.sub || rest.replace(/\.\.\.$/, '').replace(/^\/|\/$/g, '');
+      // (When the header already carries a /subtitle/, the trailing words are the start of the body:
+      // Seattle writes ".SHORT TERM /TONIGHT THROUGH THURSDAY/...Western WA" and continues on the next line.)
+      if (rest && !cur.sub && rest.length <= 40 && !/[a-z]\.\s/.test(rest)) cur.sub = rest.replace(/\.\.\.$/, '').replace(/^\/|\/$/g, '');
       else if (rest) cur.lines.push(rest);
       sections.push(cur);
       continue;
@@ -1757,7 +1764,16 @@ function renderAfd(prod) {
     if (isTable(sec.lines)) {
       inner = `<pre class="afd-table">${esc(sec.lines.join('\n').replace(/^\n+|\n+$/g, ''))}</pre>`;
     } else if (isAlerts) {
-      const items = sec.lines.map((l) => l.trim()).filter(Boolean);
+      // One item per alert: an indented line continues the alert above it (long zone lists wrap);
+      // a blank line or an unindented line ("OR...None.") starts a new one.
+      const items = [];
+      let gap = true;
+      sec.lines.forEach((l) => {
+        if (!l.trim()) { gap = true; return; }
+        if (!gap && /^\s/.test(l) && items.length) items[items.length - 1] += ` ${l.trim()}`;
+        else items.push(l.trim());
+        gap = false;
+      });
       inner = `<ul class="afd-alerts">${items.map((l) => `<li>${afdInline(esc(l.replace(/\.\.\./g, ' · ')))}</li>`).join('')}</ul>`;
     } else {
       inner = afdBlocks(sec.lines).map((b) => {
@@ -1809,9 +1825,10 @@ async function loadAfd() {
 
 // ================================================================ Webcams
 // The carousel: the snow stake first where there is one, then the other cams in order of usefulness.
+// A still cam can also carry `video`, a player page that opens in a new tab for live video.
 // A cam is either a still image (`src`) or a YouTube live stream (`youtube`): the stream's live
 // still is shown like any other cam, and YouTube's own player loads when the viewer asks for video.
-const allCams = () => [...(M.snowStake ? [{ name: M.snowStake.name, why: `${ftFmt(M.snowStake.ft)} ft. ${M.snowStake.note}`, src: M.snowStake.src, caption: M.snowStake.caption }] : []), ...M.cams];
+const allCams = () => [...(M.snowStake ? [{ name: M.snowStake.name, why: `${M.snowStake.ft ? `${ftFmt(M.snowStake.ft)} ft. ` : ''}${M.snowStake.note}`, src: M.snowStake.src, caption: M.snowStake.caption, video: M.snowStake.video }] : []), ...M.cams];
 // The cam shown large at the top in preseason (the stake, or the first cam where there is no stake).
 const heroCam = () => allCams()[0];
 const camStill = (cam, thumb) => (cam.youtube ? `https://i.ytimg.com/vi/${cam.youtube}/${thumb ? 'mqdefault' : 'maxresdefault'}_live.jpg` : cam.src);
@@ -1833,10 +1850,12 @@ function showCam(i, fromUser) {
   frame.querySelector('iframe')?.remove(); // leaving a live video
   frame.classList.remove('playing');
   frame.classList.toggle('is-small', !!cam.small);
-  $('cam-play').hidden = !cam.youtube;
+  frame.classList.toggle('video-link', !!cam.video); // the button goes in the corner, clear of the picture
+  $('cam-play').hidden = !cam.youtube && !cam.video;
+  $('cam-play-label').textContent = cam.video ? 'Live video on the resort\'s player ↗' : 'Watch live video';
   swapImg($('cam-main'), camUrl(camStill(cam)));
   $('cam-main').alt = `${cam.name} webcam`;
-  $('cam-main-link').href = cam.youtube ? `https://www.youtube.com/watch?v=${cam.youtube}` : cam.src;
+  $('cam-main-link').href = cam.youtube ? `https://www.youtube.com/watch?v=${cam.youtube}` : cam.video || cam.src;
   $('cam-title').textContent = cam.name;
   $('cam-why').textContent = cam.why;
   document.querySelectorAll('#thumbs button').forEach((b, k) => b.setAttribute('aria-selected', k === i));
@@ -1845,6 +1864,8 @@ function showCam(i, fromUser) {
 // Load YouTube's own player over the still, only when the viewer asks for live video.
 function playCam() {
   const cam = allCams()[camIndex], frame = $('cam-frame');
+  // A player page (not YouTube) opens in its own tab.
+  if (cam?.video) { window.open(cam.video, '_blank', 'noopener'); return; }
   if (!cam?.youtube || frame.querySelector('iframe')) return;
   const f = document.createElement('iframe');
   f.src = `https://www.youtube.com/embed/${cam.youtube}?autoplay=1&mute=1&rel=0&playsinline=1`;
@@ -1865,7 +1886,7 @@ function renderCams() {
   if (M.stationGraphic) { $('stations').src = camUrl(M.stationGraphic); $('stations-link').href = M.stationGraphic; }
   const thumbs = $('thumbs');
   if (!thumbs.children.length) {
-    thumbs.innerHTML = allCams().map((c, i) => `<button role="tab" type="button" aria-selected="false" data-i="${i}"${c.youtube ? ' class="video"' : ''}><img alt="" loading="lazy"><span>${esc(c.name)}</span></button>`).join('');
+    thumbs.innerHTML = allCams().map((c, i) => `<button role="tab" type="button" aria-selected="false" data-i="${i}"${c.youtube || c.video ? ' class="video"' : ''}><img alt="" loading="lazy"><span>${esc(c.name)}</span></button>`).join('');
     thumbs.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => showCam(Number(b.dataset.i), true)));
   }
   // Large (4K) stills are the same file as the full view, so their thumbnails refresh every 30 minutes, not every 5.
@@ -1958,7 +1979,18 @@ function renderSources() {
 // ================================================================ Mountain switcher and per-mountain wording
 function setupMountain() {
   // One link per mountain. The address carries the choice (?mtn=key), so a link can be shared.
-  $('mtn-switch').innerHTML = Object.entries(MOUNTAINS).map(([key, m]) => `<a href="?mtn=${key}"${key === MTN_KEY ? ' aria-current="page"' : ''}>${esc(m.name)}</a>`).join('');
+  const sw = $('mtn-switch');
+  sw.innerHTML = Object.entries(MOUNTAINS).map(([key, m]) => `<a href="?mtn=${key}"${key === MTN_KEY ? ' aria-current="page"' : ''}>${esc(m.name)}</a>`).join('');
+  // On a narrow screen the row scrolls sideways: bring the current mountain into view and fade the
+  // edge where more mountains are hidden, so nobody misses them.
+  const cur = sw.querySelector('[aria-current]');
+  const edges = () => {
+    sw.dataset.more = `${sw.scrollLeft > 4 ? 'l' : ''}${sw.scrollLeft + sw.clientWidth < sw.scrollWidth - 4 ? 'r' : ''}`;
+  };
+  const place = () => { if (cur) sw.scrollLeft = cur.offsetLeft - (sw.clientWidth - cur.offsetWidth) / 2; edges(); };
+  sw.addEventListener('scroll', edges, { passive: true });
+  window.addEventListener('resize', place);
+  requestAnimationFrame(place);
   document.title = `${M.name} · Ra-Dar Ski Weather`;
   $('mtn-name').textContent = `${M.name} ski weather`;
   document.querySelectorAll('.mtn-name-text').forEach((el) => { el.textContent = M.name; });

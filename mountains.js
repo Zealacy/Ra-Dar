@@ -13,6 +13,7 @@
 // equivalent. `nowModel: true` lets "Right now" show labeled model estimates where no public
 // station measures the mountain (owner's choice; never where a usable station exists).
 // `snowDaily` reads Environment Canada's daily climate stations for measured snow, with dates.
+// A cam with `video` (a player page) shows its still and opens that page in a new tab for live video.
 
 const MOUNTAINS = {
   bachelor: {
@@ -204,6 +205,102 @@ const MOUNTAINS = {
       camsSource: 'Willamette Pass Resort (YouTube live); Oregon DOT TripCheck',
       camsNote: 'The resort cam shows the stream\'s live still, refreshed about every 5 minutes; tap it for live video in YouTube\'s player. Road cameras courtesy of ODOT. This resort has no snow stake cam.',
       footer: 'Resort cam © Willamette Pass Resort, via YouTube. Road cameras courtesy of ODOT. Official source: the Willamette Pass conditions page.',
+    },
+  },
+
+  stevens: {
+    name: 'Stevens Pass',
+    region: 'Central Cascades, US Highway 2 · Washington, USA',
+    // A point on the front side between the base lodge and Cowboy Mountain. At this point Open-Meteo
+    // uses one model grid cell for all three elevations (checked 2026-11-10).
+    lat: 47.7405,
+    lon: -121.095,
+    timezone: 'America/Los_Angeles',
+    // Base and top are the resort's official figures (Mountain Info & Stats page, checked 2026-11-10):
+    // base 4,061 ft, highest elevation 5,845 ft. The resort names no mid-mountain elevation, so "mid"
+    // is the halfway elevation.
+    zones: [
+      { key: 'base', name: 'Base area', short: 'Base', ft: 4061 },
+      { key: 'mid', name: 'Mid-mountain', short: 'Mid-mountain', ft: 4950 },
+      { key: 'summit', name: 'Top of the ski area', short: 'Summit', ft: 5845 },
+    ],
+    // National Weather Service Seattle. This grid cell holds the base area and the lower front side
+    // and averages 4,879 ft, close to mid-mountain. The next cell south (165,66; 5,167 ft) holds the
+    // upper mountain; on 2026-11-10 the two differed by 2 mph in gusts and under 3°F.
+    nws: { office: 'SEW', officeName: 'Seattle', x: 165, y: 67 },
+    // Northwest Avalanche Center stations on the ski area, read through the National Weather Service
+    // network (hourly; reports arrive about an hour late). Checked 2026-11-10 against each other, the
+    // SNOTEL station beside Schmidt Haus (39.3 vs 38.8°F) and the model at each elevation (within 1°F).
+    // Left out: Skyline (STS52, 5,250 ft) read 3-4°F warmer than Tye Mill at the same height and than
+    // stations 460 ft lower, in steady rain, and jumped about 3°F hour to hour; re-check before adding.
+    // Grace Lakes (STS48, temperature) and Old Faithful (STS46, wind only) sit just west of the lifts
+    // at heights the three below already cover.
+    stations: [
+      { id: 'STS54', name: 'Tye Mill', operator: 'Northwest Avalanche Center', ft: 5180, where: 'upper mountain, about 0.9 mi S of the base lodge' },
+      { id: 'STB48', name: 'Brooks', operator: 'Northwest Avalanche Center', ft: 4800, where: 'mid-mountain, about 1 mi WSW of the base lodge' },
+      { id: 'STS40', name: 'Schmidt Haus', operator: 'Northwest Avalanche Center', ft: 3950, where: 'base area, at the pass' },
+    ],
+    stationMaxAgeHours: 3,
+    snowZone: 'mid',
+    // Measured snow on the ground: the federal SNOTEL station at the pass, 0.2 mi from the base lodge.
+    // Cross-checked 2026-11-10: it read 0" while the resort's base cams showed bare ground and
+    // Washington DOT reported the road "bare and wet". It reports depth about every other hour.
+    snowSensor: { id: '791:WA:SNTL', name: 'Stevens Pass', operator: 'USDA NRCS SNOTEL', ft: 3940, mi: 0.2, where: 'at the pass, 0.2 mi from the base lodge, at base elevation', maxAgeHours: 6 },
+    // Regional reference only (collapsed in Live readings); never feeds the summary.
+    snotel: [
+      { id: '1338:WA:SNTL', name: 'Icicle Creek', ft: 4550, mi: 14.2 },
+      { id: '478:WA:SNTL', name: 'Fish Lake', ft: 3440, mi: 14.5 },
+      { id: '912:WA:SNTL', name: 'Skookum Creek', ft: 3320, mi: 24.6 },
+    ],
+    // The resort's cams are live video on Brownrice's player; each has a public snapshot image
+    // (the player page's own preview image), refreshed continuously. `video` is the player page,
+    // opened in a new tab. Checked 2026-11-10, 8:30pm: all five were live. The images carry no time
+    // stamp, and the resort doesn't say where on the mountain the stake stands or when its board is
+    // cleared. The stake is numbered in inches (1 to 24).
+    snowStake: {
+      name: 'Snow stake',
+      src: 'https://player.brownrice.com/snapshot/stevenspasssnowstake',
+      video: 'https://player.brownrice.com/embed/stevenspasssnowstake',
+      note: 'Resort snow stake, numbered in inches. The resort doesn\'t say where on the mountain it stands or when the board is cleared.',
+      caption: 'Measured: snow stake cam (resort)',
+    },
+    // Skyline and Jupiter were dark and rain-smeared when checked (night), so they carry the resort's
+    // own names only: RE-CHECK IN DAYLIGHT and describe what each picture shows. The two base cams
+    // were checked against their pictures. Washington DOT's cams carry their own name and time stamp.
+    cams: [
+      { name: 'Skyline (resort cam)', why: 'Resort camera named for the Skyline Express lift. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/stevenspassskyline', video: 'https://player.brownrice.com/embed/stevenspassskyline' },
+      { name: 'Jupiter (resort cam)', why: 'Resort camera named for the Jupiter Express lift. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/stevenspassjupiter', video: 'https://player.brownrice.com/embed/stevenspassjupiter' },
+      { name: 'Ski & Snowboard School (base)', why: 'Resort camera at the base, looking at the bottom of a chairlift and the lower slope: snow on the ground at the bottom of the mountain.', src: 'https://player.brownrice.com/snapshot/stevenspassschool', video: 'https://player.brownrice.com/embed/stevenspassschool' },
+      { name: 'Courtyard (base area)', why: 'Resort camera over the base-area courtyard and lodges: what is falling at base level.', src: 'https://player.brownrice.com/snapshot/stevenspasscourtyard', video: 'https://player.brownrice.com/embed/stevenspasscourtyard' },
+      { name: 'US 2 at the summit, east side', why: 'Highway 2 at Stevens Pass (4,061 ft), by the ski area: the road and what is falling at the pass. © WSDOT.', src: 'https://images.wsdot.wa.gov/nc/002vc06458.jpg', small: true },
+      { name: 'US 2 at the summit, west side', why: 'Highway 2 just west of the Stevens Pass summit: the road on the west approach. © WSDOT.', src: 'https://images.wsdot.wa.gov/nc/002vc06430.jpg', small: true },
+    ],
+    // Season status, from the resort's Hours of Operation page (checked 2026-11-10): "Winter 2026/27
+    // Hours of Operation: Skiing & Riding TBD". `closed: true` keeps preseason mode on until a date
+    // is set here.
+    season: { openingDay: null, closed: true, checked: '2026-11-10' },
+    liftStatusUrl: 'https://www.stevenspass.com/the-mountain/mountain-conditions/lift-and-terrain-status.aspx',
+    // The resort's pages send "X-Frame-Options: SAMEORIGIN", so the board can only be linked.
+    liftStatusEmbed: false,
+    features: { liftEstimate: false },
+    links: [
+      { label: 'Official weather report', url: 'https://www.stevenspass.com/the-mountain/mountain-conditions/weather-report.aspx' },
+      { label: 'Official lift & terrain status', url: 'https://www.stevenspass.com/the-mountain/mountain-conditions/lift-and-terrain-status.aspx' },
+      { label: 'Official mountain cams', url: 'https://www.stevenspass.com/the-mountain/mountain-conditions/mountain-cams.aspx' },
+      { label: 'Northwest Avalanche Center: Stevens Pass forecast', url: 'https://nwac.us/forecasts/avalanche/stevens-pass' },
+      { label: 'Northwest Avalanche Center mountain weather', url: 'https://nwac.us/weather/forecast' },
+      { label: 'Stevens Pass SNOTEL', url: 'https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=791' },
+      { label: 'WSDOT Stevens Pass US 2 (roads)', url: 'https://wsdot.com/travel/real-time/mountainpasses/stevens' },
+    ],
+    afdWords: ['cascades?', 'cascade crest', 'stevens pass', 'stevens', 'snoqualmie', 'passes', 'highway 2', 'us 2', 'skykomish', 'convergence zone'],
+    text: {
+      liveLead: 'Live readings from the Northwest Avalanche Center\'s weather stations on the ski area (upper mountain, mid-mountain and base), and the federal snow station at the pass.',
+      stationsNote: 'Northwest Avalanche Center stations on the ski area, reporting hourly; reports arrive about an hour late. Read through the National Weather Service network. Offline stations are ignored.',
+      snowDepthNote: 'Measured snow depth comes from the Stevens Pass snow station at the pass (3,940 ft); nothing measures it higher up. The resort\'s snow stake cam shows new snow.',
+      regionalWhy: 'at lower or drier sites away from the pass, so their snow differs from the ski area\'s',
+      camsSource: 'Stevens Pass (Brownrice player snapshots); Washington State DOT',
+      camsNote: 'Resort cams show a current snapshot; tap for live video on the resort\'s player. Road cameras © WSDOT. The stake is the best on-mountain check of new snow.',
+      footer: 'Resort cams © Stevens Pass, via Brownrice. Road cameras © WSDOT. Official sources: the Stevens Pass weather report and the Northwest Avalanche Center forecast.',
     },
   },
 

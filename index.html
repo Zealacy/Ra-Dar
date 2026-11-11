@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <!-- Security: the only places this page may load code, data, images and embeds from. When adding a mountain
        or source, add its host here too (see CLAUDE.md). Style attributes are inline, so styles allow 'unsafe-inline'. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; connect-src 'self' https://api.weather.gov https://api.open-meteo.com https://ensemble-api.open-meteo.com https://wcc.sc.egov.usda.gov https://api.weather.gc.ca https://api.rainviewer.com; img-src 'self' data: https://cdnjs.cloudflare.com https://tile.openstreetmap.org https://tilecache.rainviewer.com https://api.mtbachelor.com https://tripcheck.com https://i.ytimg.com https://www.sunpeaksresort.com; frame-src https://www.mtbachelor.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; connect-src 'self' https://api.weather.gov https://api.open-meteo.com https://ensemble-api.open-meteo.com https://wcc.sc.egov.usda.gov https://api.weather.gc.ca https://api.rainviewer.com; img-src 'self' data: https://cdnjs.cloudflare.com https://tile.openstreetmap.org https://tilecache.rainviewer.com https://api.mtbachelor.com https://tripcheck.com https://i.ytimg.com https://www.sunpeaksresort.com https://player.brownrice.com https://images.wsdot.wa.gov; frame-src https://www.mtbachelor.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b1a2b">
   <title>Ra-Dar Ski Weather</title>
-  <meta name="description" content="Ski weather for Mt. Bachelor and Willamette Pass (Oregon) and Sun Peaks (BC): snowpack, 7-day snow forecasts by elevation, mountain readings and webcams.">
+  <meta name="description" content="Ski weather for Mt. Bachelor and Willamette Pass (Oregon), Stevens Pass (Washington) and Sun Peaks (BC): snowpack, 7-day snow forecasts by elevation, mountain readings and webcams.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Ra-Dar">
-  <meta property="og:title" content="Ra-Dar · ski weather for Mt. Bachelor, Willamette Pass &amp; Sun Peaks">
+  <meta property="og:title" content="Ra-Dar · ski weather for Mt. Bachelor, Willamette Pass, Stevens Pass &amp; Sun Peaks">
   <meta property="og:description" content="Snowpack, 7-day snow forecasts by elevation, live mountain readings and webcams.">
   <meta property="og:url" content="https://ra-dar-alpha.vercel.app/">
   <meta property="og:image" content="https://ra-dar-alpha.vercel.app/preview.png">
@@ -161,7 +161,7 @@
         <div class="cam-main-wrap">
           <div class="img-frame" id="cam-frame">
             <a id="cam-main-link" target="_blank" rel="noopener"><img id="cam-main" alt=""></a>
-            <button type="button" class="cam-play" id="cam-play" hidden><span aria-hidden="true">▶</span> Watch live video</button>
+            <button type="button" class="cam-play" id="cam-play" hidden><span aria-hidden="true">▶</span> <span id="cam-play-label">Watch live video</span></button>
           </div>
           <p class="fine" id="cam-why"></p>
         </div>

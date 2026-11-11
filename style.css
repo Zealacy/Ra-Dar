@@ -65,6 +65,10 @@ a { color: var(--accent); }
 /* mountain switcher: one pill per mountain, the current one filled */
 .mtn-switch { display: flex; gap: 2px; padding: 3px; margin-right: auto; border-radius: 999px; background: rgba(255,255,255,.1); overflow-x: auto; scrollbar-width: none; }
 .mtn-switch::-webkit-scrollbar { display: none; }
+/* More mountains than fit: fade the edge they're hidden behind (set from JS as data-more="l", "r" or "lr"). */
+.mtn-switch[data-more="r"] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); }
+.mtn-switch[data-more="l"] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); }
+.mtn-switch[data-more="lr"] { -webkit-mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent); }
 .mtn-switch a { flex: 0 0 auto; padding: 6px 16px; border-radius: 999px; color: #d5e2ef; text-decoration: none; font-size: .92rem; font-weight: 650; white-space: nowrap; transition: background .2s, color .2s; }
 .mtn-switch a:hover { background: rgba(255,255,255,.14); color: #fff; }
 .mtn-switch a[aria-current="page"] { background: #fff; color: #0b1a2b; }
@@ -229,6 +233,7 @@ main { padding-top: 16px; padding-bottom: 8px; }
 .snow-measured .sm-k { font-size: .6rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--m); }
 .snow-measured .sm-v { font-size: 1.7rem; font-weight: 800; line-height: 1; color: var(--text); }
 .snow-measured .sm-l { color: var(--text); font-weight: 600; }
+.snow-measured .sm-a { margin-top: 3px; color: var(--text); font-weight: 700; }
 /* right-now station list */
 .now-list { display: flex; flex-direction: column; gap: 8px; }
 .now-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; padding: 8px 10px; background: var(--surface); border-radius: 10px; animation: fadein .5s var(--ease) both; }
@@ -350,6 +355,9 @@ table.chance td.pc { text-align: center; font-weight: 700; }
 .img-frame.is-small:hover img { transform: none; }
 .cam-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border: 0; border-radius: 999px; background: rgba(11, 26, 43, .82); color: #fff; font: inherit; font-size: .9rem; font-weight: 700; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,.3); transition: background .2s, transform .2s; }
 .cam-play:hover { background: rgba(11, 26, 43, .95); transform: translate(-50%, -50%) scale(1.04); }
+/* A link to an outside player sits in the corner, so it never covers the snow stake's numbers. */
+.img-frame.video-link .cam-play { left: 10px; top: auto; bottom: 10px; transform: none; padding: 7px 13px; font-size: .78rem; }
+.img-frame.video-link .cam-play:hover { transform: scale(1.03); }
 .thumbs button.video { position: relative; }
 .thumbs button.video::after { content: "▶ live"; position: absolute; left: 6px; top: 6px; padding: 1px 6px; border-radius: 999px; background: rgba(11, 26, 43, .8); color: #fff; font-size: .6rem; font-weight: 700; }
 .thumbs { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 10px 2px 4px; scrollbar-width: thin; }
