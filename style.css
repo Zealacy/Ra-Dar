@@ -65,6 +65,11 @@ a { color: var(--accent); }
 /* mountain switcher: one pill per mountain, the current one filled */
 .mtn-switch { display: flex; gap: 2px; padding: 3px; margin-right: auto; border-radius: 999px; background: rgba(255,255,255,.1); overflow-x: auto; scrollbar-width: none; }
 .mtn-switch::-webkit-scrollbar { display: none; }
+/* Wider screens with more mountains than fit beside the header buttons: the switcher gets its own row (set from JS). */
+.top-row.sw-wrap { flex-wrap: wrap; row-gap: 8px; }
+.top-row.sw-wrap::after { content: ""; order: 4; flex-basis: 100%; }
+.top-row.sw-wrap .mtn-switch { order: 5; margin-right: 0; }
+.top-row.sw-wrap .jump { margin-left: auto; }
 /* More mountains than fit: fade the edge they're hidden behind (set from JS as data-more="l", "r" or "lr"). */
 .mtn-switch[data-more="r"] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); }
 .mtn-switch[data-more="l"] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); }

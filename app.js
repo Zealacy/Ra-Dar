@@ -395,6 +395,8 @@ function modelNow() {
   const row = (state.nws?.rows || []).find((r) => now >= +r.t && now < +r.t + 3600e3) || null;
   return { zones, wind: row ? { wind: row.wind, gust: row.gust, dir: row.dir, ft: state.nws.elevFt } : null };
 }
+// "projected" or "scheduled": what the resort calls its Opening Day.
+const openWord = () => (M.season?.projected ? 'projected' : 'scheduled');
 const useModelNow = () => !!M.nowModel && !(state.stations || []).some((s) => s.stats.fresh);
 
 // ================================================================ On-mountain stations (measured)
@@ -754,7 +756,7 @@ function seasonStatus() {
   const days = Math.round((Date.parse(open + 'T12:00:00Z') - Date.parse(today + 'T12:00:00Z')) / 864e5);
   if (days > 0) {
     const nice = new Date(open + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    return { open: false, days, label: `Closed until winter · Opening Day ${nice} (scheduled), ${days} day${days === 1 ? '' : 's'} away` };
+    return { open: false, days, label: `Closed until winter · Opening Day ${nice} (${openWord()}), ${days} day${days === 1 ? '' : 's'} away` };
   }
   return { open: true, label: 'Ski season · check the official status for openings' };
 }
@@ -921,7 +923,7 @@ function computeBriefing(c) {
   const sky = c.sky, wind = c.wind, rain = c.rain, snow = c.snow || {};
   const live = c.now?.live || [];
 
-  if (c.season && !c.season.open) add(M.season.openingDay ? `Lifts not running. Opening Day scheduled for ${new Date(M.season.openingDay + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.` : 'Lifts not running. Opening Day not announced yet.', true);
+  if (c.season && !c.season.open) add(M.season.openingDay ? `Lifts not running. Opening Day ${openWord()} for ${new Date(M.season.openingDay + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.` : 'Lifts not running. Opening Day not announced yet.', true);
 
   // Right now (morning-of check only)
   if (c.win.today) {
@@ -1386,7 +1388,13 @@ function renderNow(c) {
   tag.title = modelOn ? 'Model: a computer-model estimate for this hour, not a measurement' : 'Measured: live readings from stations on the mountain';
   if (modelOn) { renderNowModel(); return; }
   const sts = c.now?.stations || [];
-  if (!sts.length && !M.snowSensor) { list.innerHTML = '<div class="lbl">Station data unavailable right now.</div>'; return; }
+  if (!sts.length && !M.snowSensor) {
+    // A mountain with no public station says so; one whose stations failed to load says that.
+    list.innerHTML = `<div class="lbl">${M.stations.length ? 'Station data unavailable right now.' : 'No public weather station on the ski area. The cams show conditions.'}</div>`;
+    $('now-cap').textContent = '';
+    if (!M.stations.length) { tag.textContent = 'No station'; tag.className = 'src'; tag.title = 'No public weather station measures conditions on this ski area'; }
+    return;
+  }
   const sensor = c.now?.sensor, sx = sensor?.stats, sOk = !!sx?.fresh;
   const sensorRow = !M.snowSensor ? '' : `<div class="now-row snow ${sOk ? '' : 'offline'}" style="animation-delay:${sts.length * 0.08}s" data-sensor="1">
       <div class="nm">${esc(M.snowSensor.name)} snow station<small>${esc(M.snowSensor.operator)} · ${ftFmt(M.snowSensor.ft)} ft · ${esc(M.snowSensor.where)} · ${sOk ? ageText(sx.depthAgeH) : sx?.depthAgeH != null ? `offline, last report ${ageText(sx.depthAgeH)}` : 'no reports right now'}</small></div>
@@ -1860,7 +1868,7 @@ async function loadAfd() {
 // A still cam can also carry `video`, a player page that opens in a new tab for live video.
 // A cam is either a still image (`src`) or a YouTube live stream (`youtube`): the stream's live
 // still is shown like any other cam, and YouTube's own player loads when the viewer asks for video.
-const allCams = () => [...(M.snowStake ? [{ name: M.snowStake.name, why: `${M.snowStake.ft ? `${ftFmt(M.snowStake.ft)} ft. ` : ''}${M.snowStake.note}`, src: M.snowStake.src, caption: M.snowStake.caption, video: M.snowStake.video }] : []), ...M.cams];
+const allCams = () => [...(M.snowStake ? [{ name: M.snowStake.name, why: `${M.snowStake.ft ? `${ftFmt(M.snowStake.ft)} ft. ` : ''}${M.snowStake.note}`, src: M.snowStake.src, caption: M.snowStake.caption, video: M.snowStake.video, youtube: M.snowStake.youtube }] : []), ...M.cams];
 // The cam shown large at the top in preseason (the stake, or the first cam where there is no stake).
 const heroCam = () => allCams()[0];
 const camStill = (cam, thumb) => (cam.youtube ? `https://i.ytimg.com/vi/${cam.youtube}/${thumb ? 'mqdefault' : 'maxresdefault'}_live.jpg` : cam.src);
@@ -1914,7 +1922,7 @@ function setupCamPlayer() {
   $('cam-main-link').addEventListener('click', (e) => { if (allCams()[camIndex]?.youtube) { e.preventDefault(); playCam(); } });
 }
 function renderCams() {
-  if (M.snowStake) $('stake-thumb').src = camUrl(M.snowStake.src);
+  if (M.snowStake) $('stake-thumb').src = camUrl(camStill(allCams()[0], true));
   if (M.stationGraphic) { $('stations').src = camUrl(M.stationGraphic); $('stations-link').href = M.stationGraphic; }
   const thumbs = $('thumbs');
   if (!thumbs.children.length) {
@@ -2020,9 +2028,19 @@ function setupMountain() {
     sw.dataset.more = `${sw.scrollLeft > 4 ? 'l' : ''}${sw.scrollLeft + sw.clientWidth < sw.scrollWidth - 4 ? 'r' : ''}`;
   };
   const place = () => { if (cur) sw.scrollLeft = cur.offsetLeft - (sw.clientWidth - cur.offsetWidth) / 2; edges(); };
+  // On a wider screen, when the mountains don't fit beside the other header buttons, the switcher takes its own
+  // row under them instead (scrolling sideways is awkward with a mouse). Phones keep the scrolling row.
+  const row = sw.parentElement;
+  const fit = () => {
+    row.classList.remove('sw-wrap');
+    if (!isMobile() && sw.scrollWidth > sw.clientWidth + 1) row.classList.add('sw-wrap');
+    place();
+  };
   sw.addEventListener('scroll', edges, { passive: true });
-  window.addEventListener('resize', place);
-  requestAnimationFrame(place);
+  window.addEventListener('resize', fit);
+  // The header's other items change width as the page loads (the "Updated" time), so check again then.
+  if ('ResizeObserver' in window) new ResizeObserver(() => requestAnimationFrame(fit)).observe(row.querySelector('.top-actions'));
+  requestAnimationFrame(fit);
   document.title = `${M.name} · Ra-Dar Ski Weather`;
   $('mtn-name').textContent = `${M.name} ski weather`;
   document.querySelectorAll('.mtn-name-text').forEach((el) => { el.textContent = M.name; });

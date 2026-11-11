@@ -14,6 +14,8 @@
 // station measures the mountain (owner's choice; never where a usable station exists).
 // `snowDaily` reads Environment Canada's daily climate stations for measured snow, with dates.
 // A cam with `video` (a player page) shows its still and opens that page in a new tab for live video.
+// `snowStake` can be a still (`src`) or a YouTube stream (`youtube`), like any cam.
+// `season.projected: true` says "projected" instead of "scheduled" for an Opening Day the resort calls projected.
 
 const MOUNTAINS = {
   bachelor: {
@@ -301,6 +303,80 @@ const MOUNTAINS = {
       camsSource: 'Stevens Pass (Brownrice player snapshots); Washington State DOT',
       camsNote: 'Resort cams show a current snapshot; tap for live video on the resort\'s player. Road cameras © WSDOT. The stake is the best on-mountain check of new snow.',
       footer: 'Resort cams © Stevens Pass, via Brownrice. Road cameras © WSDOT. Official sources: the Stevens Pass weather report and the Northwest Avalanche Center forecast.',
+    },
+  },
+
+  spokane: {
+    name: 'Mt. Spokane',
+    region: 'Selkirk Mountains, Mount Spokane State Park · Washington, USA',
+    // A point on the ski area between the base lodge and the summit. Open-Meteo uses one grid cell
+    // (47.912, -117.100) for all three elevations here (checked 2026-11-10).
+    lat: 47.918,
+    lon: -117.115,
+    timezone: 'America/Los_Angeles',
+    // The resort's official figures (Trail Maps page, checked 2026-11-10): summit 5,889 ft, base lodge
+    // 4,200 ft. It names no mid-mountain elevation, so "mid" is the halfway elevation.
+    zones: [
+      { key: 'base', name: 'Base lodge', short: 'Base', ft: 4200 },
+      { key: 'mid', name: 'Mid-mountain', short: 'Mid-mountain', ft: 5045 },
+      { key: 'summit', name: 'Summit (top of Chair 1)', short: 'Summit', ft: 5889 },
+    ],
+    // National Weather Service Spokane. This cell holds the summit and averages 4,806 ft; the cell just
+    // south (152,100) averages 4,144 ft. It publishes snow level and visibility.
+    nws: { office: 'OTX', officeName: 'Spokane', x: 152, y: 101 },
+    // No public weather station on the ski area (checked on the NWS and MesoWest networks, 2026-11-10).
+    // The nearest, the Quartz Peak SNOTEL, is 3.1 mi SE on a separate peak: the owner chose (2026-11-10)
+    // to show it only as a regional reference, not in "Right now".
+    stations: [],
+    stationMaxAgeHours: 3,
+    snowZone: 'mid',
+    windHoldLifts: 'Upper-mountain',
+    // Regional reference only (collapsed in Live readings); never feeds the summary.
+    snotel: [
+      { id: '707:WA:SNTL', name: 'Quartz Peak', ft: 4710, mi: 3.1 },
+      { id: '1081:ID:SNTL', name: 'Ragged Mountain', ft: 4210, mi: 5.7 },
+    ],
+    // The resort streams its cams on YouTube (as Willamette Pass does). Captions are the resort's own
+    // (webcams page, 2026-11-10). At 9:50pm every live still was the resort's title card (an old photo
+    // with a "Live Stream" label), probably an overnight placeholder: RE-CHECK IN DAYLIGHT that each
+    // picture matches its caption before publishing.
+    snowStake: {
+      name: 'Snow stake (Lodge 2)',
+      youtube: 'lBgqL-YwCcE',
+      note: 'Resort snow stake at Lodge 2, numbered in inches. Tap for live video (YouTube).',
+      caption: 'Measured: snow stake cam, Lodge 2 (resort)',
+    },
+    cams: [
+      { name: 'Top of Vista Cruiser, Chair 1 (summit)', why: 'Resort camera at the top of Chair 1, the summit: upper-mountain snow and visibility. Tap for live video (YouTube).', youtube: 'r1N4CmHq0RA' },
+      { name: 'Top of Northwood, Chair 6', why: 'Resort camera at the top of Chair 6, on the back side. Tap for live video (YouTube).', youtube: 'm1kzBdiTyFU' },
+      { name: 'Top of Parkway Express, Chair 3', why: 'Resort camera at the top of Chair 3. Tap for live video (YouTube).', youtube: 'KSIuO1ITLlU' },
+      { name: 'Top of Hidden Treasure, Chair 4', why: 'Resort camera at the top of Chair 4. Tap for live video (YouTube).', youtube: 'rQnOjOnHrpw' },
+      { name: 'Hourglass (Chair 1)', why: 'Resort camera on the Hourglass run, on Chair 1. Tap for live video (YouTube).', youtube: 'rvY2pHYzMlE' },
+      { name: 'View from Lodge 2', why: 'Resort camera at Lodge 2, by the base: snow at the bottom of the mountain. Tap for live video (YouTube).', youtube: '0i8hMjxhnho' },
+      { name: 'Half Hitch Terrain Park', why: 'Resort camera at the top of the Half Hitch terrain park. Tap for live video (YouTube).', youtube: 'itPwz9u27K4' },
+    ],
+    // From the resort's own post (October 2026): "Dec. 5: Projected Opening Day". `projected` makes the
+    // page say "projected", not "scheduled". Its conditions page reads "N/A" until it opens.
+    season: { openingDay: '2026-12-05', projected: true, checked: '2026-11-10' },
+    liftStatusUrl: 'https://www.mtspokane.com/trail-maps',
+    // The resort's pages send "X-Frame-Options: SAMEORIGIN", so the board can only be linked.
+    liftStatusEmbed: false,
+    features: { liftEstimate: false },
+    links: [
+      { label: 'Official weather & conditions', url: 'https://www.mtspokane.com/conditions' },
+      { label: 'Official trail report & lift status', url: 'https://www.mtspokane.com/trail-maps' },
+      { label: 'Official webcams', url: 'https://www.mtspokane.com/webcams' },
+      { label: 'Quartz Peak SNOTEL (regional)', url: 'https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=707' },
+    ],
+    afdWords: ['mt\\.? spokane', 'mount spokane', 'spokane area', 'northern mountains', 'idaho panhandle', 'northeast washington', 'selkirks?'],
+    text: {
+      liveLead: 'No public weather station on the ski area. The nearest, the Quartz Peak snow station, sits 3 mi SE of the summit on a separate peak, so it appears only as a regional reference below.',
+      stationsNote: 'No public weather station on the ski area. The nearest, the Quartz Peak snow station (3.1 mi SE), is a regional reference only.',
+      snowDepthNote: 'No snow-depth sensor on the ski area; the snow stake cam shows the ground. The nearest snow station, Quartz Peak (3.1 mi SE), is a regional reference.',
+      regionalWhy: 'on separate peaks away from the ski runs, so their snow can differ from the ski area\'s',
+      camsSource: 'Mt. Spokane Ski & Snowboard Park (YouTube live)',
+      camsNote: 'Resort cameras: each shows its stream\'s live still, refreshed about every 5 minutes; tap one for live video in YouTube\'s player.',
+      footer: 'Webcams © Mt. Spokane Ski & Snowboard Park, via YouTube. Official source: the Mt. Spokane weather & conditions page.',
     },
   },
 

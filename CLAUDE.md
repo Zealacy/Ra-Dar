@@ -1,6 +1,6 @@
 # Ra-Dar: notes for Claude
 
-Ra-Dar is a **ski weather tracker** website for **Mt. Bachelor** and **Willamette Pass** (Oregon), **Stevens Pass** (Washington) and **Sun Peaks** (British Columbia), with a switcher at the top of the page. More mountains can be added through `mountains.js`.
+Ra-Dar is a **ski weather tracker** website for **Mt. Bachelor** and **Willamette Pass** (Oregon), **Stevens Pass** and **Mt. Spokane** (Washington; Mt. Spokane built, not published yet) and **Sun Peaks** (British Columbia), with a switcher at the top of the page. More mountains can be added through `mountains.js`.
 It's a static site published on **Vercel** at **https://ra-dar-alpha.vercel.app/**. There's no build step, no server and no API keys in the code.
 
 The owner isn't a programmer. Explain things in plain language, keep setup steps they have to do themselves to a minimum, and tell them plainly what went live and what didn't work.
@@ -21,6 +21,15 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 
 - **Vercel serves commit `4e8d246`** (published Nov 10, about 9:35pm Pacific, after the owner said "publish it"): all four mountains, Mt. Bachelor, Willamette Pass, Stevens Pass and Sun Peaks.
   - It passed `node --check`, the browser test on all four mountains (desktop and phone, both views), and the same test against the live site. No page errors and nothing blocked by the Content Security Policy.
+- **Mt. Spokane is built on GitLab `main` but NOT published** (Nov 10, about 10:15pm Pacific). The owner said "build" (Nov 10) after choosing Quartz Peak as regional only ("3 miles is a lil too much").
+  - It passed `node --check` and the browser test on all five mountains (desktop and phone, both views), with no page errors and nothing blocked.
+  - **Held for:** a daylight check of its eight YouTube cams (all showed the resort's title cards at night). Confirm each picture matches its caption, then publish when the owner says so.
+  - **Ask the owner:** its "Right now" box says "No public weather station on the ski area" (badge "No station"). Labeled model estimates (`nowModel`, as at Sun Peaks) were approved for Sun Peaks only, so they're not used here unless the owner says so.
+  - Shared changes in this build:
+    - A YouTube snow stake cam (`snowStake.youtube`).
+    - `season.projected` ("projected" instead of "scheduled").
+    - An honest "no station" state in Right now.
+    - On wider screens the mountain switcher moves to its own header row when it doesn't fit beside the other buttons (five mountains don't fit at 1280 px); phones keep the scrolling row.
 - **Stevens Pass is live** (it was held as a draft first, at the owner's request).
   - **Still open: the daylight cam check.** The resort's "Skyline" and "Jupiter" cams were dark when it was published, so they carry the resort's names only. Look at them in daylight, describe what each shows, and republish.
   - That release also changed shared code on the other mountains: the phone header (the mountain row scrolls and fades at the edge), the forecaster-notes parser (two fixes), and the cam player button.
@@ -118,7 +127,7 @@ The page layout is identical for every mountain. **Everything that differs lives
   - **Resort (stevenspass.com, Vail Resorts):** its pages send `X-Frame-Options: SAMEORIGIN`, so the Lifts tab links to its Lift & Terrain Status page. Its weather page is a forecast, not sensors.
   - **Avalanche:** NWAC, `nwac.us/forecasts/avalanche/stevens-pass` (linked). NWAC's own site is a JavaScript app; its data API wasn't used.
   - **First mountain with both a stake cam and a snow sensor:** the Fresh snow card shows the measured box with a "New snow: stake cam" link, in place of the stake thumbnail.
-- **Mt. Spokane, WA: researched Nov 10 (9:30–10pm Pacific), not built.** The owner asked for research only. **Don't build until the owner says so.**
+- **Mt. Spokane, WA: researched Nov 10 (9:30–10pm Pacific); built, not published** (see Handoff).
   - **Basics** (resort's Trail Maps page): summit 5,889 ft, base lodge 4,200 ft, 2,000 skiable vertical ft, 1,704 acres, 6 chairs, 53 runs, night skiing. A nonprofit resort inside Mount Spokane State Park.
     - **Season:** "Dec. 5: Projected Opening Day", from the resort's own post (October). Its conditions page reads "N/A" until it opens. Last season it opened Dec 27 and closed early, citing warm temperatures.
     - **Hours:** last season Wednesday–Saturday 9am–9pm, Sunday 9am–4pm, closed Monday–Tuesday.
@@ -128,7 +137,7 @@ The page layout is identical for every mountain. **Everything that differs lives
     - Quartz Peak SNOTEL `707:WA:SNTL` (4,710 ft, 3.1 mi SE of the summit, on a separate peak in the state park): hourly temperature, snow depth every few hours, water content. It also reaches the NWS feed as `QUPW1` (temperature only).
     - On Nov 10 at 9pm it read 43.3°F (the model at 4,711 ft: 42.7°F) and 0 in of depth, while water content still showed 0.6 in.
     - Last season its depth peaked at only 35 in (Mar 13), and snow first appeared Nov 26. Cross-check it against the resort's reported base once the resort opens.
-    - **Owner decision needed:** use it, labeled "3 mi SE of the summit, not at the ski area" (like Moon Mountain at Bachelor), or regional reference only.
+    - **Owner decision (Nov 10): regional reference only** ("3 miles is a lil too much"). It's in `snotel`, not `stations` or `snowSensor`.
     - Ragged Mountain SNOTEL `1081:ID:SNTL` (4,210 ft, 5.7 mi SE, in Idaho) is regional only.
   - **Forecast:**
     - NWS Spokane `OTX`. Cell `152,101` holds the summit and averages 4,806 ft; `152,100` (4,144 ft) is just south. Zone WAZ037. It publishes snow level and visibility, and Spokane AFDs.
