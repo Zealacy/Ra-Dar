@@ -118,6 +118,28 @@ The page layout is identical for every mountain. **Everything that differs lives
   - **Resort (stevenspass.com, Vail Resorts):** its pages send `X-Frame-Options: SAMEORIGIN`, so the Lifts tab links to its Lift & Terrain Status page. Its weather page is a forecast, not sensors.
   - **Avalanche:** NWAC, `nwac.us/forecasts/avalanche/stevens-pass` (linked). NWAC's own site is a JavaScript app; its data API wasn't used.
   - **First mountain with both a stake cam and a snow sensor:** the Fresh snow card shows the measured box with a "New snow: stake cam" link, in place of the stake thumbnail.
+- **Mt. Spokane, WA: researched Nov 10 (9:30–10pm Pacific), not built.** The owner asked for research only. **Don't build until the owner says so.**
+  - **Basics** (resort's Trail Maps page): summit 5,889 ft, base lodge 4,200 ft, 2,000 skiable vertical ft, 1,704 acres, 6 chairs, 53 runs, night skiing. A nonprofit resort inside Mount Spokane State Park.
+    - **Season:** "Dec. 5: Projected Opening Day", from the resort's own post (October). Its conditions page reads "N/A" until it opens. Last season it opened Dec 27 and closed early, citing warm temperatures.
+    - **Hours:** last season Wednesday–Saturday 9am–9pm, Sunday 9am–4pm, closed Monday–Tuesday.
+    - Its pages send `X-Frame-Options: SAMEORIGIN`, so the lift board (on `/trail-maps`) can only be linked.
+  - **Measured:**
+    - **No station on the ski area.** NWS and MesoWest list nothing within 3 mi except one SNOTEL.
+    - Quartz Peak SNOTEL `707:WA:SNTL` (4,710 ft, 3.1 mi SE of the summit, on a separate peak in the state park): hourly temperature, snow depth every few hours, water content. It also reaches the NWS feed as `QUPW1` (temperature only).
+    - On Nov 10 at 9pm it read 43.3°F (the model at 4,711 ft: 42.7°F) and 0 in of depth, while water content still showed 0.6 in.
+    - Last season its depth peaked at only 35 in (Mar 13), and snow first appeared Nov 26. Cross-check it against the resort's reported base once the resort opens.
+    - **Owner decision needed:** use it, labeled "3 mi SE of the summit, not at the ski area" (like Moon Mountain at Bachelor), or regional reference only.
+    - Ragged Mountain SNOTEL `1081:ID:SNTL` (4,210 ft, 5.7 mi SE, in Idaho) is regional only.
+  - **Forecast:**
+    - NWS Spokane `OTX`. Cell `152,101` holds the summit and averages 4,806 ft; `152,100` (4,144 ft) is just south. Zone WAZ037. It publishes snow level and visibility, and Spokane AFDs.
+    - Open-Meteo near 47.918, -117.115 uses one grid cell (47.912, -117.100) for all elevations.
+  - **Cams:** eight resort YouTube streams, in page order:
+    - Snow stake at Lodge 2 `lBgqL-YwCcE`, Half Hitch Terrain Park `itPwz9u27K4`, view from Lodge 2 `0i8hMjxhnho`.
+    - Top of Vista Cruiser, Chair 1 (summit) `r1N4CmHq0RA`; top of Northwood, Chair 6 `m1kzBdiTyFU`; top of Parkway Express, Chair 3 `KSIuO1ITLlU`; top of Hidden Treasure, Chair 4 `rQnOjOnHrpw`; Hourglass, Chair 1 `rvY2pHYzMlE`.
+    - At 9:50pm all eight live stills were the resort's title cards (an old photo with a "Live Stream" label), unchanged over 90 seconds. The resort's own posts showed live views in October, so this is probably overnight. **Re-check in daylight.**
+    - YouTube's watch pages redirect through `www.google.com`, which this sandbox can't reach.
+  - **Avalanche:** no forecast zone appears to cover it. IPAC covers the Idaho Selkirks, Cabinets, Purcells and Silver Valley; NWAC stops at the Cascades. Not confirmed on an official zone map.
+  - **Roads:** no road camera or sensor found for Mt. Spokane Park Drive. Checking WSDOT's camera list needs its access-coded API, so it wasn't done.
 - **Willamette Pass** (sources verified Nov 8–9):
   - **Measured:**
     - Base weather: ODOT `ODT03` "OR58 at Willamette Pass" (5,121 ft, 0.3 mi from the base lodge, NWS feed). Temperature, wind and gust, but its wind is sheltered at road level.
