@@ -1,6 +1,6 @@
 # Ra-Dar: notes for Claude
 
-Ra-Dar is a **ski weather tracker** website for **Mt. Bachelor** and **Willamette Pass** (Oregon), **Stevens Pass** (Washington; built, not published yet) and **Sun Peaks** (British Columbia), with a switcher at the top of the page. More mountains can be added through `mountains.js`.
+Ra-Dar is a **ski weather tracker** website for **Mt. Bachelor** and **Willamette Pass** (Oregon), **Stevens Pass** (Washington) and **Sun Peaks** (British Columbia), with a switcher at the top of the page. More mountains can be added through `mountains.js`.
 It's a static site published on **Vercel** at **https://ra-dar-alpha.vercel.app/**. There's no build step, no server and no API keys in the code.
 
 The owner isn't a programmer. Explain things in plain language, keep setup steps they have to do themselves to a minimum, and tell them plainly what went live and what didn't work.
@@ -19,17 +19,17 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 
 ## Handoff: where things stand (updated 2026-11-10, 9pm Pacific)
 
-- **Vercel serves commit `2b192c6`** (the security hardening, published Nov 10 after the owner said "publish it"): Mt. Bachelor, Willamette Pass and Sun Peaks.
-- **Stevens Pass is built on GitLab `main` but NOT published.** The owner asked (Nov 10) for a complete draft held "just shy of publishing". **Don't deploy it until the owner says so.**
-  - It passed `node --check` and the browser test on all four mountains (desktop and phone, both views), with no page errors and nothing blocked by the Content Security Policy.
-  - The commit also changes shared code, so publishing it changes the live mountains too: the phone header (the mountain row scrolls and fades at the edge), the forecaster-notes parser (two fixes), and the cam player button.
-  - **Before publishing, in daylight:** look at the resort's "Skyline" and "Jupiter" cams. They were dark and rain-smeared at 8:30pm, so they carry the resort's names only. Describe what each picture shows and where it looks (see "Mountains").
-  - **NWS snow level now decides rain vs. snow (owner said yes, Nov 10; held with Stevens, not published).** In `app.js`, `applySnowLevel()` runs after every source loads.
+- **Vercel serves commit `4e8d246`** (published Nov 10, about 9:35pm Pacific, after the owner said "publish it"): all four mountains, Mt. Bachelor, Willamette Pass, Stevens Pass and Sun Peaks.
+  - It passed `node --check`, the browser test on all four mountains (desktop and phone, both views), and the same test against the live site. No page errors and nothing blocked by the Content Security Policy.
+- **Stevens Pass is live** (it was held as a draft first, at the owner's request).
+  - **Still open: the daylight cam check.** The resort's "Skyline" and "Jupiter" cams were dark when it was published, so they carry the resort's names only. Look at them in daylight, describe what each shows, and republish.
+  - That release also changed shared code on the other mountains: the phone header (the mountain row scrolls and fades at the edge), the forecaster-notes parser (two fixes), and the cam player button.
+  - **NWS snow level now decides rain vs. snow (owner said yes, Nov 10; live since Nov 10).** In `app.js`, `applySnowLevel()` runs after every source loads.
     - Where the NWS forecast covers the hours, each elevation's precipitation is snow 500 ft or more above the NWS snow level, rain 500 ft or more below it, and mixed in between (`splitWithLevel`, `LEVEL_BAND_FT`).
     - The past, hours beyond the NWS forecast, and Sun Peaks keep the temperature split.
     - It's used for the "next 7 days" part of the preseason chart, the Snowpack tab, the Base to summit tab and the week fallback. The sources table says so.
     - Effect on Nov 10, next 7 days: Stevens base 5.2 to 3.4 in, Bachelor base 3.3 to 4.4 in, Willamette base 1.7 to 2.3 in. Mid and summit barely changed.
-  - **The preseason chart's "coming" part now uses the 82-run middle** (owner, Nov 10: "do whatever is most similar to the UI for the other mountains"; held with Stevens, not published). The chart looks exactly the same as before. Only the dashed "+X coming" number changed:
+  - **The preseason chart's "coming" part now uses the 82-run middle** (owner, Nov 10: "do whatever is most similar to the UI for the other mountains"; live since Nov 10). The chart looks exactly the same as before. Only the dashed "+X coming" number changed:
     - **Why:** the snow-level rule alone didn't fix the chart/tile disagreement. At Stevens mid-mountain the chart said about +10 in, the tile 0–4 in (middle 1.2), and the NWS's own snowfall 0.2 in. The cause wasn't rain vs. snow: the chart followed one forecast (Open-Meteo's default) that was wetter and colder than the NWS (1.9 vs. 1.0 in of water; 30–32°F vs. 35–37°F).
     - **Now:** mid-mountain "coming" = the middle of the 82 runs over the next 7 days (`ensNext7()` in `week.js`). The "Snow next 7 days" tile uses the same hours (now to 7 days ahead; it used to start at 4pm yesterday), so the two always agree.
     - Base and summit get that number scaled by how the one-model forecast (with its elevation-aware rain/snow split) spreads snow across elevations. The Snowpack tab keeps that forecast's timing, scaled to the same totals.
@@ -49,7 +49,7 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
   - It's used for preseason snowfall since Oct 1, the Snowpack tab, Fresh snow by elevation, the Base to summit tab's daily snow and rain, and `week.js`'s fallback past NWS coverage.
   - The week's snow ranges and the 4-model comparison (one elevation, the models' own split) are unchanged.
   - Effect on Nov 9: Bachelor's last 7 days at 7,800 ft went from 0.1" to 2.4". Season snowfall now rises with elevation at every mountain (Sun Peaks 5.3 / 6.8 / 7.0", was 4" everywhere). It matches Willamette's measured 0" base and bare base cam.
-- **Mountains:** Mt. Bachelor, Willamette Pass and Sun Peaks are all live; Stevens Pass is built but not published (see above). A switcher at the top of the page picks the mountain; see "Mountains" below.
+- **Mountains:** Mt. Bachelor, Willamette Pass, Stevens Pass and Sun Peaks are all live. A switcher at the top of the page picks the mountain; see "Mountains" below.
 - **Seasons:**
   - **Stevens Pass** has **no Opening Day announced**: the resort's Hours of Operation page lists "Winter 2026/27: Skiing & Riding TBD" (checked Nov 10). `season: { openingDay: null, closed: true }` keeps preseason on. **Set the date when they post one.**
   - **Mt. Bachelor** is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 9, 9pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
@@ -98,7 +98,7 @@ The page layout is identical for every mountain. **Everything that differs lives
   - `snowDaily`: Environment Canada's daily climate stations (measured snow on the ground and new snow, cm → in), read with one bounding-box request (`climate-daily`) plus their last report dates (`climate-stations`). They're shown with their dates in the Fresh snow card, a preseason tile, the briefing, a Live readings table and the Snowpack tab, never as "right now". A report counts as recent for `maxAgeDays` (3).
   - Cams can be `heavy: true` (4K stills): their thumbnails refresh every 30 minutes instead of every 5, to save data.
 - **Mt. Bachelor:** see "Approved sources" below.
-- **Stevens Pass, WA** (sources verified Nov 10, 7–9pm Pacific; built, not published):
+- **Stevens Pass, WA** (sources verified Nov 10, 7–9pm Pacific; live since Nov 10):
   - **Basics** (resort's Mountain Info & Stats page): base 4,061 ft, highest elevation 5,845 ft, 1,125 acres, 460 in average snowfall. Mid-mountain is the halfway elevation, 4,950 ft (the resort names none). Model point 47.7405, -121.095, where Open-Meteo uses one grid cell for all three elevations. At the base lodge's own coordinates it picked a different cell for each elevation.
   - **Measured:**
     - Northwest Avalanche Center (NWAC) stations on the ski area, through the NWS feed, hourly: Tye Mill `STS54` (5,180 ft; temperature, wind and gusts), Brooks `STB48` (4,800 ft; temperature, humidity), Schmidt Haus `STS40` (3,950 ft; temperature, humidity).
