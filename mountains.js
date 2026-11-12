@@ -15,6 +15,7 @@
 // `snowDaily` reads Environment Canada's daily climate stations for measured snow, with dates.
 // A cam with `video` (a player page) shows its still and opens that page in a new tab for live video.
 // `snowStake` can be a still (`src`) or a YouTube stream (`youtube`), like any cam.
+// `snowStake.thumbLabel` replaces the Fresh snow card's "Measured: stake cam" label (Mt. Spokane, while its stream is off).
 // `season.projected: true` says "projected" instead of "scheduled" for an Opening Day the resort calls projected.
 // `draft: true` keeps a finished mountain off the site (out of the switcher and unreachable by ?mtn=)
 // until it's ready to publish. Set it to false to test the mountain locally.
@@ -311,8 +312,6 @@ const MOUNTAINS = {
   },
 
   spokane: {
-    // Held back on Nov 11: all 8 resort streams, the snow stake included, still showed title cards in daylight.
-    draft: true,
     name: 'Mt. Spokane',
     region: 'Selkirk Mountains, Mount Spokane State Park · Washington, USA',
     // A point on the ski area between the base lodge and the summit. Open-Meteo uses one grid cell
@@ -349,23 +348,26 @@ const MOUNTAINS = {
       { id: '1081:ID:SNTL', name: 'Ragged Mountain', ft: 4210, mi: 5.6 },
     ],
     // The resort streams its cams on YouTube (as Willamette Pass does). Captions are the resort's own
-    // (webcams page, 2026-11-10). At 9:50pm every live still was the resort's title card (an old photo
-    // with a "Live Stream" label), probably an overnight placeholder: RE-CHECK IN DAYLIGHT that each
-    // picture matches its caption before publishing.
+    // (webcams page, 2026-11-10). Through Nov 11 (night and daylight) every live still was the resort's
+    // title card: an old winter photo behind a "Live Stream" box. The owner chose to publish anyway
+    // ("they'll fix it", Nov 12), so each cam says so. When the streams come back, check each picture
+    // against its caption and remove the title-card sentences.
     snowStake: {
       name: 'Snow stake (Lodge 2)',
       youtube: 'lBgqL-YwCcE',
-      note: 'Resort snow stake at Lodge 2, numbered in inches. Tap for live video (YouTube).',
-      caption: 'Measured: snow stake cam, Lodge 2 (resort)',
+      note: 'Resort snow stake at Lodge 2, numbered in inches. Until the resort switches its streams on, this shows their title card: an old winter photo, not today\'s snow. Tap for live video (YouTube).',
+      caption: 'Snow stake cam, Lodge 2 (resort). Until the resort switches its streams on, this is their title card: an old photo, not today\'s snow.',
+      // Replaces "Measured: stake cam" on the Fresh snow card while the stream shows a title card.
+      thumbLabel: 'Stake cam ↓',
     },
     cams: [
-      { name: 'Top of Vista Cruiser, Chair 1 (summit)', why: 'Resort camera at the top of Chair 1, the summit: upper-mountain snow and visibility. Tap for live video (YouTube).', youtube: 'r1N4CmHq0RA' },
-      { name: 'Top of Northwood, Chair 6', why: 'Resort camera at the top of Chair 6, on the back side. Tap for live video (YouTube).', youtube: 'm1kzBdiTyFU' },
-      { name: 'Top of Parkway Express, Chair 3', why: 'Resort camera at the top of Chair 3. Tap for live video (YouTube).', youtube: 'KSIuO1ITLlU' },
-      { name: 'Top of Hidden Treasure, Chair 4', why: 'Resort camera at the top of Chair 4. Tap for live video (YouTube).', youtube: 'rQnOjOnHrpw' },
-      { name: 'Hourglass (Chair 1)', why: 'Resort camera on the Hourglass run, on Chair 1. Tap for live video (YouTube).', youtube: 'rvY2pHYzMlE' },
-      { name: 'View from Lodge 2', why: 'Resort camera at Lodge 2, by the base: snow at the bottom of the mountain. Tap for live video (YouTube).', youtube: '0i8hMjxhnho' },
-      { name: 'Half Hitch Terrain Park', why: 'Resort camera at the top of the Half Hitch terrain park. Tap for live video (YouTube).', youtube: 'itPwz9u27K4' },
+      { name: 'Top of Vista Cruiser, Chair 1 (summit)', why: 'Resort camera at the top of Chair 1, the summit: upper-mountain snow and visibility. Until the resort switches its streams on, this shows their title card (an old photo). Tap for live video (YouTube).', youtube: 'r1N4CmHq0RA' },
+      { name: 'Top of Northwood, Chair 6', why: 'Resort camera at the top of Chair 6, on the back side. Until the resort switches its streams on, this shows their title card (an old photo). Tap for live video (YouTube).', youtube: 'm1kzBdiTyFU' },
+      { name: 'Top of Parkway Express, Chair 3', why: 'Resort camera at the top of Chair 3. Until the resort switches its streams on, this shows their title card (an old photo). Tap for live video (YouTube).', youtube: 'KSIuO1ITLlU' },
+      { name: 'Top of Hidden Treasure, Chair 4', why: 'Resort camera at the top of Chair 4. Until the resort switches its streams on, this shows their title card (an old photo). Tap for live video (YouTube).', youtube: 'rQnOjOnHrpw' },
+      { name: 'Hourglass (Chair 1)', why: 'Resort camera on the Hourglass run, on Chair 1. Until the resort switches its streams on, this shows their title card (an old photo). Tap for live video (YouTube).', youtube: 'rvY2pHYzMlE' },
+      { name: 'View from Lodge 2', why: 'Resort camera at Lodge 2, by the base: snow at the bottom of the mountain. Until the resort switches its streams on, this shows their title card (an old photo). Tap for live video (YouTube).', youtube: '0i8hMjxhnho' },
+      { name: 'Half Hitch Terrain Park', why: 'Resort camera at the top of the Half Hitch terrain park. Until the resort switches its streams on, this shows their title card (an old photo). Tap for live video (YouTube).', youtube: 'itPwz9u27K4' },
     ],
     // From the resort's own post (October 2026): "Dec. 5: Projected Opening Day". `projected` makes the
     // page say "projected", not "scheduled". Its conditions page reads "N/A" until it opens.
@@ -387,7 +389,7 @@ const MOUNTAINS = {
       snowDepthNote: 'No snow-depth sensor on the ski area; the snow stake cam shows the ground. The nearest snow station, Quartz Peak (about 3 mi SE of the summit), is a regional reference.',
       regionalWhy: 'on separate peaks away from the ski runs, so their snow can differ from the ski area\'s',
       camsSource: 'Mt. Spokane Ski & Snowboard Park (YouTube live)',
-      camsNote: 'Resort cameras: each shows its stream\'s live still, refreshed about every 5 minutes; tap one for live video in YouTube\'s player.',
+      camsNote: 'Resort cameras: each shows its stream\'s live still, refreshed about every 5 minutes; tap one for live video in YouTube\'s player. While a stream is off, YouTube shows the resort\'s title card (an old photo).',
       footer: 'Webcams © Mt. Spokane Ski & Snowboard Park, via YouTube. Official source: the Mt. Spokane weather & conditions page.',
     },
   },

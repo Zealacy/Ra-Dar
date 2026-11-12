@@ -1249,6 +1249,7 @@ function renderSnow(c) {
   // Measured counterpart to the model numbers: the stake cam, or the mountain's snow sensor.
   // With both a stake cam and a snow sensor there's room for one: the measured box, which links to the stake cam.
   $('stake-thumb-link').hidden = !M.snowStake || !!M.snowSensor;
+  if (M.snowStake?.thumbLabel) $('stake-thumb-link').querySelector('span').textContent = M.snowStake.thumbLabel;
   $('snow-src').textContent = M.snowSensor ? 'Model + measured' : M.snowDaily ? (dailyLatest() ? 'Model + measured' : 'Model') : 'Model + cam';
   const box = $('snow-measured');
   box.hidden = !M.snowSensor && !M.snowDaily;
