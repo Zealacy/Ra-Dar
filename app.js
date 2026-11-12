@@ -441,6 +441,12 @@ function stationStats(obs) {
   for (let i = obs.length - 1; i >= 0; i--) if (obs[i].temp != null) { tObs = obs[i]; break; }
   const tempAgeH = tObs ? (Date.now() - tObs.t) / 3600e3 : null;
   const temp = tempAgeH != null && tempAgeH <= maxAge ? tObs.temp : null;
+  // Same for wind: some feeds (Mission Ridge's summit) drop wind speed and direction from many reports
+  // while the gust still comes in. Use the latest recent wind reading, with its own age.
+  let wObs = null;
+  for (let i = obs.length - 1; i >= 0; i--) if (obs[i].wind != null) { wObs = obs[i]; break; }
+  const windAgeH = wObs ? (Date.now() - wObs.t) / 3600e3 : null;
+  const windOk = windAgeH != null && windAgeH <= maxAge;
   const in24 = obs.filter((o) => o.t >= Date.now() - 24 * 3600e3);
   const temps = in24.map((o) => o.temp).filter((v) => v != null);
   const gusts = in24.map((o) => o.gust ?? o.wind).filter((v) => v != null);
@@ -448,7 +454,7 @@ function stationStats(obs) {
   const gustNow = Math.max(...lastHr.map((o) => o.gust ?? o.wind ?? 0), 0);
   return {
     last, ageH, fresh, temp, tempAgeH,
-    wind: last?.wind ?? null, dir: last?.dir ?? null, rh: last?.rh ?? null,
+    wind: windOk ? wObs.wind : null, dir: windOk ? wObs.dir : null, windAgeH: windOk ? windAgeH : null, rh: last?.rh ?? null,
     gustNow: lastHr.length ? gustNow : null,
     hasWind: obs.some((o) => o.wind != null),
     hi24: temps.length ? Math.max(...temps) : null, lo24: temps.length ? Math.min(...temps) : null,
@@ -469,7 +475,7 @@ function renderStationTable(stations) {
     const x = s.stats;
     return `<tr><td>${esc(s.name)} <small>(${s.id})</small></td><td style="white-space:normal;text-align:left;min-width:180px">${esc(s.where)}${s.offSite ? ' <b>(not at the ski area)</b>' : ''}</td><td>${esc(s.operator)}</td><td>${ftFmt(s.ft)}</td>
       <td>${x.last ? fmtTime(x.last.t, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '–'}</td>
-      <td>${r0(x.temp)}</td><td>${r0(x.hi24)} / ${r0(x.lo24)}</td><td>${x.hasWind ? `${compass(x.dir)} ${r0(x.wind)}` : 'n/a'}</td>
+      <td>${r0(x.temp)}</td><td>${r0(x.hi24)} / ${r0(x.lo24)}</td><td>${!x.hasWind ? 'n/a' : x.wind != null ? `${compass(x.dir)} ${r0(x.wind)}${x.windAgeH - x.ageH > 0.5 ? ` <small>(${ageText(x.windAgeH)})</small>` : ''}` : '–'}</td>
       <td>${x.hasWind ? r0(x.gustNow) : 'n/a'}</td><td>${x.hasWind ? r0(x.gust24) : 'n/a'}</td><td>${r0(x.rh)}</td>
       <td${x.fresh ? '' : ' class="warn"'}>${x.fresh ? 'Live' : x.last ? `Offline (${ageText(x.ageH)})` : 'Offline'}</td></tr>`;
   });
@@ -935,7 +941,7 @@ function computeBriefing(c) {
     const st = live.filter((s) => s.stats.temp != null).sort((a, b) => b.ft - a.ft)[0];
     const est = !st && M.nowModel ? modelNow() : null;
     const topEst = est?.zones.find((z) => z.temp != null);
-    if (st) add(`Now: ${r0(st.stats.temp)}°F at ${st.name} (${ftFmt(st.ft)} ft${offSiteNote(st)})${st.stats.hasWind ? `, wind ${compass(st.stats.dir)} ${r0(st.stats.wind)} mph, gusts ${r0(st.stats.gustNow)}` : ''}.`);
+    if (st) add(`Now: ${r0(st.stats.temp)}°F at ${st.name} (${ftFmt(st.ft)} ft${offSiteNote(st)})${st.stats.hasWind && st.stats.wind != null ? `, wind ${compass(st.stats.dir)} ${r0(st.stats.wind)} mph, gusts ${r0(st.stats.gustNow)}` : st.stats.hasWind && st.stats.gustNow != null ? `, gusts ${r0(st.stats.gustNow)} mph` : ''}.`);
     else if (topEst) add(`Now, model estimate (not measured): ${r0(topEst.temp)}°F at the ${zShort(topEst).toLowerCase()} (${ftFmt(topEst.ft)} ft). ${noStationNote()}.`);
   }
 
@@ -1409,9 +1415,9 @@ function renderNow(c) {
   list.innerHTML = (sts.length ? '' : '<div class="lbl">Weather station data unavailable right now.</div>') + sts.map((s, i) => {
     const x = s.stats;
     const arrow = x.hasWind && x.dir != null ? `<svg viewBox="0 0 16 16" aria-hidden="true" style="transform:rotate(${(x.dir + 180) % 360}deg)"><path d="M8 1 L12 7 H9 V15 H7 V7 H4 Z" fill="currentColor"/></svg>` : '';
-    const wind = !x.fresh ? '' : x.hasWind ? `${arrow}${compass(x.dir)} ${r0(x.wind)}${x.gustNow ? `, gust ${r0(x.gustNow)}` : ''} mph` : 'no wind sensor';
+    const wind = !x.fresh ? '' : !x.hasWind ? 'no wind sensor' : x.wind != null ? `${arrow}${compass(x.dir)} ${r0(x.wind)}${x.gustNow ? `, gust ${r0(x.gustNow)}` : ''} mph` : x.gustNow ? `gust ${r0(x.gustNow)} mph` : 'no recent wind report';
     return `<div class="now-row ${x.fresh ? '' : 'offline'}" style="animation-delay:${i * 0.08}s" data-i="${i}">
-      <div class="nm">${esc(s.name)}<small>${esc(s.operator)} · ${ftFmt(s.ft)} ft${s.offSite ? ` · <b class="off">${esc(s.offSite)}</b>` : ''} · ${x.fresh ? ageText(x.ageH) + (x.temp != null && x.tempAgeH - x.ageH > 0.5 ? ` (temp ${ageText(x.tempAgeH)})` : '') : x.last ? `offline, last report ${ageText(x.ageH)}` : 'offline, no reports in 48 hrs'}</small></div>
+      <div class="nm">${esc(s.name)}<small>${esc(s.operator)} · ${ftFmt(s.ft)} ft${s.offSite ? ` · <b class="off">${esc(s.offSite)}</b>` : ''} · ${x.fresh ? ageText(x.ageH) + (x.temp != null && x.tempAgeH - x.ageH > 0.5 ? ` (temp ${ageText(x.tempAgeH)})` : '') + (x.wind != null && x.windAgeH - x.ageH > 0.5 ? ` (wind ${ageText(x.windAgeH)})` : '') : x.last ? `offline, last report ${ageText(x.ageH)}` : 'offline, no reports in 48 hrs'}</small></div>
       <div class="tv">${!x.fresh ? 'Offline' : x.temp != null ? `${r0(x.temp)}°` : '<span class="na">no temp<br>in 3 hrs</span>'}</div>
       <div class="wv">${wind}</div></div>`;
   }).join('') + sensorRow;

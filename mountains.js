@@ -271,9 +271,8 @@ const MOUNTAINS = {
       note: 'Resort snow stake, numbered in inches. The resort doesn\'t say where on the mountain it stands or when the board is cleared.',
       caption: 'Measured: snow stake cam (resort)',
     },
-    // Skyline and Jupiter were dark and rain-smeared when checked (night), so they carry the resort's
-    // own names only: RE-CHECK IN DAYLIGHT and describe what each picture shows. The two base cams
-    // were checked against their pictures. Washington DOT's cams carry their own name and time stamp.
+    // All four resort cams were checked against their pictures (Skyline and Jupiter in daylight on
+    // 2026-11-11; they carry the resort's names, described by what each shows). Washington DOT's cams carry their own name and time stamp.
     cams: [
       { name: 'Skyline (resort cam)', why: 'Resort camera high on the front side, looking down across the ski area toward the valley: snow cover on the upper runs and cloud below. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/stevenspassskyline', video: 'https://player.brownrice.com/embed/stevenspassskyline' },
       { name: 'Jupiter (resort cam)', why: 'Resort camera named for the Jupiter Express lift, on the back side: a close view of a lift building and the ground around it, good for snow on the ground and visibility. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/stevenspassjupiter', video: 'https://player.brownrice.com/embed/stevenspassjupiter' },
@@ -308,6 +307,90 @@ const MOUNTAINS = {
       camsSource: 'Stevens Pass (Brownrice player snapshots); Washington State DOT',
       camsNote: 'Resort cams show a current snapshot; tap for live video on the resort\'s player. Road cameras © WSDOT. The stake is the best on-mountain check of new snow.',
       footer: 'Resort cams © Stevens Pass, via Brownrice. Road cameras © WSDOT. Official sources: the Stevens Pass weather report and the Northwest Avalanche Center forecast.',
+    },
+  },
+
+  mission: {
+    name: 'Mission Ridge',
+    region: 'Wenatchee Mountains, east slope of the Cascades · Washington, USA',
+    // The base lodge. Open-Meteo uses one grid cell (47.278, -120.407) for mid-mountain and the summit;
+    // for the base elevation it picks the cell at 47.285, -120.369, about 1.5 mi E down the same side,
+    // from any point on the ski area (checked 2026-11-11).
+    lat: 47.292,
+    lon: -120.399,
+    timezone: 'America/Los_Angeles',
+    // Base and summit are the resort's official figures (Mountain Safety page): 4,570 ft and 6,820 ft,
+    // 2,250 ft vertical. It names no mid-mountain elevation, so "mid" is the halfway elevation.
+    zones: [
+      { key: 'base', name: 'Base lodge', short: 'Base', ft: 4570 },
+      { key: 'mid', name: 'Mid-mountain', short: 'Mid-mountain', ft: 5695 },
+      { key: 'summit', name: 'Top of the ski area', short: 'Summit', ft: 6820 },
+    ],
+    // National Weather Service Spokane. This cell holds both the Mid-Mountain and Summit stations and
+    // averages 6,257 ft; the base station falls in the cell east (43,89; 5,978 ft). Both publish snow
+    // level and visibility. Points just south of the ridge top fall in Pendleton's area, so don't
+    // re-derive the cell from a guessed summit point.
+    nws: { office: 'OTX', officeName: 'Spokane', x: 42, y: 89 },
+    // Northwest Avalanche Center stations on the ski area, read through the National Weather Service
+    // network (hourly; reports arrive 1 to 2 hours late). Checked 2026-11-10/11 against NWAC's own table
+    // (same values, e.g. 36 / 43 / 46°F summit / mid / base at 11pm) and the model at each elevation.
+    // The summit's wind speed and direction are missing from about half the reports in this feed (its
+    // gust from about a third); NWAC's own table has every hour. The site uses the latest wind within
+    // 3 hours and shows its age. Base and Mid-Mountain measure temperature and humidity only.
+    stations: [
+      { id: 'MSR67', name: 'Summit', operator: 'Northwest Avalanche Center', ft: 6730, where: 'near the top of the ski area, 1.8 mi SW of the base lodge' },
+      { id: 'MSR52', name: 'Mid-Mountain', operator: 'Northwest Avalanche Center', ft: 5160, where: 'lower mountain, 0.7 mi SW of the base lodge (NWAC\'s name; it sits 590 ft above the base)' },
+      { id: 'MSR46', name: 'Base', operator: 'Northwest Avalanche Center', ft: 4610, where: 'base area, beside the lodge' },
+    ],
+    stationMaxAgeHours: 3,
+    snowZone: 'mid',
+    // Measured snow on the ground: the Upper Wheeler SNOTEL, 1.4 mi ESE of the base lodge and 240 ft
+    // below the base. Owner decision (2026-11-11): use it, labeled as base-level. Checked over 2025-26:
+    // depth in 87% of hours (longest gap 24 h), no spike readings; it tracked the stations above it
+    // through every storm but reads about 3/4 of Grouse Camp's depth (1,000 ft higher), so it is a
+    // base-level reading, not the mountain's. 0-1" on Oct 28 when the resort reported 1-2" at the base.
+    snowSensor: { id: '841:WA:SNTL', name: 'Upper Wheeler', operator: 'USDA NRCS SNOTEL', ft: 4330, mi: 1.4, where: '1.4 mi ESE of the base lodge, 240 ft below the base', maxAgeHours: 6 },
+    // Regional reference only (collapsed in Live readings); never feeds the summary.
+    snotel: [
+      // Distances from this mountain's point above (measured 2026-11-11 from the NRCS station records).
+      { id: '507:WA:SNTL', name: 'Grouse Camp', ft: 5390, mi: 4.2 },
+      { id: '832:WA:SNTL', name: 'Trough', ft: 5480, mi: 6.4 },
+      { id: '352:WA:SNTL', name: 'Blewett Pass', ft: 4240, mi: 13.7 },
+    ],
+    // The resort lists three cams, all YouTube live streams on its channel (@MissionRidgeResort), checked
+    // live at night and in daylight on 2026-11-11. They carry no on-image name or time stamp, so each is
+    // described by what it shows. There is no snow stake cam: the resort reads its Upper Basin stake by
+    // hand in its reports. The first camera is the one shown large at the top in preseason.
+    cams: [
+      { name: 'Sunspot', why: 'Resort camera looking down across several runs to the valley: snow cover on the slopes below it. Tap for live video (YouTube).', youtube: '28Vhz4mcM64', caption: 'Sunspot cam (resort). This resort has no snow stake cam.' },
+      { name: 'Midway', why: 'Resort camera at the bottom of a chairlift beside a building deck, looking up the slope: snow on the ground mid-mountain. Tap for live video (YouTube).', youtube: 'AlJPPPl1yIw' },
+      { name: 'Mimi', why: 'Resort camera looking up a lower run toward the upper mountain: snow on the lower slopes. Tap for live video (YouTube).', youtube: 'TERghSgEi_o' },
+    ],
+    // No 2026-27 Opening Day found (2026-11-11). The resort's site blocks this sandbox (Cloudflare), so it
+    // was checked through search copies only; re-check when working on the site. Past openings: Dec 4, 2025;
+    // Nov 23, 2024; Nov 25, 2023. `closed: true` keeps preseason mode on until a date is set here.
+    season: { openingDay: null, closed: true, checked: '2026-11-11' },
+    liftStatusUrl: 'https://www.missionridge.com/mountain-report/',
+    // Not confirmed whether the resort's pages allow framing (its site blocks this sandbox), so the
+    // board is linked, not embedded.
+    liftStatusEmbed: false,
+    features: { liftEstimate: false },
+    links: [
+      { label: 'Official mountain report & lift status', url: 'https://www.missionridge.com/mountain-report/' },
+      { label: 'Official webcams', url: 'https://www.missionridge.com/webcams' },
+      { label: 'Northwest Avalanche Center: East Slopes Central forecast', url: 'https://nwac.us/forecasts/avalanche/east-slopes-central' },
+      { label: 'NWAC Mission Ridge stations (every hour, incl. mid-mountain snow depth)', url: 'https://nwac.us/weather/stations/mission-ridge' },
+      { label: 'Upper Wheeler SNOTEL', url: 'https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=841' },
+    ],
+    afdWords: ['cascades?', 'east slopes?', 'cascade crest', 'mission ridge', 'wenatchee', 'blewett', 'leavenworth', 'chelan'],
+    text: {
+      liveLead: 'Live readings from the Northwest Avalanche Center\'s weather stations on the ski area (summit, lower mountain and base), and the federal snow station 1.4 mi from the base lodge.',
+      stationsNote: 'Northwest Avalanche Center stations on the ski area, reporting hourly; reports arrive 1 to 2 hours late. Read through the National Weather Service network, which leaves the summit\'s wind speed out of many reports; the latest within 3 hours is shown, with its age. NWAC\'s own table has every hour. Offline stations are ignored.',
+      snowDepthNote: 'Measured snow depth comes from the Upper Wheeler snow station (4,330 ft, 240 ft below the base); it reads less than the upper mountain holds. NWAC measures depth at its Mid-Mountain station (5,160 ft), on its own site only (see Links).',
+      regionalWhy: 'at other heights and on other ridges, so their snow differs from the ski area\'s',
+      camsSource: 'Mission Ridge (YouTube live)',
+      camsNote: 'Resort cameras: each shows its stream\'s live still, refreshed about every 5 minutes; tap one for live video in YouTube\'s player. This resort has no snow stake cam.',
+      footer: 'Webcams © Mission Ridge, via YouTube. Official sources: the Mission Ridge mountain report and the Northwest Avalanche Center forecast.',
     },
   },
 
