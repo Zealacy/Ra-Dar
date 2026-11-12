@@ -396,8 +396,8 @@ function modelNow() {
   const row = (state.nws?.rows || []).find((r) => now >= +r.t && now < +r.t + 3600e3) || null;
   return { zones, wind: row ? { wind: row.wind, gust: row.gust, dir: row.dir, ft: state.nws.elevFt } : null };
 }
-// "projected" or "scheduled": what the resort calls its Opening Day.
-const openWord = () => (M.season?.projected ? 'projected' : 'scheduled');
+// "projected", "planned" or "scheduled": what the resort calls its Opening Day.
+const openWord = () => M.season?.word || (M.season?.projected ? 'projected' : 'scheduled');
 // Why there's no measured "Right now" at a mountain (its own wording, or a plain default).
 const noStationNote = () => M.text.noStation || 'No public weather station on the ski area';
 // The hourly source's name for the wind line: the NWS is a forecast, anything else is a model.

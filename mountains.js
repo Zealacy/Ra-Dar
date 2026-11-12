@@ -16,7 +16,8 @@
 // A cam with `video` (a player page) shows its still and opens that page in a new tab for live video.
 // `snowStake` can be a still (`src`) or a YouTube stream (`youtube`), like any cam.
 // `snowStake.thumbLabel` replaces the Fresh snow card's "Measured: stake cam" label (Mt. Spokane, while its stream is off).
-// `season.projected: true` says "projected" instead of "scheduled" for an Opening Day the resort calls projected.
+// `season.projected: true` says "projected" instead of "scheduled" for an Opening Day the resort calls projected;
+// `season.word` gives the resort's own word instead (Mission Ridge: "planned").
 // `draft: true` keeps a finished mountain off the site (out of the switcher and unreachable by ?mtn=)
 // until it's ready to publish. Set it to false to test the mountain locally.
 
@@ -366,10 +367,11 @@ const MOUNTAINS = {
       { name: 'Midway', why: 'Resort camera at the bottom of a chairlift beside a building deck, looking up the slope: snow on the ground mid-mountain. Tap for live video (YouTube).', youtube: 'AlJPPPl1yIw' },
       { name: 'Mimi', why: 'Resort camera looking up a lower run toward the upper mountain: snow on the lower slopes. Tap for live video (YouTube).', youtube: 'TERghSgEi_o' },
     ],
-    // No 2026-27 Opening Day found (2026-11-11). The resort's site blocks this sandbox (Cloudflare), so it
-    // was checked through search copies only; re-check when working on the site. Past openings: Dec 4, 2025;
-    // Nov 23, 2024; Nov 25, 2023. `closed: true` keeps preseason mode on until a date is set here.
-    season: { openingDay: null, closed: true, checked: '2026-11-11' },
+    // The resort's Operating Schedule page (screenshot from the owner, 2026-11-11) lists "Open – 2 Chairs
+    // Planned" for Fri Nov 27, Sat Nov 28 and Sun Nov 29, 2026, then "Open – 3 Chairs Planned" from Dec 4.
+    // Its own word is "planned". The resort's site blocks this sandbox (Cloudflare), so re-check it through
+    // the owner. Past openings: Dec 4, 2025 (delayed by a warm November); Nov 23, 2024; Nov 25, 2023.
+    season: { openingDay: '2026-11-27', word: 'planned', checked: '2026-11-11' },
     liftStatusUrl: 'https://www.missionridge.com/mountain-report/',
     // Not confirmed whether the resort's pages allow framing (its site blocks this sandbox), so the
     // board is linked, not embedded.
