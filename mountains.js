@@ -641,6 +641,72 @@ const MOUNTAINS = {
     },
   },
 
+  appalachian: {
+    name: 'Appalachian Ski Mtn.',
+    region: 'Blue Ridge Mountains, Blowing Rock · North Carolina, USA',
+    // The ski area (Wikipedia's point; 940 Ski Mountain Rd). Open-Meteo picks a cell per elevation here:
+    // base 36.186, -81.664 (0.8 mi N), mid and summit 36.160, -81.670 (1 mi S), checked 2026-11-12.
+    lat: 36.174,
+    lon: -81.662,
+    timezone: 'America/New_York',
+    // The resort's official figures (Mountain Stats page, checked 2026-11-12): base 3,635 ft, peak 4,000 ft,
+    // 365 ft vertical, 100% snowmaking. "Mid" is the halfway elevation.
+    zones: [
+      { key: 'base', name: 'Base lodge', short: 'Base', ft: 3635 },
+      { key: 'mid', name: 'Mid-mountain', short: 'Mid-mountain', ft: 3818 },
+      { key: 'summit', name: 'Top of the ski area', short: 'Summit', ft: 4000 },
+    ],
+    // National Weather Service Blacksburg. This cell is centered on the ski area and averages 3,507 ft.
+    // Blacksburg publishes no snow level here (visibility yes), so rain vs. snow comes from temperatures.
+    nws: { office: 'RNK', officeName: 'Blacksburg', x: 18, y: 14 },
+    // No public weather station on or beside the ski area (checked on the NWS network, 2026-11-12): Blackburn
+    // Knob and Howards Knob send no readings; Boone's hospital heliport (KTNB, 3,146 ft) is 1.8 mi N in town,
+    // 490 ft below the base, temperature only; the rest are in town or amateur stations.
+    stations: [],
+    stationMaxAgeHours: 3,
+    // As at Mt. Spokane (the owner's choice there; "build it" here on Nov 12, after this was recommended): "Right now" shows labeled
+    // model estimates. Checked over 7 days to 2026-11-13, hour by hour, at each station's own location and
+    // height: the model missed Boone's heliport by 2.1°F on average and App State's station by 1.6°F, as good as
+    // at Stevens Pass's on-mountain station (2.1°F).
+    nowModel: true,
+    snowZone: 'mid',
+    // No snow-depth sensor: there are no SNOTEL stations in North Carolina. The resort hand-reports its base
+    // depth on its slope report (linked). No regional snow stations either.
+    snotel: [],
+    // The resort's live slope stream (resortcams.com) has a public still, stamped with its own date and time.
+    // The stream stops at night (the still read 10:51pm at 11:43pm Eastern, 2026-11-12); re-check that it
+    // updates through the day, and describe what it shows (only seen at night so far: slope lights). The resort's other "Slope Image" (asmslopecam.com, "updates every 1 minute")
+    // was frozen at Sep 29, 2026, so it's left out; re-check before adding. No snow stake cam.
+    cams: [
+      { name: 'Slope cam', why: 'The resort\'s live slope camera. The picture carries its own date and time; the stream stops at night. Tap for live video.', src: 'https://preview.resortcams.com/thumbnail?application=live&streamname=appskimtn2.stream&size=1280x720', video: 'https://www.resortcams.com/webcams/app-ski-mtn-live/', caption: 'Slope cam (resort). This resort has no snow stake cam.' },
+    ],
+    // The resort's Opening Day event page (checked 2026-11-12): "The 2026-27 Season's scheduled Opening Day is
+    // set for Friday, Nov 20 (weather permitting)". Its Mountain Stats page lists 30 seasons of opening dates
+    // (Nov 15 to Dec 21; last season Nov 29).
+    season: { openingDay: '2026-11-20', checked: '2026-11-12' },
+    liftStatusUrl: 'https://appskimtn.com/slope-report',
+    liftStatusEmbed: false,
+    liftStatusLinkWhy: 'linked; the resort\'s daily slope report, with lifts, slopes and base depth',
+    features: { liftEstimate: false },
+    links: [
+      { label: 'Official slope report (lifts, slopes, base depth)', url: 'https://appskimtn.com/slope-report' },
+      { label: 'Official live cams', url: 'https://appskimtn.com/live-cams' },
+      { label: 'Official mountain stats & hours', url: 'https://appskimtn.com/mountain-stats' },
+      { label: 'Ray\'s Weather (local forecaster the resort links)', url: 'https://raysweather.com/' },
+    ],
+    afdWords: ['high country', 'boone', 'blowing rock', 'watauga', 'blue ridge', 'northwest flow', 'upslope', 'mountains'],
+    text: {
+      liveLead: 'No public weather station on the ski area, and no snow-depth sensor (there are no SNOTEL stations in North Carolina). The resort reports its base depth by hand on its slope report.',
+      stationsNote: 'No public weather station on the ski area. The nearest, at Boone\'s hospital heliport, is 1.8 mi away in town and 490 ft below the base.',
+      snowDepthNote: 'No snow-depth sensor on the ski area; the slope cam shows the ground, and the resort reports its base depth by hand on its slope report. Nearly all the snow here is made by the resort.',
+      regionalWhy: 'away from the ski area',
+      camsSource: 'Appalachian Ski Mtn. (resortcams.com live stream)',
+      camsNote: 'The resort\'s slope stream: its latest still, stamped with date and time; tap for live video. The stream stops at night. This resort has no snow stake cam.',
+      radarNote: 'Radar coverage over the mountains is limited by terrain, so light snow can be missed.',
+      footer: 'Slope cam © Appalachian Ski Mtn., via resortcams.com. Official source: the Appalachian Ski Mtn. slope report.',
+    },
+  },
+
   sunpeaks: {
     name: 'Sun Peaks',
     region: 'Thompson Okanagan · British Columbia, Canada',

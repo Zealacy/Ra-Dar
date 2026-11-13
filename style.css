@@ -69,6 +69,9 @@ a { color: var(--accent); }
 .top-row.sw-wrap { flex-wrap: wrap; row-gap: 8px; }
 .top-row.sw-wrap::after { content: ""; order: 4; flex-basis: 100%; }
 .top-row.sw-wrap .mtn-switch { order: 5; margin-right: 0; }
+/* Wider screens: if even its own row is too narrow (nine mountains at 1280 px), the switcher wraps onto
+   a second line rather than hiding mountains off the edge. Phones keep the sideways-scrolling row. */
+.top-row.sw-wrap .mtn-switch { flex-wrap: wrap; row-gap: 2px; border-radius: 20px; }
 .top-row.sw-wrap .jump { margin-left: auto; }
 /* More mountains than fit: fade the edge they're hidden behind (set from JS as data-more="l", "r" or "lr"). */
 .mtn-switch[data-more="r"] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); }
