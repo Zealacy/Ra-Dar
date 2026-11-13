@@ -18,6 +18,8 @@
 // `snowStake.thumbLabel` replaces the Fresh snow card's "Measured: stake cam" label (Mt. Spokane, while its stream is off).
 // `season.projected: true` says "projected" instead of "scheduled" for an Opening Day the resort calls projected;
 // `season.word` gives the resort's own word instead (Mission Ridge: "planned").
+// `nws.afdOffice` reads the forecast discussion from another office than the grid (Palisades: grid from
+// Sacramento, discussion from Reno). `liftStatusLinkWhy` says why a lift board is linked, not embedded.
 // `draft: true` keeps a finished mountain off the site (out of the switcher and unreachable by ?mtn=)
 // until it's ready to publish. Set it to false to test the mountain locally.
 
@@ -376,6 +378,7 @@ const MOUNTAINS = {
     // Not confirmed whether the resort's pages allow framing (its site blocks this sandbox), so the
     // board is linked, not embedded.
     liftStatusEmbed: false,
+    liftStatusLinkWhy: 'linked; its site could not be checked for embedding',
     features: { liftEstimate: false },
     links: [
       { label: 'Official mountain report & lift status', url: 'https://www.missionridge.com/mountain-report/' },
@@ -476,6 +479,165 @@ const MOUNTAINS = {
       camsSource: 'Mt. Spokane Ski & Snowboard Park (YouTube live)',
       camsNote: 'Resort cameras: each shows its stream\'s live still, refreshed about every 5 minutes; tap one for live video in YouTube\'s player. While a stream is off, YouTube shows the resort\'s title card (an old photo).',
       footer: 'Webcams © Mt. Spokane Ski & Snowboard Park, via YouTube. Official source: the Mt. Spokane weather & conditions page.',
+    },
+  },
+
+  palisades: {
+    name: 'Palisades Tahoe',
+    region: 'Olympic Valley side of Palisades Tahoe, Lake Tahoe · California, USA',
+    // Palisades Tahoe is two mountains joined by a gondola; this is the Palisades (Olympic Valley) side,
+    // and `alpine` below is the other (owner's choice, 2026-11-12). A point between the village and
+    // Belmont. Open-Meteo picks a cell per elevation here: base 39.194, -120.223 (valley floor), mid
+    // 39.187, -120.257, summit 39.181, -120.290 (Emigrant / Granite Chief side), checked 2026-11-12.
+    lat: 39.19,
+    lon: -120.25,
+    timezone: 'America/Los_Angeles',
+    // The resort's official figures (Mountain Statistics page, checked 2026-11-12): base 6,200 ft, peak
+    // 9,050 ft, 2,850 ft vertical. It names no mid-mountain elevation, so "mid" is the halfway elevation.
+    zones: [
+      { key: 'base', name: 'Village base', short: 'Base', ft: 6200 },
+      { key: 'mid', name: 'Mid-mountain', short: 'Mid-mountain', ft: 7625 },
+      { key: 'summit', name: 'Top of the ski area', short: 'Summit', ft: 9050 },
+    ],
+    // The Sierra crest splits two NWS offices through this ski area. Mid-mountain (Belmont and the SNOTEL)
+    // lies in Sacramento's area; this cell averages 7,385 ft. Reno's grid covers the same ground as its
+    // cell 27,94 but forecast different snowfall on 2026-11-12 (1.8" vs 0.4" in one 6-hour period), so the
+    // owning office is used. Reno writes the Tahoe forecast discussion, so the notes come from Reno.
+    nws: { office: 'STO', officeName: 'Sacramento', x: 89, y: 87, afdOffice: 'REV', afdOfficeName: 'Reno' },
+    // On-mountain stations, read through the National Weather Service network (MesoWest, "TAHOE" network;
+    // the record doesn't name who runs them). Every 15 minutes; all current on 2026-11-12. Siberia drops
+    // its wind from about half its reports; the site uses the latest within 3 hours.
+    stations: [
+      { id: 'SIBSV', name: 'Siberia', operator: 'MesoWest TAHOE network', ft: 8700, where: 'upper mountain, 2.2 mi WSW of the village' },
+      { id: 'BMTSV', name: 'Belmont', operator: 'MesoWest TAHOE network', ft: 8000, where: 'upper mountain, 1.5 mi WSW of the village' },
+      { id: 'OVBOW', name: 'Olympic Valley base', operator: 'MesoWest TAHOE network', ft: 6237, where: 'base area, 0.2 mi from the village' },
+    ],
+    stationMaxAgeHours: 3,
+    snowZone: 'mid',
+    // Measured snow on the ground: the federal SNOTEL station on the ski area (formerly Squaw Valley G.C.),
+    // 8,010 ft near Belmont. Hourly depth and water content. 0" depth on 2026-11-12, when the High Camp
+    // cam showed patchy snow and the Siberia cam snow on the upper slopes.
+    snowSensor: { id: '784:CA:SNTL', name: 'Palisades Tahoe', operator: 'USDA NRCS SNOTEL', ft: 8010, mi: 1.7, where: 'on the ski area near Belmont, 1.7 mi WSW of the village', maxAgeHours: 6 },
+    // Regional reference only (collapsed in Live readings); never feeds the summary.
+    snotel: [
+      // Distances from this mountain's point above (measured 2026-11-12 from the NRCS station records).
+      { id: '848:CA:SNTL', name: 'Ward Creek #3', ft: 6750, mi: 4.1 },
+      { id: '809:CA:SNTL', name: 'Tahoe City Cross', ft: 6760, mi: 5.3 },
+      { id: '834:CA:SNTL', name: 'Truckee #2', ft: 6500, mi: 8.4 },
+    ],
+    // The resort's cams are Ozolio live streams. Each has a public poster still (the player's own
+    // pre-play image; 1920x1080, 180-430 KB, refreshed about every 15 minutes), shown here; tapping opens
+    // the player. Each image carries its own name and time stamp; names follow those stamps (the resort's
+    // page calls High Camp "Scope 8200'"). Checked live at sunset, 2026-11-12. No snow stake cam.
+    // Caltrans' road cams are small stamped stills, offered free for use in apps (its developer portal).
+    cams: [
+      { name: 'Top of Siberia', why: 'Resort camera at the top of Siberia, upper mountain: snow on the upper slopes, with Lake Tahoe beyond. Tap for live video.', src: 'https://relay.ozolio.com/pub.api?cmd=poster&oid=EMB_OBCE00000ECB', video: 'https://relay.ozolio.com/pub.api?cmd=embed&oid=EMB_OBCE00000ECB', heavy: true, caption: 'Top of Siberia cam (resort). This resort has no snow stake cam.' },
+      { name: 'High Camp (8,200 ft)', why: 'Resort camera on the High Camp deck at the top of the tram, looking toward Lake Tahoe: snow around High Camp. Tap for live video.', src: 'https://relay.ozolio.com/pub.api?cmd=poster&oid=EMB_EIFC0000015B', video: 'https://relay.ozolio.com/pub.api?cmd=embed&oid=EMB_EIFC0000015B', heavy: true },
+      { name: 'Top of Far East Express', why: 'Resort camera at the top of Far East Express, looking across the valley to the upper mountain. Tap for live video.', src: 'https://relay.ozolio.com/pub.api?cmd=poster&oid=EMB_EMST000001C4', video: 'https://relay.ozolio.com/pub.api?cmd=embed&oid=EMB_EMST000001C4', heavy: true },
+      { name: 'The Village', why: 'Resort camera over the village plaza at the base: what is falling at base level. Tap for live video.', src: 'https://relay.ozolio.com/pub.api?cmd=poster&oid=EMB_ZIGI00000147', video: 'https://relay.ozolio.com/pub.api?cmd=embed&oid=EMB_ZIGI00000147', heavy: true },
+      { name: 'Hwy 89 at Olympic Valley', why: 'Highway 89 at the Olympic Valley turnoff (6,122 ft), 2 mi E of the village: the road and what is falling in the valley. Caltrans.', src: 'https://cwwp2.dot.ca.gov/data/d3/cctv/image/hwy89atolympicvalley/hwy89atolympicvalley.jpg', small: true },
+    ],
+    // The resort's Opening Day page (checked 2026-11-12): "Opening Day is November 25, 2026",
+    // conditions permitting. The same day for Alpine.
+    season: { openingDay: '2026-11-25', checked: '2026-11-12' },
+    liftStatusUrl: 'https://www.palisadestahoe.com/mountain-information/mountain-report',
+    // The resort's pages don't block embedding, but the lift list loads by script inside a long page.
+    liftStatusEmbed: false,
+    liftStatusLinkWhy: 'linked; its lift list loads inside a long page',
+    features: { liftEstimate: false },
+    links: [
+      { label: 'Official mountain report & lift status', url: 'https://www.palisadestahoe.com/mountain-information/mountain-report' },
+      { label: 'Official webcams', url: 'https://www.palisadestahoe.com/mountain-information/webcams' },
+      { label: 'Sierra Avalanche Center: Central Sierra Nevada forecast', url: 'https://www.sierraavalanchecenter.org/forecasts/avalanche/central-sierra-nevada' },
+      { label: 'Palisades Tahoe SNOTEL', url: 'https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=784' },
+      { label: 'Caltrans QuickMap (roads)', url: 'https://quickmap.dot.ca.gov/' },
+    ],
+    afdWords: ['sierra', 'sierra crest', 'tahoe', 'lake tahoe', 'truckee', 'donner', 'i-80', 'highway 89', 'hwy 89', 'olympic valley', 'palisades'],
+    text: {
+      liveLead: 'Live readings from weather stations on the ski area (upper mountain and base), and the federal snow station on the mountain near Belmont.',
+      stationsNote: 'On-mountain stations reporting every 15 minutes, read through the National Weather Service network (MesoWest\'s TAHOE network). Siberia leaves its wind out of many reports; the latest within 3 hours is shown, with its age. Offline stations are ignored.',
+      snowDepthNote: 'Measured snow depth comes from the Palisades Tahoe snow station on the mountain near Belmont (8,010 ft); the base usually holds less.',
+      regionalWhy: 'in other valleys and lower down, so their snow differs from the ski area\'s',
+      camsSource: 'Palisades Tahoe (Ozolio live cams); Caltrans',
+      camsNote: 'Resort cams show the stream\'s latest still (about every 15 minutes); tap for live video in Ozolio\'s player. Road camera: Caltrans. This resort has no snow stake cam.',
+      radarNote: 'Radar coverage over the Sierra is limited by terrain, so light snow can be missed.',
+      footer: 'Resort cams © Palisades Tahoe, via Ozolio. Road camera: Caltrans. Official sources: the Palisades Tahoe mountain report and the Sierra Avalanche Center forecast.',
+    },
+  },
+
+  alpine: {
+    name: 'Alpine Meadows',
+    region: 'Alpine side of Palisades Tahoe, Lake Tahoe · California, USA',
+    // The Alpine side of Palisades Tahoe (the resort calls it "Alpine"); `palisades` above is the other
+    // side. The base. Open-Meteo picks a cell per elevation here: base 39.168, -120.214 (down the valley),
+    // mid and summit 39.161, -120.248 (on the mountain), checked 2026-11-12.
+    lat: 39.1641,
+    lon: -120.2386,
+    timezone: 'America/Los_Angeles',
+    // The resort's official figures (Mountain Statistics page, checked 2026-11-12): base 6,835 ft, peak
+    // 8,637 ft (Ward Peak), 1,802 ft vertical. "Mid" is the halfway elevation.
+    zones: [
+      { key: 'base', name: 'Base lodge', short: 'Base', ft: 6835 },
+      { key: 'mid', name: 'Mid-mountain', short: 'Mid-mountain', ft: 7736 },
+      { key: 'summit', name: 'Ward Peak', short: 'Summit', ft: 8637 },
+    ],
+    // National Weather Service Reno. This cell holds the base area and averages 7,772 ft, about
+    // mid-mountain. Roundhouse top and Ward Peak fall in Sacramento's cell 89,85 (8,235 ft).
+    nws: { office: 'REV', officeName: 'Reno', x: 27, y: 93 },
+    // On-mountain stations, read through the National Weather Service network (MesoWest, "TAHOE" network).
+    // Every 15 minutes; all current on 2026-11-12. Ward Peak reports gusts but never wind speed or
+    // direction. Its NWS record says 8,399 ft, but its name says 8,643' and it sits at Ward Peak's summit
+    // (8,637 ft, resort figure), so the name's height is used. Left out, at heights these cover:
+    // Treeline Cirque mid TLCAM (7,555), Yellow Valve House YVHAM (7,640) and Scott bottom SCBAM (7,075;
+    // temperature and humidity only).
+    stations: [
+      { id: 'SUMAM', name: 'Ward Peak summit', operator: 'MesoWest TAHOE network', ft: 8643, where: 'top of the ski area, 1.1 mi SSW of the base lodge' },
+      { id: 'SCTAM', name: 'Scott top', operator: 'MesoWest TAHOE network', ft: 8120, where: 'upper mountain, 0.7 mi ESE of the base lodge' },
+      { id: 'RHTAM', name: 'Roundhouse top', operator: 'MesoWest TAHOE network', ft: 7880, where: 'mid-mountain, 0.7 mi SSW of the base lodge' },
+      { id: 'RHBAM', name: 'Roundhouse bottom', operator: 'MesoWest TAHOE network', ft: 6950, where: 'base area, beside the lodge' },
+    ],
+    stationMaxAgeHours: 3,
+    snowZone: 'mid',
+    // No snow-depth sensor on this ski area (checked on SNOTEL and California's CDEC, 2026-11-12). As at
+    // Mt. Spokane, the nearest are regional references only: the Palisades Tahoe SNOTEL is across the
+    // ridge on the other mountain, Ward Creek #3 in the next valley south, below this base.
+    snotel: [
+      // Distances from this mountain's point above (measured 2026-11-12 from the NRCS station records).
+      { id: '848:CA:SNTL', name: 'Ward Creek #3', ft: 6750, mi: 2.3 },
+      { id: '784:CA:SNTL', name: 'Palisades Tahoe', ft: 8010, mi: 2.3 },
+      { id: '809:CA:SNTL', name: 'Tahoe City Cross', ft: 6760, mi: 4.6 },
+    ],
+    // Ozolio live cams, as at Palisades; names follow each image's own stamp (the resort's page calls the
+    // Alpine Lodge cam "Alpine Peak" and the Kangaroo cam "Alpine Race"). Checked live at sunset,
+    // 2026-11-12. No snow stake cam.
+    cams: [
+      { name: 'Alpine Chalet', why: 'Resort camera at the Alpine Chalet, looking up the slope: snow cover on the lower mountain. Tap for live video.', src: 'https://relay.ozolio.com/pub.api?cmd=poster&oid=EMB_FPOI000010AB', video: 'https://relay.ozolio.com/pub.api?cmd=embed&oid=EMB_FPOI000010AB', heavy: true, caption: 'Alpine Chalet cam (resort). This resort has no snow stake cam.' },
+      { name: 'Kangaroo race course', why: 'Resort camera on the Kangaroo race course, looking up the slope: snow on the run and snowmaking. Tap for live video.', src: 'https://relay.ozolio.com/pub.api?cmd=poster&oid=EMB_KIYV000003C2', video: 'https://relay.ozolio.com/pub.api?cmd=embed&oid=EMB_KIYV000003C2', heavy: true },
+      { name: 'Alpine Lodge (base)', why: 'Resort camera at the Alpine Lodge, by the base lifts: snow at the bottom of the mountain. Tap for live video.', src: 'https://relay.ozolio.com/pub.api?cmd=poster&oid=EMB_VPAY0000014C', video: 'https://relay.ozolio.com/pub.api?cmd=embed&oid=EMB_VPAY0000014C', heavy: true },
+      { name: 'Hwy 89 at Alpine Meadows', why: 'Highway 89 at the Alpine Meadows Road junction (6,220 ft), 2.8 mi from the base: the road and what is falling in the valley. Caltrans.', src: 'https://cwwp2.dot.ca.gov/data/d3/cctv/image/hwy89atalpinemeadows/hwy89atalpinemeadows.jpg', small: true },
+    ],
+    // Same Opening Day page as Palisades (checked 2026-11-12): "Opening Day is November 25, 2026".
+    season: { openingDay: '2026-11-25', checked: '2026-11-12' },
+    liftStatusUrl: 'https://www.palisadestahoe.com/mountain-information/mountain-report',
+    liftStatusEmbed: false,
+    liftStatusLinkWhy: 'linked; its lift list loads inside a long page',
+    features: { liftEstimate: false },
+    links: [
+      { label: 'Official mountain report & lift status', url: 'https://www.palisadestahoe.com/mountain-information/mountain-report' },
+      { label: 'Official webcams', url: 'https://www.palisadestahoe.com/mountain-information/webcams' },
+      { label: 'Sierra Avalanche Center: Central Sierra Nevada forecast', url: 'https://www.sierraavalanchecenter.org/forecasts/avalanche/central-sierra-nevada' },
+      { label: 'Caltrans QuickMap (roads)', url: 'https://quickmap.dot.ca.gov/' },
+    ],
+    afdWords: ['sierra', 'sierra crest', 'tahoe', 'lake tahoe', 'truckee', 'donner', 'i-80', 'highway 89', 'hwy 89', 'alpine meadows'],
+    text: {
+      liveLead: 'Live readings from weather stations on the ski area, from Ward Peak down to the base. No snow-depth sensor stands on this mountain; the nearest snow stations appear below as regional references.',
+      stationsNote: 'On-mountain stations reporting every 15 minutes, read through the National Weather Service network (MesoWest\'s TAHOE network). Ward Peak reports gusts only. Offline stations are ignored.',
+      snowDepthNote: 'No snow-depth sensor on this ski area; the resort cams show the ground. The nearest snow stations (Ward Creek #3 in the next valley south, and Palisades Tahoe across the ridge) are regional references.',
+      regionalWhy: 'in other valleys, so their snow differs from this mountain\'s',
+      camsSource: 'Palisades Tahoe (Ozolio live cams); Caltrans',
+      camsNote: 'Resort cams show the stream\'s latest still (about every 15 minutes); tap for live video in Ozolio\'s player. Road camera: Caltrans. This resort has no snow stake cam.',
+      radarNote: 'Radar coverage over the Sierra is limited by terrain, so light snow can be missed.',
+      footer: 'Resort cams © Palisades Tahoe, via Ozolio. Road camera: Caltrans. Official sources: the Palisades Tahoe mountain report and the Sierra Avalanche Center forecast.',
     },
   },
 

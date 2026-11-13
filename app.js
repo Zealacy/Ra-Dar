@@ -456,7 +456,9 @@ function stationStats(obs) {
     last, ageH, fresh, temp, tempAgeH,
     wind: windOk ? wObs.wind : null, dir: windOk ? wObs.dir : null, windAgeH: windOk ? windAgeH : null, rh: last?.rh ?? null,
     gustNow: lastHr.length ? gustNow : null,
-    hasWind: obs.some((o) => o.wind != null),
+    // Any wind sensor at all; some stations report gusts but never a sustained speed (Alpine's Ward Peak).
+    hasWind: obs.some((o) => o.wind != null || o.gust != null),
+    hasSpeed: obs.some((o) => o.wind != null),
     hi24: temps.length ? Math.max(...temps) : null, lo24: temps.length ? Math.min(...temps) : null,
     gust24: gusts.length ? Math.max(...gusts) : null,
   };
@@ -1256,7 +1258,7 @@ function renderSnow(c) {
   // With both a stake cam and a snow sensor there's room for one: the measured box, which links to the stake cam.
   $('stake-thumb-link').hidden = !M.snowStake || !!M.snowSensor;
   if (M.snowStake?.thumbLabel) $('stake-thumb-link').querySelector('span').textContent = M.snowStake.thumbLabel;
-  $('snow-src').textContent = M.snowSensor ? 'Model + measured' : M.snowDaily ? (dailyLatest() ? 'Model + measured' : 'Model') : 'Model + cam';
+  $('snow-src').textContent = M.snowSensor ? 'Model + measured' : M.snowDaily ? (dailyLatest() ? 'Model + measured' : 'Model') : M.snowStake ? 'Model + cam' : 'Model';
   const box = $('snow-measured');
   box.hidden = !M.snowSensor && !M.snowDaily;
   if (!M.snowSensor && M.snowDaily) {
@@ -1526,7 +1528,7 @@ function drawMeasuredCharts() {
     const labels = hours.map((h) => hourLabel(new Date(h)));
     const vars = ['--s1', '--s2', '--s3'];
     drawChart('c-stemp', { type: 'line', data: { labels, datasets: sts.map((s, k) => lineDs(`${s.name} (${ftFmt(s.ft)}′${s.offSite ? ', not at the ski area' : ''})`, bucket(s.obs, 'temp'), vars[k % 3])) }, options: chartOpts({ refLines: [{ y: 32, label: '32°F freezing' }] }) });
-    const ws = sts.filter((s) => s.stats.hasWind).sort((a, b) => b.ft - a.ft)[0];
+    const ws = sts.filter((s) => s.stats.hasSpeed).sort((a, b) => b.ft - a.ft)[0];
     if (ws) {
       $('wind-station-name').textContent = `${ws.name} (${ftFmt(ws.ft)} ft${offSiteNote(ws)}${ws.sheltered ? `, ${ws.sheltered}` : ''})`;
       drawChart('c-swind', { type: 'line', data: { labels, datasets: [lineDs('Sustained', bucket(ws.obs, 'wind'), '--s1', true), lineDs('Gusts', bucketMax(ws.obs, 'gust'), '--s2')] }, options: chartOpts({ yMin: 0, refLines: ws.sheltered ? [] : [{ y: 40, label: '40 mph hold risk' }] }) });
@@ -1867,7 +1869,7 @@ function renderNoAfd() {
 }
 async function loadAfd() {
   if (!M.nws) { renderNoAfd(); return; }
-  const list = await getJSON(`https://api.weather.gov/products/types/AFD/locations/${M.nws.office}`);
+  const list = await getJSON(`https://api.weather.gov/products/types/AFD/locations/${M.nws.afdOffice || M.nws.office}`);
   const first = list['@graph']?.[0];
   // The product's own address comes from the response, so only follow it on the weather service's server.
   if (!first || !/^https:\/\/api\.weather\.gov\/products\/[\w-]+$/.test(first['@id'] || '')) return;
@@ -2016,11 +2018,11 @@ function renderSources() {
     ['Base-to-summit forecast & new-snow estimate', M.text.elevSource || 'Open-Meteo, blending NOAA and European models', 'Forecast / Model', `Model data adjusted to each elevation. Rain or snow at each elevation: ${M.nws ? 'the NWS forecast snow level where it covers the hours (snow 500 ft above it, rain 500 ft below, mixed between); otherwise ' : ''}each elevation\'s own model temperature (snow at 32°F and colder, rain at 36°F and warmer). New-snow totals are estimates, not measurements.`],
     // The lift list and the wind-hold estimate appear only when the estimate is switched on (it is shelved).
     M.features?.liftEstimate && M.lifts?.length && ['Lift list & stats', `${M.name} (official Mountain Stats page)`, 'Reference', 'Names, types, lengths, vertical rise.'],
-    ['Official lift status', `${M.name} lift & trail page (${M.liftStatusEmbed ? 'embedded' : 'linked; the resort blocks embedding'})`, 'Live', 'Published by the resort, including maintenance and staffing closures.'],
+    ['Official lift status', `${M.name} lift & trail page (${M.liftStatusEmbed ? 'embedded' : M.liftStatusLinkWhy || 'linked; the resort blocks embedding'})`, 'Live', 'Published by the resort, including maintenance and staffing closures.'],
     M.features?.liftEstimate && ['Wind-hold risk', 'Ra-Dar estimate from NWS forecast gusts', 'Estimate', 'Wind only. Rule-of-thumb thresholds (upper lifts around 40 mph gusts). Not official status.'],
     ['Season status', `${M.name} official site`, 'Reference', `Opening Day ${M.season?.openingDay || 'not announced yet'}, checked ${M.season?.checked || 'n/a'}. Updated by hand.`],
     M.nws
-      ? ['Forecaster notes', FC.name, 'Forecast', 'The forecasters\' written discussion.']
+      ? ['Forecaster notes', M.nws.afdOffice ? `National Weather Service (${M.nws.afdOfficeName || M.nws.afdOffice})` : FC.name, 'Forecast', M.nws.afdOffice ? `The forecasters' written discussion. From ${M.nws.afdOfficeName || M.nws.afdOffice}, whose discussion covers this area best; the hourly forecast comes from ${M.nws.officeName || M.nws.office}, which forecasts the mountain's mid-elevations.` : 'The forecasters\' written discussion.']
       : ['Forecaster notes', 'None published for this area', '–', M.discussion?.link ? `Linked instead: ${M.discussion.link.label} (seasonal).` : ''],
     ['Radar', M.text.radarSource || 'RainViewer, using NOAA NEXRAD radar', 'Measured', M.text.radarNote || 'Radar coverage over the Cascades is limited by terrain, so light snow can be missed.'],
     mi.length && ['Regional snow stations', 'USDA NRCS SNOTEL', 'Measured', `Reliable, but ${Math.floor(Math.min(...mi))}–${Math.round(Math.max(...mi))} mi away, at ${ftFmt(Math.min(...ft))}–${ftFmt(Math.max(...ft))} ft. Regional trend only. Not used in the summary.`],
@@ -2032,7 +2034,8 @@ function renderSources() {
 function setupMountain() {
   // One link per mountain. The address carries the choice (?mtn=key), so a link can be shared.
   const sw = $('mtn-switch');
-  sw.innerHTML = Object.entries(MOUNTAINS).map(([key, m]) => `<a href="?mtn=${key}"${key === MTN_KEY ? ' aria-current="page"' : ''}>${esc(m.name)}</a>`).join('');
+  // Listed alphabetically (owner's request, Nov 12); the default mountain is still the first in mountains.js.
+  sw.innerHTML = Object.entries(MOUNTAINS).sort(([, a], [, b]) => a.name.localeCompare(b.name, 'en')).map(([key, m]) => `<a href="?mtn=${key}"${key === MTN_KEY ? ' aria-current="page"' : ''}>${esc(m.name)}</a>`).join('');
   // On a narrow screen the row scrolls sideways: bring the current mountain into view and fade the
   // edge where more mountains are hidden, so nobody misses them.
   const cur = sw.querySelector('[aria-current]');
