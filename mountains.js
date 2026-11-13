@@ -353,13 +353,14 @@ const MOUNTAINS = {
     ],
     // The resort's cams are CamStreamer embeds that redirect to YouTube live streams; these are the YouTube ids
     // they pointed to on 2026-11-12 (re-resolve through camstreamer.com/embed/<id> if a still stops working:
-    // Base NGuSbRSJ…, Mid 1YTKigZZ…, Top a9V1ciOD…). At 10pm only Alpental Top was live (blowing snow); Base and
-    // Mid showed the resort's title cards (old photos), so each says so. Re-check in daylight. No stake cam.
+    // Base NGuSbRSJ…, Mid 1YTKigZZ…, Top a9V1ciOD…). Daylight check, Nov 13 3:35pm: none live. Base and Mid show
+    // title cards; Top shows a frozen night frame (blowing snow), byte-identical to Nov 12 10pm. So the time-stamped
+    // WSDOT pass cam leads, and each resort cam says its stream was off. Re-check; when live, drop that sentence.
     cams: [
-      { name: 'Alpental Top', why: 'Resort camera at the top of Alpental: weather and visibility up high. Tap for live video (YouTube). When the stream is off, it shows the resort\'s title card (an old photo).', youtube: 'bWf5rScCIas', caption: 'Alpental Top cam (resort). This resort has no snow stake cam.' },
-      { name: 'Alpental Mid-Mountain', why: 'Resort camera at mid-mountain. Tap for live video (YouTube). When the stream is off, it shows the resort\'s title card (an old photo).', youtube: 'c_XLrUYV8tk' },
-      { name: 'Alpental Base', why: 'Resort camera at the base area. Tap for live video (YouTube). When the stream is off, it shows the resort\'s title card (an old photo).', youtube: '8wk81COX2cg' },
-      { name: 'I-90 Snoqualmie Pass Summit', why: 'Interstate 90 at the pass (about 3,000 ft), 1.4 mi from Alpental\'s base: the road and what is falling at the pass. © WSDOT.', src: 'https://images.wsdot.wa.gov/sc/090vc05200.jpg', small: true },
+      { name: 'I-90 Snoqualmie Pass Summit', why: 'Interstate 90 at the pass (about 3,000 ft), 1.4 mi from Alpental\'s base: the road and what is falling at the pass. Its own name and time stamp are on the picture. © WSDOT.', src: 'https://images.wsdot.wa.gov/sc/090vc05200.jpg', small: true, caption: 'WSDOT I-90 cam at the pass (time-stamped). The resort\'s own streams were off when checked (Nov 13). No snow stake cam.' },
+      { name: 'Alpental Top', why: 'Resort camera at the top of Alpental. Its stream was off when checked in daylight on Nov 13 (an old frozen frame or the resort\'s title card), so this may not be today\'s view. Tap for live video (YouTube).', youtube: 'bWf5rScCIas' },
+      { name: 'Alpental Mid-Mountain', why: 'Resort camera at mid-mountain. Its stream was off when checked in daylight on Nov 13 (an old frozen frame or the resort\'s title card), so this may not be today\'s view. Tap for live video (YouTube).', youtube: 'c_XLrUYV8tk' },
+      { name: 'Alpental Base', why: 'Resort camera at the base area. Its stream was off when checked in daylight on Nov 13 (an old frozen frame or the resort\'s title card), so this may not be today\'s view. Tap for live video (YouTube).', youtube: '8wk81COX2cg' },
     ],
     // Opening Day: the resort's hours page (updated Sep 27, 2026) says "Opening day for the winter season is to be
     // determined". Last season Alpental opened Jan 7, 2026. `closed: true` keeps preseason mode on.
@@ -382,7 +383,7 @@ const MOUNTAINS = {
       snowDepthNote: 'NWAC measures snow depth at Alpental\'s base and mid-mountain, on its own site only (see Links). The nearest snow station this site reads, Olallie Meadows, is in another valley 4 mi away: a regional reference.',
       regionalWhy: 'in other valleys and drainages, so their snow differs from the ski area\'s',
       camsSource: 'Summit at Snoqualmie (YouTube live, via CamStreamer); Washington State DOT',
-      camsNote: 'Resort cameras: each shows its stream\'s live still, refreshed about every 5 minutes; tap one for live video in YouTube\'s player. While a stream is off, YouTube shows the resort\'s title card (an old photo). Road camera © WSDOT.',
+      camsNote: 'Resort cameras: each shows its stream\'s live still, refreshed about every 5 minutes; tap one for live video in YouTube\'s player. When checked on Nov 13 the resort\'s streams were off (frozen frames or title cards), so their pictures may be old; the WSDOT road cams carry their own time stamps. Road camera © WSDOT.',
       footer: 'Resort cams © Summit at Snoqualmie, via YouTube. Road camera © WSDOT. Official sources: the Alpental mountain report and the Northwest Avalanche Center forecast.',
     },
   },
@@ -428,15 +429,16 @@ const MOUNTAINS = {
     ],
     // Resort cams: CamStreamer embeds redirecting to YouTube live streams (ids as of 2026-11-12; re-resolve
     // through camstreamer.com/embed/<id> if a still stops working: Central Base fd40qLVR…, Central Top
-    // QmtJtO3W…, Silver Fir Base QOEw0n5i…, West Base PZyoJBnQ…). At 10pm only Central Base was live; the others
-    // showed title cards (old photos). Re-check in daylight. WSDOT's I-90 cams carry their own name and stamp.
+    // QmtJtO3W…, Silver Fir Base QOEw0n5i…, West Base PZyoJBnQ…). Daylight check, Nov 13 3:35pm: none live; Central
+    // Base shows a frozen night frame (identical to Nov 12 10pm), the rest title cards. So WSDOT's time-stamped I-90
+    // cams lead and each resort cam says its stream was off. Re-check; when live, drop that sentence.
     cams: [
-      { name: 'Summit Central Base', why: 'Resort camera at Summit Central\'s base. Tap for live video (YouTube). When the stream is off, it shows the resort\'s title card (an old photo).', youtube: 'GcIAQ5iD35o', caption: 'Summit Central Base cam (resort). This resort has no snow stake cam.' },
-      { name: 'Summit Central Top', why: 'Resort camera at the top of Summit Central (Central Express). Tap for live video (YouTube). When the stream is off, it shows the resort\'s title card (an old photo).', youtube: 'w4Sno8NIjmU' },
-      { name: 'Silver Fir Base', why: 'Resort camera at the base of Silver Fir Express, between Central and East. Tap for live video (YouTube). When the stream is off, it shows the resort\'s title card (an old photo).', youtube: 'H7HwsNLqVC8' },
-      { name: 'Summit West Base', why: 'Resort camera at Summit West\'s base. Tap for live video (YouTube). When the stream is off, it shows the resort\'s title card (an old photo).', youtube: 'vhO8nNqg9iw' },
-      { name: 'I-90 Snoqualmie Pass Summit', why: 'Interstate 90 at the pass (about 3,000 ft), by Summit West: the road and what is falling at the pass. © WSDOT.', src: 'https://images.wsdot.wa.gov/sc/090vc05200.jpg', small: true },
-      { name: 'I-90 East Snoqualmie Summit', why: 'Interstate 90 east of the pass, by Summit East (Hyak): the road on the east side. © WSDOT.', src: 'https://images.wsdot.wa.gov/sc/090vc05347.jpg', small: true },
+      { name: 'I-90 Snoqualmie Pass Summit', why: 'Interstate 90 at the pass (about 3,000 ft), by Summit West: the road and what is falling at the pass. Its own name and time stamp are on the picture. © WSDOT.', src: 'https://images.wsdot.wa.gov/sc/090vc05200.jpg', small: true, caption: 'WSDOT I-90 cam at the pass (time-stamped). The resort\'s own streams were off when checked (Nov 13). No snow stake cam.' },
+      { name: 'I-90 East Snoqualmie Summit', why: 'Interstate 90 east of the pass, by Summit East (Hyak): the road on the east side. Its own name and time stamp are on the picture. © WSDOT.', src: 'https://images.wsdot.wa.gov/sc/090vc05347.jpg', small: true },
+      { name: 'Summit Central Base', why: 'Resort camera at Summit Central\'s base. Its stream was off when checked in daylight on Nov 13 (an old frozen frame or the resort\'s title card), so this may not be today\'s view. Tap for live video (YouTube).', youtube: 'GcIAQ5iD35o' },
+      { name: 'Summit Central Top', why: 'Resort camera at the top of Summit Central (Central Express). Its stream was off when checked in daylight on Nov 13 (an old frozen frame or the resort\'s title card), so this may not be today\'s view. Tap for live video (YouTube).', youtube: 'w4Sno8NIjmU' },
+      { name: 'Silver Fir Base', why: 'Resort camera at the base of Silver Fir Express, between Central and East. Its stream was off when checked in daylight on Nov 13 (an old frozen frame or the resort\'s title card), so this may not be today\'s view. Tap for live video (YouTube).', youtube: 'H7HwsNLqVC8' },
+      { name: 'Summit West Base', why: 'Resort camera at Summit West\'s base. Its stream was off when checked in daylight on Nov 13 (an old frozen frame or the resort\'s title card), so this may not be today\'s view. Tap for live video (YouTube).', youtube: 'vhO8nNqg9iw' },
     ],
     // Opening Day "to be determined" (hours page, updated Sep 27, 2026). Last season Summit West opened Dec 23, 2025.
     season: { openingDay: null, closed: true, checked: '2026-11-12' },
@@ -459,7 +461,7 @@ const MOUNTAINS = {
       snowDepthNote: 'NWAC measures snow depth at the pass, on its own site only (see Links). The nearest snow station this site reads, Olallie Meadows, is in another valley 3 mi away: a regional reference.',
       regionalWhy: 'in other valleys and drainages, so their snow differs from the ski area\'s',
       camsSource: 'Summit at Snoqualmie (YouTube live, via CamStreamer); Washington State DOT',
-      camsNote: 'Resort cameras: each shows its stream\'s live still, refreshed about every 5 minutes; tap one for live video in YouTube\'s player. While a stream is off, YouTube shows the resort\'s title card (an old photo). Road cameras © WSDOT.',
+      camsNote: 'Resort cameras: each shows its stream\'s live still, refreshed about every 5 minutes; tap one for live video in YouTube\'s player. When checked on Nov 13 the resort\'s streams were off (frozen frames or title cards), so their pictures may be old; the WSDOT road cams carry their own time stamps. Road cameras © WSDOT.',
       footer: 'Resort cams © Summit at Snoqualmie, via YouTube. Road cameras © WSDOT. Official sources: the Summit at Snoqualmie mountain report and the Northwest Avalanche Center forecast.',
     },
   },
