@@ -313,6 +313,157 @@ const MOUNTAINS = {
     },
   },
 
+  alpental: {
+    name: 'Alpental',
+    region: 'Snoqualmie Pass, north of I-90 (part of the Summit at Snoqualmie) · Washington, USA',
+    // Alpental is one of the Summit at Snoqualmie's four areas, the only one north of I-90; `snoqualmie` below
+    // covers the other three (owner's choice, 2026-11-12). A point toward Denny Mountain: Open-Meteo then uses
+    // the base cell 47.427, -121.440 and, for mid and summit, 47.452, -121.450 on Alpental's side of the valley
+    // (from the base lodge itself it picked Snoqualmie Mountain's side, NE). Checked 2026-11-12.
+    lat: 47.438,
+    lon: -121.437,
+    timezone: 'America/Los_Angeles',
+    // The resort's figures (help-center Mountain Stats page): highest point 5,420 ft, vertical 2,280 ft, so the
+    // base is 3,140 ft (its Alpental page says 2,290 vertical). "Mid" is the halfway elevation.
+    zones: [
+      { key: 'base', name: 'Base area', short: 'Base', ft: 3140 },
+      { key: 'mid', name: 'Mid-mountain', short: 'Mid-mountain', ft: 4280 },
+      { key: 'summit', name: 'Top of Alpental', short: 'Summit', ft: 5420 },
+    ],
+    // National Weather Service Seattle. This cell holds the Mid-Mountain station and averages 3,983 ft. The
+    // Cascade crest splits Seattle and Pendleton through the pass; all of Alpental is in Seattle's area.
+    nws: { office: 'SEW', officeName: 'Seattle', x: 151, y: 54 },
+    // Northwest Avalanche Center stations on the ski area, read through the NWS network (hourly, 1-2 hours late).
+    // On 2026-11-12 Base and Mid-Mountain stopped reporting about 2pm (blank in NWAC's own table too); the site
+    // shows them offline until they return. NWAC's table also has snow depth at Base and Mid (linked below).
+    stations: [
+      { id: 'ALP55', name: 'Alpental Summit', operator: 'Northwest Avalanche Center', ft: 5470, where: 'top of the ski area, 0.9 mi WSW of the base' },
+      { id: 'ALP44', name: 'Alpental Mid-Mountain', operator: 'Northwest Avalanche Center', ft: 4350, where: 'mid-mountain, 0.8 mi SSW of the base' },
+      { id: 'ALP31', name: 'Alpental Base', operator: 'Northwest Avalanche Center', ft: 3100, where: 'base area' },
+    ],
+    stationMaxAgeHours: 3,
+    snowZone: 'mid',
+    // No snow-depth sensor this site can read on the ski area (NWAC's depth sensors are on its own site only).
+    // As at Mt. Spokane and Alpine Meadows (owner: "sure", 2026-11-12), the nearest SNOTELs are regional only.
+    snotel: [
+      // Distances from this mountain's point above (measured 2026-11-12 from the NRCS station records).
+      { id: '672:WA:SNTL', name: 'Olallie Meadows', ft: 4010, mi: 4.4 },
+      { id: '899:WA:SNTL', name: 'Tinkham Creek', ft: 3000, mi: 7.5 },
+      { id: '788:WA:SNTL', name: 'Stampede Pass', ft: 3850, mi: 12.2 },
+    ],
+    // The resort's cams are CamStreamer embeds that redirect to YouTube live streams; these are the YouTube ids
+    // they pointed to on 2026-11-12 (re-resolve through camstreamer.com/embed/<id> if a still stops working:
+    // Base NGuSbRSJ…, Mid 1YTKigZZ…, Top a9V1ciOD…). At 10pm only Alpental Top was live (blowing snow); Base and
+    // Mid showed the resort's title cards (old photos), so each says so. Re-check in daylight. No stake cam.
+    cams: [
+      { name: 'Alpental Top', why: 'Resort camera at the top of Alpental: weather and visibility up high. Tap for live video (YouTube). When the stream is off, it shows the resort\'s title card (an old photo).', youtube: 'bWf5rScCIas', caption: 'Alpental Top cam (resort). This resort has no snow stake cam.' },
+      { name: 'Alpental Mid-Mountain', why: 'Resort camera at mid-mountain. Tap for live video (YouTube). When the stream is off, it shows the resort\'s title card (an old photo).', youtube: 'c_XLrUYV8tk' },
+      { name: 'Alpental Base', why: 'Resort camera at the base area. Tap for live video (YouTube). When the stream is off, it shows the resort\'s title card (an old photo).', youtube: '8wk81COX2cg' },
+      { name: 'I-90 Snoqualmie Pass Summit', why: 'Interstate 90 at the pass (about 3,000 ft), 1.4 mi from Alpental\'s base: the road and what is falling at the pass. © WSDOT.', src: 'https://images.wsdot.wa.gov/sc/090vc05200.jpg', small: true },
+    ],
+    // Opening Day: the resort's hours page (updated Sep 27, 2026) says "Opening day for the winter season is to be
+    // determined". Last season Alpental opened Jan 7, 2026. `closed: true` keeps preseason mode on.
+    season: { openingDay: null, closed: true, checked: '2026-11-12' },
+    liftStatusUrl: 'https://www.summitatsnoqualmie.com/alpental/mountain-report',
+    liftStatusEmbed: false,
+    liftStatusLinkWhy: 'linked; its lift list loads by script',
+    features: { liftEstimate: false },
+    links: [
+      { label: 'Official Alpental mountain report', url: 'https://www.summitatsnoqualmie.com/alpental/mountain-report' },
+      { label: 'Official webcams', url: 'https://www.summitatsnoqualmie.com/webcams' },
+      { label: 'Northwest Avalanche Center: Snoqualmie Pass forecast', url: 'https://nwac.us/forecasts/avalanche/snoqualmie-pass' },
+      { label: 'NWAC Alpental stations (every hour, incl. snow depth)', url: 'https://nwac.us/weather/stations/alpental' },
+      { label: 'WSDOT Snoqualmie Pass I-90 (roads)', url: 'https://wsdot.com/travel/real-time/mountainpasses/snoqualmie' },
+    ],
+    afdWords: ['cascades?', 'cascade crest', 'snoqualmie', 'snoqualmie pass', 'passes', 'i-90', 'east winds?', 'easterly', 'offshore', 'convergence zone'],
+    text: {
+      liveLead: 'Live readings from the Northwest Avalanche Center\'s weather stations on the ski area (summit, mid-mountain and base). No snow-depth sensor this site can read stands on the mountain; the nearest snow stations appear below as regional references.',
+      stationsNote: 'Northwest Avalanche Center stations on the ski area, reporting hourly; reports arrive 1 to 2 hours late. Read through the National Weather Service network. Offline stations are ignored.',
+      snowDepthNote: 'NWAC measures snow depth at Alpental\'s base and mid-mountain, on its own site only (see Links). The nearest snow station this site reads, Olallie Meadows, is in another valley 4 mi away: a regional reference.',
+      regionalWhy: 'in other valleys and drainages, so their snow differs from the ski area\'s',
+      camsSource: 'Summit at Snoqualmie (YouTube live, via CamStreamer); Washington State DOT',
+      camsNote: 'Resort cameras: each shows its stream\'s live still, refreshed about every 5 minutes; tap one for live video in YouTube\'s player. While a stream is off, YouTube shows the resort\'s title card (an old photo). Road camera © WSDOT.',
+      footer: 'Resort cams © Summit at Snoqualmie, via YouTube. Road camera © WSDOT. Official sources: the Alpental mountain report and the Northwest Avalanche Center forecast.',
+    },
+  },
+
+  snoqualmie: {
+    name: 'Summit at Snoqualmie',
+    region: 'Snoqualmie Pass, south of I-90: Summit West, Central and East · Washington, USA',
+    // Summit West, Summit Central and Summit East as one mountain (owner's choice, 2026-11-12); Alpental is
+    // `alpental` above. A point at Summit Central: Open-Meteo uses the cell 47.408, -121.391 (Central/East) for
+    // base and mid, and 47.433, -121.402 (north of I-90, 1.9 mi) for the summit height. Checked 2026-11-12.
+    lat: 47.405,
+    lon: -121.405,
+    timezone: 'America/Los_Angeles',
+    // The three areas differ: West about 3,000-3,765 ft, Central 2,840-3,865 ft, East 2,610-3,710 ft (Wikipedia
+    // verticals 765 / 1,025 / 1,100 ft; Central's top 3,865 ft per SnowForecast and Family Ski Trips; the pass
+    // itself is 3,015 ft). The resort publishes no per-area heights. Base is the pass level, where Summit West's
+    // base and the NWAC station sit; the summit is Summit Central's top, the highest point of the three.
+    zones: [
+      { key: 'base', name: 'Base areas at the pass', short: 'Base', ft: 3000 },
+      { key: 'mid', name: 'Mid-mountain', short: 'Mid-mountain', ft: 3430 },
+      { key: 'summit', name: 'Top of Summit Central', short: 'Summit', ft: 3865 },
+    ],
+    // The Cascade crest splits NWS Seattle and Pendleton through the pass. This Seattle cell holds Summit West's base
+    // and averages 3,087 ft. Central and East fall in Pendleton's cells, which average 2,570-2,810 ft because they
+    // take in the Lake Keechelus valley, below the ski terrain. Seattle writes the passes' forecast discussion.
+    nws: { office: 'SEW', officeName: 'Seattle', x: 152, y: 54 },
+    // Northwest Avalanche Center stations at Summit West plus Washington DOT's road sensor at the pass, all read
+    // through the NWS network. NWAC's East Shed station (ESS38, 3,770 ft, above Lake Keechelus) has been offline
+    // since Nov 10, 2026; add it if it returns. On 2026-11-12 at 10pm an easterly cold pool sat in the pass:
+    // Dodge Ridge 34°F with an east wind while Alpental's summit read 41°F, which the model missed (44°F).
+    stations: [
+      { id: 'SNO38', name: 'Dodge Ridge', operator: 'Northwest Avalanche Center', ft: 3760, where: 'top of Summit West, 0.7 mi WSW of its base' },
+      { id: 'SNO30', name: 'Snoqualmie Pass', operator: 'Northwest Avalanche Center', ft: 3010, where: 'Summit West base area, at the pass' },
+      { id: 'TALPE', name: 'I-90 at the Alpental exit', operator: 'Washington DOT', ft: 2972, where: 'I-90 at the pass, 0.2 mi from Summit West\'s base', road: 'I-90 at the pass', sheltered: 'road level' },
+    ],
+    stationMaxAgeHours: 3,
+    snowZone: 'mid',
+    // As at Alpental: no snow-depth sensor this site can read on the ski area; SNOTELs regional only.
+    snotel: [
+      { id: '672:WA:SNTL', name: 'Olallie Meadows', ft: 4010, mi: 2.8 },
+      { id: '899:WA:SNTL', name: 'Tinkham Creek', ft: 3000, mi: 5.9 },
+      { id: '788:WA:SNTL', name: 'Stampede Pass', ft: 3850, mi: 9.5 },
+    ],
+    // Resort cams: CamStreamer embeds redirecting to YouTube live streams (ids as of 2026-11-12; re-resolve
+    // through camstreamer.com/embed/<id> if a still stops working: Central Base fd40qLVR…, Central Top
+    // QmtJtO3W…, Silver Fir Base QOEw0n5i…, West Base PZyoJBnQ…). At 10pm only Central Base was live; the others
+    // showed title cards (old photos). Re-check in daylight. WSDOT's I-90 cams carry their own name and stamp.
+    cams: [
+      { name: 'Summit Central Base', why: 'Resort camera at Summit Central\'s base. Tap for live video (YouTube). When the stream is off, it shows the resort\'s title card (an old photo).', youtube: 'GcIAQ5iD35o', caption: 'Summit Central Base cam (resort). This resort has no snow stake cam.' },
+      { name: 'Summit Central Top', why: 'Resort camera at the top of Summit Central (Central Express). Tap for live video (YouTube). When the stream is off, it shows the resort\'s title card (an old photo).', youtube: 'w4Sno8NIjmU' },
+      { name: 'Silver Fir Base', why: 'Resort camera at the base of Silver Fir Express, between Central and East. Tap for live video (YouTube). When the stream is off, it shows the resort\'s title card (an old photo).', youtube: 'H7HwsNLqVC8' },
+      { name: 'Summit West Base', why: 'Resort camera at Summit West\'s base. Tap for live video (YouTube). When the stream is off, it shows the resort\'s title card (an old photo).', youtube: 'vhO8nNqg9iw' },
+      { name: 'I-90 Snoqualmie Pass Summit', why: 'Interstate 90 at the pass (about 3,000 ft), by Summit West: the road and what is falling at the pass. © WSDOT.', src: 'https://images.wsdot.wa.gov/sc/090vc05200.jpg', small: true },
+      { name: 'I-90 East Snoqualmie Summit', why: 'Interstate 90 east of the pass, by Summit East (Hyak): the road on the east side. © WSDOT.', src: 'https://images.wsdot.wa.gov/sc/090vc05347.jpg', small: true },
+    ],
+    // Opening Day "to be determined" (hours page, updated Sep 27, 2026). Last season Summit West opened Dec 23, 2025.
+    season: { openingDay: null, closed: true, checked: '2026-11-12' },
+    liftStatusUrl: 'https://www.summitatsnoqualmie.com/mountain-report',
+    liftStatusEmbed: false,
+    liftStatusLinkWhy: 'linked; its lift list loads by script',
+    features: { liftEstimate: false },
+    links: [
+      { label: 'Official mountain report & lift status', url: 'https://www.summitatsnoqualmie.com/mountain-report' },
+      { label: 'Official webcams', url: 'https://www.summitatsnoqualmie.com/webcams' },
+      { label: 'Northwest Avalanche Center: Snoqualmie Pass forecast', url: 'https://nwac.us/forecasts/avalanche/snoqualmie-pass' },
+      { label: 'NWAC Snoqualmie Pass stations (every hour, incl. snow depth)', url: 'https://nwac.us/weather/stations/snoqualmie-pass' },
+      { label: 'WSDOT Snoqualmie Pass I-90 (roads)', url: 'https://wsdot.com/travel/real-time/mountainpasses/snoqualmie' },
+      { label: 'Olallie Meadows SNOTEL (regional)', url: 'https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=672' },
+    ],
+    afdWords: ['cascades?', 'cascade crest', 'snoqualmie', 'snoqualmie pass', 'passes', 'i-90', 'east winds?', 'easterly', 'offshore', 'convergence zone'],
+    text: {
+      liveLead: 'Live readings from the Northwest Avalanche Center\'s stations at Summit West (Dodge Ridge and the pass) and Washington DOT\'s road sensor on I-90. No snow-depth sensor this site can read stands on the ski area; the nearest snow stations appear below as regional references.',
+      stationsNote: 'Northwest Avalanche Center stations at Summit West, reporting hourly (1 to 2 hours late), and Washington DOT\'s road sensor at the pass (wind sheltered at road level), read through the National Weather Service network. No station reports from Summit Central or East right now. Offline stations are ignored.',
+      snowDepthNote: 'NWAC measures snow depth at the pass, on its own site only (see Links). The nearest snow station this site reads, Olallie Meadows, is in another valley 3 mi away: a regional reference.',
+      regionalWhy: 'in other valleys and drainages, so their snow differs from the ski area\'s',
+      camsSource: 'Summit at Snoqualmie (YouTube live, via CamStreamer); Washington State DOT',
+      camsNote: 'Resort cameras: each shows its stream\'s live still, refreshed about every 5 minutes; tap one for live video in YouTube\'s player. While a stream is off, YouTube shows the resort\'s title card (an old photo). Road cameras © WSDOT.',
+      footer: 'Resort cams © Summit at Snoqualmie, via YouTube. Road cameras © WSDOT. Official sources: the Summit at Snoqualmie mountain report and the Northwest Avalanche Center forecast.',
+    },
+  },
+
   mission: {
     name: 'Mission Ridge',
     region: 'Wenatchee Mountains, east slope of the Cascades · Washington, USA',

@@ -84,11 +84,22 @@ function computePreseason() {
   const w = ensNext7();
   const midI = Math.max(0, P.findIndex((z) => z.zone.key === midZone().key));
   const det = P.map((z) => z.times.reduce((a, t, k) => a + (t > now && t <= in7 ? z.snow[k] : 0), 0));
-  const share = (i) => (det[midI] >= 0.1 ? det[i] / det[midI] : i === midI ? 1 : 0);
+  // Bounded so it can't blow up when the one-model forecast has little snow at mid-mountain (the snow line near it):
+  // higher elevations get the mid number plus the extra that forecast adds between mid-mountain and there; lower
+  // ones a share of it, never more than all of it (zones run base to summit). Until Nov 12 every elevation was scaled
+  // by the ratio to mid-mountain: at Alpental (0.13" mid, 2.86" summit in the one model; 1.6" from the 82 runs) that
+  // gave 35" at the summit, and below 0.1" at mid it gave the summit nothing.
+  const comingAt = (i) => {
+    if (i === midI) return w.p50;
+    if (i > midI) return w.p50 + Math.max(0, det[i] - det[midI]);
+    return det[midI] > 0 ? w.p50 * Math.min(1, det[i] / det[midI]) : Math.min(det[i], w.p50);
+  };
   const zones = P.map((z0, zi) => {
-    const coming = w ? w.p50 * share(zi) : det[zi];
-    const scale = det[zi] > 0 ? coming / det[zi] : 0;
-    const z = w ? { ...z0, snow: z0.times.map((t, k) => (t > now && t <= in7 ? z0.snow[k] * scale : z0.snow[k])) } : z0;
+    const coming = w ? comingAt(zi) : det[zi];
+    // Hour-by-hour timing follows this elevation's own forecast, or mid-mountain's where this one has none.
+    const shapeI = det[zi] > 0 ? zi : midI;
+    const scale = det[shapeI] > 0 ? coming / det[shapeI] : 0;
+    const z = w ? { ...z0, snow: z0.times.map((t, k) => (t > now && t <= in7 ? P[shapeI].snow[k] * scale : z0.snow[k])) } : z0;
     let nowIdx = -1, futIdx = -1;
     z.times.forEach((t, k) => {
       if (t <= now && z.depth[k] != null) nowIdx = k;
