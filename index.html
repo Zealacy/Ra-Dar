@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <!-- Security: the only places this page may load code, data, images and embeds from. When adding a mountain
        or source, add its host here too (see CLAUDE.md). Style attributes are inline, so styles allow 'unsafe-inline'. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; connect-src 'self' https://api.weather.gov https://api.open-meteo.com https://ensemble-api.open-meteo.com https://wcc.sc.egov.usda.gov https://api.weather.gc.ca https://api.rainviewer.com; img-src 'self' data: https://cdnjs.cloudflare.com https://tile.openstreetmap.org https://tilecache.rainviewer.com https://api.mtbachelor.com https://tripcheck.com https://i.ytimg.com https://www.sunpeaksresort.com https://player.brownrice.com https://images.wsdot.wa.gov https://relay.ozolio.com https://cwwp2.dot.ca.gov https://preview.resortcams.com; frame-src https://www.mtbachelor.com https://www.youtube.com; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; connect-src 'self' https://api.weather.gov https://api.open-meteo.com https://ensemble-api.open-meteo.com https://wcc.sc.egov.usda.gov https://api.weather.gc.ca https://api.rainviewer.com; img-src 'self' data: https://cdnjs.cloudflare.com https://tile.openstreetmap.org https://tilecache.rainviewer.com https://api.mtbachelor.com https://tripcheck.com https://i.ytimg.com https://www.sunpeaksresort.com https://player.brownrice.com https://images.wsdot.wa.gov https://relay.ozolio.com https://cwwp2.dot.ca.gov https://preview.resortcams.com; frame-src https://www.mtbachelor.com https://www.youtube.com https://video.nest.com; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b1a2b">
   <title>Ra-Dar Ski Weather</title>
@@ -72,7 +72,7 @@
     <section id="call" class="panel call reveal">
       <div class="call-hero">
         <div class="call-words">
-          <div class="eyebrow">Ski-day forecast · 9am–4pm</div>
+          <div class="eyebrow" id="call-hours">Ski-day forecast · 9am–4pm</div>
           <h2 id="call-day">Loading the forecast…</h2>
         </div>
       </div>
@@ -99,7 +99,7 @@
             <div class="snow-nums">
               <div class="sn-row"><i class="sw s24"></i><span class="sn-v"><span id="snow24">–</span>"</span><span class="sn-l">last 24 hrs</span></div>
               <div class="sn-row"><i class="sw s72"></i><span class="sn-v"><span id="snow72">–</span>"</span><span class="sn-l">last 72 hrs</span></div>
-              <div class="sn-row"><i class="sw sf"></i><span class="sn-v">+<span id="snowF">–</span>"</span><span class="sn-l">forecast to 4pm</span></div>
+              <div class="sn-row"><i class="sw sf"></i><span class="sn-v">+<span id="snowF">–</span>"</span><span class="sn-l" id="snowF-to">forecast to 4pm</span></div>
               <div class="sn-zones" id="snow-zones"></div>
             </div>
             <a class="stake-thumb" id="stake-thumb-link" href="#cams" title="Snow stake cam"><img id="stake-thumb" alt="Snow stake cam"><span>Measured: stake cam ↓</span></a>

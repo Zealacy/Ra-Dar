@@ -18,6 +18,8 @@
 // `snowStake.thumbLabel` replaces the Fresh snow card's "Measured: stake cam" label (Mt. Spokane, while its stream is off).
 // `season.projected: true` says "projected" instead of "scheduled" for an Opening Day the resort calls projected;
 // `season.word` gives the resort's own word instead (Mission Ridge: "planned").
+// `skiHours` sets the lift hours the ski-day forecast covers, by day of week (0 = Sunday), e.g. { default: [9, 22], 5: [9, 24] };
+// without it, 9am-4pm. A cam with `embed` (and no `src`) is a live player with no still picture, played when tapped.
 // `nws.afdOffice` reads the forecast discussion from another office than the grid (Palisades: grid from
 // Sacramento, discussion from Reno). `liftStatusLinkWhy` says why a lift board is linked, not embedded.
 // `draft: true` keeps a finished mountain off the site (out of the switcher and unreachable by ?mtn=)
@@ -136,6 +138,84 @@ const MOUNTAINS = {
       camsSource: 'Mt. Bachelor',
       camsNote: 'Official resort cameras. The stake is the best on-mountain check of new snow.',
       footer: 'Webcams and station graphic © Mt. Bachelor. Official sources: the Mt. Bachelor mountain report and the Central Oregon Avalanche Center forecast.',
+    },
+  },
+
+  skibowl: {
+    name: 'Mt. Hood Skibowl',
+    region: 'Government Camp, Mt. Hood, US-26 · Oregon, USA',
+    // Between Skibowl West's base and the summit. Open-Meteo picks a cell per elevation here: base 45.317, -121.782,
+    // mid 45.291, -121.772, summit 45.324, -121.745 (checked 2026-11-13).
+    lat: 45.297,
+    lon: -121.775,
+    timezone: 'America/Los_Angeles',
+    // The resort's "By The Numbers" page (checked 2026-11-13): base 3,650 ft, summit 5,027 ft (it also says
+    // "1500 ft" of vertical; the two heights give 1,377). "Mid" is the halfway elevation.
+    zones: [
+      { key: 'base', name: 'Skibowl West base', short: 'Base', ft: 3650 },
+      { key: 'mid', name: 'Mid-mountain', short: 'Mid-mountain', ft: 4340 },
+      { key: 'summit', name: 'Summit', short: 'Summit', ft: 5027 },
+    ],
+    // Lift hours (projected operating schedule, checked 2026-11-13): Monday-Friday 3pm-10pm; Saturday, Sunday and
+    // holidays 9am-10pm. "America's Largest Night Ski Area." Owner's decision (Nov 13): each mountain uses its own hours.
+    skiHours: { default: [9, 22], 1: [15, 22], 2: [15, 22], 3: [15, 22], 4: [15, 22], 5: [15, 22] },
+    // National Weather Service Portland. This cell holds the summit station and averages 4,469 ft, about
+    // mid-mountain; the base station is in 140,88 (3,740 ft). Both publish snow level and visibility.
+    nws: { office: 'PQR', officeName: 'Portland', x: 139, y: 87 },
+    // Northwest Avalanche Center stations on the ski area, through the NWS network (hourly). The feed leaves the
+    // summit's temperature out of about half its reports (NWAC's own table has every hour; linked). Oregon DOT's
+    // road station at Skibowl West reports every 10 minutes. All current on 2026-11-13.
+    stations: [
+      { id: 'GVT50', name: 'Skibowl Summit', operator: 'Northwest Avalanche Center', ft: 5010, where: 'top of the ski area, 1.0 mi SSW of the West base' },
+      { id: 'GVT36', name: 'Skibowl Base', operator: 'Northwest Avalanche Center', ft: 3660, where: 'Skibowl West base area' },
+      { id: 'OD162', name: 'US-26 at Skibowl West', operator: 'Oregon DOT', ft: 3655, where: 'US-26 at the West base, 0.3 mi WNW', road: 'US-26 at Government Camp', sheltered: 'road level' },
+    ],
+    stationMaxAgeHours: 3,
+    snowZone: 'mid',
+    // No snow-depth sensor this site can read on the ski area (NWAC's summit sensor is on its own site only; linked).
+    // As at the other mountains without one, the nearest SNOTELs are regional only.
+    snotel: [
+      // Distances from this mountain's point above (measured 2026-11-13 from the NRCS station records).
+      { id: '651:OR:SNTL', name: 'Mt Hood Test Site', ft: 5380, mi: 3.3 },
+      { id: '655:OR:SNTL', name: 'Mud Ridge', ft: 4070, mi: 3.5 },
+      { id: '401:OR:SNTL', name: 'Clear Lake', ft: 3810, mi: 8.5 },
+    ],
+    // The resort's own live cams are a Google Nest public stream (Skibowl West) and a Verkada player (Skibowl East).
+    // Neither offers a still picture (Nest's snapshot endpoints aren't documented, so they're off-limits). Nest's
+    // official embed player isn't blocked from other sites, so Skibowl West plays here when tapped (`embed`). The
+    // Verkada player is locked by its owner to skibowl.com, so Skibowl East is only linked. A third Nest stream on
+    // the resort's home page (npsFa2hlJU) isn't named anywhere and couldn't be viewed here, so it's left out.
+    // Oregon DOT's TripCheck stills carry their own time, elevation and temperature; ODOT allows their use with
+    // credit (TripCheck FAQ). All current on 2026-11-13. No snow stake cam.
+    cams: [
+      { name: 'US-26 at Skibowl West', why: 'Highway 26 at Skibowl West\'s base (3,624 ft): the road and what is falling at the base. Time, elevation and temperature are on the picture. Camera courtesy of ODOT.', src: 'https://tripcheck.com/roadcams/cams/US26%20at%20Ski%20Bowl%20West%20EB_pid4117.jpg', small: true, caption: 'ODOT TripCheck cam at Skibowl West (time-stamped). The resort\'s own cam is a live stream: see the cams below. No snow stake cam.' },
+      { name: 'Skibowl West (resort, live)', why: 'The resort\'s live stream of Skibowl West (Google Nest). It has no still picture, so tap to play the live video. Skibowl East\'s stream plays only on the resort\'s own site (Links).', embed: 'https://video.nest.com/embedded/live/SUFOrgWa6m?autoplay=1', link: 'https://video.nest.com/live/SUFOrgWa6m' },
+      { name: 'US-26 at Government Camp Loop Rd', why: 'Highway 26 at the west end of the Government Camp loop (3,715 ft), by Skibowl East. Camera courtesy of ODOT.', src: 'https://tripcheck.com/roadcams/cams/US26%20at%20Govt%20Camp%20Lp%20Rd_pid1776.JPG', small: true },
+      { name: 'US-26 at Government Camp', why: 'Highway 26 at Government Camp (3,989 ft), at the Timberline Highway: the road through town. Camera courtesy of ODOT.', src: 'https://tripcheck.com/roadcams/cams/GovernmentCamp_pid624.jpg', small: true },
+    ],
+    // Opening Day not announced ("WE ARE PREPARING FOR THE UPCOMING 26.27 WINTER SEASON", checked 2026-11-13).
+    season: { openingDay: null, closed: true, checked: '2026-11-13' },
+    liftStatusUrl: 'https://skibowl.com/winter-condition-and-lift-status/',
+    liftStatusEmbed: false,
+    liftStatusLinkWhy: 'linked; the resort\'s conditions & lift status page',
+    features: { liftEstimate: false },
+    links: [
+      { label: 'Official conditions, lift status & live cams', url: 'https://skibowl.com/winter-condition-and-lift-status/' },
+      { label: 'Official operating schedule', url: 'https://skibowl.com/about-winter/operating-schedule/' },
+      { label: 'Northwest Avalanche Center: Mt Hood forecast', url: 'https://nwac.us/forecasts/avalanche/mt-hood' },
+      { label: 'NWAC Skibowl stations (every hour, incl. summit snow depth)', url: 'https://nwac.us/weather/stations/skibowl-ski-area' },
+      { label: 'ODOT TripCheck (roads)', url: 'https://www.tripcheck.com/' },
+    ],
+    afdWords: ['cascades?', 'cascade crest', 'mount hood', 'mt\\.? hood', 'government camp', 'passes', 'us 26', 'highway 26', 'east winds?', 'snow levels?'],
+    text: {
+      liveLead: 'Live readings from the Northwest Avalanche Center\'s stations on the ski area (summit and base) and Oregon DOT\'s road station at Skibowl West. No snow-depth sensor this site can read stands on the mountain; the nearest snow stations appear below as regional references.',
+      stationsNote: 'Northwest Avalanche Center stations on the ski area, reporting hourly, and Oregon DOT\'s road station on US-26 (every 10 minutes; wind sheltered at road level), read through the National Weather Service network. The feed leaves the summit\'s temperature out of some reports; the latest within 3 hours is shown, with its age. Offline stations are ignored.',
+      snowDepthNote: 'NWAC measures snow depth at the summit, on its own site only (see Links). The nearest snow station this site reads, Mt Hood Test Site, is on Timberline\'s side, 3 mi away: a regional reference.',
+      regionalWhy: 'on other slopes of Mt. Hood and lower valleys, so their snow differs from the ski area\'s',
+      camsSource: 'Oregon DOT TripCheck; Mt. Hood Skibowl (Google Nest live stream)',
+      camsNote: 'Road cameras courtesy of ODOT, with their own time stamps. The resort\'s Skibowl West cam is a live stream with no still picture: tap to play it. Skibowl East\'s plays only on the resort\'s site. No snow stake cam.',
+      radarNote: 'Radar coverage over the Cascades is limited by terrain, so light snow can be missed.',
+      footer: 'Road cameras courtesy of ODOT. Skibowl West live stream © Mt. Hood Skibowl, via Google Nest. Official sources: the Skibowl conditions page and the Northwest Avalanche Center forecast.',
     },
   },
 
@@ -811,6 +891,9 @@ const MOUNTAINS = {
     ],
     // National Weather Service Blacksburg. This cell is centered on the ski area and averages 3,507 ft.
     // Blacksburg publishes no snow level here (visibility yes), so rain vs. snow comes from temperatures.
+    // Lift hours (Mountain Stats page, projected 26-27 season, checked 2026-11-13): 9am-10pm, to midnight on
+    // Fridays and Saturdays (and listed holidays, not modelled). Owner's decision (Nov 13): own hours.
+    skiHours: { default: [9, 22], 5: [9, 24], 6: [9, 24] },
     nws: { office: 'RNK', officeName: 'Blacksburg', x: 18, y: 14 },
     // No public weather station on or beside the ski area (checked on the NWS network, 2026-11-12): Blackburn
     // Knob and Howards Knob send no readings; Boone's hospital heliport (KTNB, 3,146 ft) is 1.8 mi N in town,

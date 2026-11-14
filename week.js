@@ -57,11 +57,13 @@ const dayName = (date) => {
 };
 const dayLong = (date) => new Date(date + 'T12:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 const snowWindow = (date) => [`${addDays(date, -1)}T16:00`, `${date}T16:00`]; // [start, end)
-const inSki = (key, date) => key.slice(0, 10) === date && +key.slice(11, 13) >= 9 && +key.slice(11, 13) < 16;
+// The ski-day hours follow each mountain's lift hours (skiHours in app.js; 9am-4pm by default).
+const inSki = (key, date) => { const [a, b] = skiHours(date), h = +key.slice(11, 13); return key.slice(0, 10) === date && h >= a && h < b; };
 // Open-Meteo stamps an hourly sum or maximum (snowfall, rain, gusts) at the END of its hour, so 9am-4pm is the
 // hours stamped 10:00 to 16:00, and a 4pm-to-4pm ski day is the hours stamped after 16:00 the day before, up to
 // and including 16:00. (The NWS stamps the start of the hour, so its rows use inSki and [start, end).)
-const inSkiEnd = (key, date) => key.slice(0, 10) === date && +key.slice(11, 13) > 9 && +key.slice(11, 13) <= 16;
+// (Lifts open until midnight: the last hour is stamped 00:00 the next day.)
+const inSkiEnd = (key, date) => { const [a, b] = skiHours(date), d = key.slice(0, 10), h = +key.slice(11, 13); return (d === date && h > a && h <= b) || (b === 24 && d === addDays(date, 1) && h === 0); };
 
 // Snow over the next 7 days (from now) at mid-mountain, across the 82 runs: the range, the middle and the
 // chance of reaching each amount. Only at mid-mountain: the runs' own rain/snow split isn't reliable at other

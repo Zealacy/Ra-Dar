@@ -366,6 +366,10 @@ table.chance td.pc { text-align: center; font-weight: 700; }
 /* small stills (road cams carry their own stamp): shown whole at about their real size */
 .img-frame.is-small { aspect-ratio: 328 / 314; max-width: 430px; margin: 0 auto; }
 .img-frame.is-small img { object-fit: contain; }
+/* A live player with no still picture: a dark panel until the viewer starts the stream. */
+.img-frame.no-still { background: #0b1a2b; }
+.img-frame.no-still img { visibility: hidden; }
+.thumbs button.no-still img { background: #0b1a2b; aspect-ratio: 16 / 9; }
 .img-frame.is-small:hover img { transform: none; }
 .cam-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border: 0; border-radius: 999px; background: rgba(11, 26, 43, .82); color: #fff; font: inherit; font-size: .9rem; font-weight: 700; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,.3); transition: background .2s, transform .2s; }
 .cam-play:hover { background: rgba(11, 26, 43, .95); transform: translate(-50%, -50%) scale(1.04); }

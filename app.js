@@ -624,11 +624,24 @@ function renderElevTable(zones) {
 }
 
 // ================================================================ The Call: scoring
+// Lift hours: the "ski day" every forecast summary covers, as [opening hour, closing hour) in the mountain's own
+// time, by day of week (0 = Sunday). `M.skiHours` sets them for night-skiing mountains (owner's decision, Nov 13:
+// "Own hours"); everywhere else 9am-4pm. Holidays aren't modelled.
+const DEFAULT_HOURS = [9, 16];
+function skiHours(date) {
+  const h = M.skiHours;
+  if (!h) return DEFAULT_HOURS;
+  return h[new Date(date + 'T12:00').getDay()] || h.default || DEFAULT_HOURS;
+}
+const hourWord = (h, ap = true) => (h === 24 ? 'midnight' : `${h % 12 || 12}${ap ? (h < 12 ? 'am' : 'pm') : ''}`);
+// "9am–4pm", "3–10pm", "9am–midnight"
+const hoursLabel = ([a, b]) => `${hourWord(a, b === 24 || (a < 12) !== (b < 12))}–${hourWord(b)}`;
 function skiWindow() {
   const now = new Date();
   const { date, hour } = localParts(now);
-  const target = hour < 15 ? date : localParts(new Date(now.getTime() + 864e5)).date;
-  return { date: target, today: target === date };
+  // Today until an hour before the lifts close, then the next day (for 9am-4pm: tomorrow from 3pm, as before).
+  const target = hour < skiHours(date)[1] - 1 ? date : localParts(new Date(now.getTime() + 864e5)).date;
+  return { date: target, today: target === date, hours: skiHours(target) };
 }
 
 // Where no snow-level forecast is published: the highest elevation zone (index into M.zones) whose
@@ -647,7 +660,7 @@ function rainTopZone(wetTimes) {
 function computeCall() {
   const { nws, elev, stations } = state;
   const win = skiWindow();
-  const inWindow = (t) => { const p = localParts(t); return p.date === win.date && p.hour >= 9 && p.hour < 16; };
+  const inWindow = (t) => { const p = localParts(t); return p.date === win.date && p.hour >= win.hours[0] && p.hour < win.hours[1]; };
   const c = { win, chips: [] };
 
   // Fresh snow: model estimate at the ski area's own elevations. Where the mountain has a usable
@@ -1017,7 +1030,7 @@ function computeBriefing(c) {
 function renderBriefing(c) {
   const b = computeBriefing(c);
   const day = new Date(c.win.date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-  $('brief-when').textContent = `${c.win.today ? 'Today' : 'Tomorrow'}, ${day} · 9am–4pm · updated ${fmtTime(new Date(), { hour: 'numeric', minute: '2-digit' })}`;
+  $('brief-when').textContent = `${c.win.today ? 'Today' : 'Tomorrow'}, ${day} · ${hoursLabel(c.win.hours)} · updated ${fmtTime(new Date(), { hour: 'numeric', minute: '2-digit' })}`;
   $('brief-lines').innerHTML = b.lines.map((l) => `<li class="${l.warn ? 'warn' : ''}">${esc(l.text)}</li>`).join('');
 }
 
@@ -1027,6 +1040,8 @@ function statusColor(cls) { return cls === 'good' ? cssVar('--good') : cls === '
 function renderCall(c) {
   const dayName = new Date(c.win.date + 'T12:00').toLocaleDateString('en-US', isMobile() ? { weekday: 'short', month: 'short', day: 'numeric' } : { weekday: 'long', month: 'short', day: 'numeric' });
   $('call-day').textContent = `${c.win.today ? 'Today' : 'Tomorrow'}, ${dayName}`;
+  $('call-hours').textContent = `Ski-day forecast · ${hoursLabel(c.win.hours)}`;
+  $('snowF-to').textContent = `forecast to ${hourWord(c.win.hours[1])}`;
   $('call-chips').innerHTML = c.chips.map((ch, i) => `<span class="chip ${ch.cls}" style="animation-delay:${0.15 + i * 0.08}s"><i aria-hidden="true">${ch.icon}</i>${esc(ch.label)}</span>`).join('');
 
   renderMountain(c);
@@ -1193,7 +1208,7 @@ function renderMountain(c) {
   }
 
   // Which day and hours this picture shows (it switches to tomorrow after 3pm)
-  const dayLbl = `${c.win.today ? 'Today' : 'Tomorrow'} (${new Date(c.win.date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short' })}), 9am–4pm forecast`;
+  const dayLbl = `${c.win.today ? 'Today' : 'Tomorrow'} (${new Date(c.win.date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short' })}), ${hoursLabel(c.win.hours)} forecast`;
   pill(4, H - 22, 196, 17);
   T({ x: 10, y: H - 10, 'font-size': 10, 'font-weight': 700 }, dayLbl);
 
@@ -1211,7 +1226,7 @@ function renderMountain(c) {
     T({ x: bx + 8, y: by + 16, 'font-size': 15, 'font-weight': 800 }, z.avg != null ? `${r0(z.avg)}°F` : '–', grp);
     T({ x: bx + 54, y: by + 16, 'font-size': 9, fill: cssVar('--text-2') }, z.min != null ? `avg · ${r0(z.min)}–${r0(z.max)}` : '', grp);
     T({ x: bx + 8, y: by + 33, 'font-size': 10, 'font-weight': 600, fill: cssVar('--text-2') }, `${zShort(z)} ${ftFmt(z.ft)}′`, grp);
-    bindTip(grp, `${z.name} (${ftFmt(z.ft)} ft), 9am–4pm: average ${r0(z.avg)}°F, range ${r0(z.min)}–${r0(z.max)}°F.`);
+    bindTip(grp, `${z.name} (${ftFmt(z.ft)} ft), ${hoursLabel(c.win.hours)}: average ${r0(z.avg)}°F, range ${r0(z.min)}–${r0(z.max)}°F.`);
     requestAnimationFrame(() => requestAnimationFrame(() => grp.setAttribute('opacity', 1)));
   });
 }
@@ -1331,8 +1346,8 @@ function renderWind(c) {
   // Readout under the dial
   T({ x: cx, y: 176, 'font-size': 17, 'font-weight': 800, fill: cssVar('--text') }, `${r0(w.gust)} mph gusts`);
   T({ x: cx, y: 191, 'font-size': 10 }, `from the ${compass(w.dir)} · sustained ${r0(w.wind)} mph`);
-  bindTip(svg, `${FC.short} forecast peak for 9am–4pm at about ${ftFmt(w.elevFt)} ft. The arrow points the way the wind blows. Upper lifts start to risk wind holds around 40 mph gusts.`);
-  $('wind-cap').textContent = `Peak, 9am–4pm · ${FC.short} at ~${ftFmt(w.elevFt)} ft`;
+  bindTip(svg, `${FC.short} forecast peak for ${hoursLabel(c.win.hours)} at about ${ftFmt(w.elevFt)} ft. The arrow points the way the wind blows. Upper lifts start to risk wind holds around 40 mph gusts.`);
+  $('wind-cap').textContent = `Peak, ${hoursLabel(c.win.hours)} · ${FC.short} at ~${ftFmt(w.elevFt)} ft`;
 }
 
 // --- Sky icon + hourly ribbon
@@ -1888,7 +1903,8 @@ async function loadAfd() {
 const allCams = () => [...(M.snowStake ? [{ name: M.snowStake.name, why: `${M.snowStake.ft ? `${ftFmt(M.snowStake.ft)} ft. ` : ''}${M.snowStake.note}`, src: M.snowStake.src, caption: M.snowStake.caption, video: M.snowStake.video, youtube: M.snowStake.youtube }] : []), ...M.cams];
 // The cam shown large at the top in preseason (the stake, or the first cam where there is no stake).
 const heroCam = () => allCams()[0];
-const camStill = (cam, thumb) => (cam.youtube ? `https://i.ytimg.com/vi/${cam.youtube}/${thumb ? 'mqdefault' : 'maxresdefault'}_live.jpg` : cam.src);
+// A cam's still picture; null for a live player with no still (`embed`, e.g. a Google Nest public stream).
+const camStill = (cam, thumb) => (cam.youtube ? `https://i.ytimg.com/vi/${cam.youtube}/${thumb ? 'mqdefault' : 'maxresdefault'}_live.jpg` : cam.src || null);
 // Preseason already shows the hero cam large at the top, so its carousel opens on the next cam.
 let camIndex = null;
 // A cache-busting stamp that changes every `everyMin` minutes, so the browser fetches a fresh image.
@@ -1908,11 +1924,12 @@ function showCam(i, fromUser) {
   frame.classList.remove('playing');
   frame.classList.toggle('is-small', !!cam.small);
   frame.classList.toggle('video-link', !!cam.video); // the button goes in the corner, clear of the picture
-  $('cam-play').hidden = !cam.youtube && !cam.video;
-  $('cam-play-label').textContent = cam.video ? 'Live video on the resort\'s player ↗' : 'Watch live video';
-  swapImg($('cam-main'), camUrl(camStill(cam)));
+  frame.classList.toggle('no-still', !camStill(cam)); // a live player only: a dark panel and a play button
+  $('cam-play').hidden = !cam.youtube && !cam.video && !cam.embed;
+  $('cam-play-label').textContent = cam.video ? 'Live video on the resort\'s player ↗' : cam.embed ? 'Play the live stream' : 'Watch live video';
+  if (camStill(cam)) swapImg($('cam-main'), camUrl(camStill(cam))); else $('cam-main').removeAttribute('src');
   $('cam-main').alt = `${cam.name} webcam`;
-  $('cam-main-link').href = cam.youtube ? `https://www.youtube.com/watch?v=${cam.youtube}` : cam.video || cam.src;
+  $('cam-main-link').href = cam.youtube ? `https://www.youtube.com/watch?v=${cam.youtube}` : cam.video || cam.link || cam.embed || cam.src;
   $('cam-title').textContent = cam.name;
   $('cam-why').textContent = cam.why;
   document.querySelectorAll('#thumbs button').forEach((b, k) => b.setAttribute('aria-selected', k === i));
@@ -1923,9 +1940,9 @@ function playCam() {
   const cam = allCams()[camIndex], frame = $('cam-frame');
   // A player page (not YouTube) opens in its own tab.
   if (cam?.video) { window.open(cam.video, '_blank', 'noopener'); return; }
-  if (!cam?.youtube || frame.querySelector('iframe')) return;
+  if ((!cam?.youtube && !cam?.embed) || frame.querySelector('iframe')) return;
   const f = document.createElement('iframe');
-  f.src = `https://www.youtube.com/embed/${cam.youtube}?autoplay=1&mute=1&rel=0&playsinline=1`;
+  f.src = cam.embed || `https://www.youtube.com/embed/${cam.youtube}?autoplay=1&mute=1&rel=0&playsinline=1`;
   f.title = `${cam.name} live video`;
   f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
   f.allowFullscreen = true;
@@ -1936,7 +1953,7 @@ function playCam() {
 }
 function setupCamPlayer() {
   $('cam-play').addEventListener('click', playCam);
-  $('cam-main-link').addEventListener('click', (e) => { if (allCams()[camIndex]?.youtube) { e.preventDefault(); playCam(); } });
+  $('cam-main-link').addEventListener('click', (e) => { const c = allCams()[camIndex]; if (c?.youtube || c?.embed) { e.preventDefault(); playCam(); } });
 }
 // Cam pictures (up to a few MB) start loading once the weather is on screen, so they don't compete with it.
 let camsStarted = false;
@@ -1952,11 +1969,11 @@ function renderCams() {
   if (M.stationGraphic) { $('stations').src = camUrl(M.stationGraphic); $('stations-link').href = M.stationGraphic; }
   const thumbs = $('thumbs');
   if (!thumbs.children.length) {
-    thumbs.innerHTML = allCams().map((c, i) => `<button role="tab" type="button" aria-selected="false" data-i="${i}"${c.youtube || c.video ? ' class="video"' : ''}><img alt="" loading="lazy"><span>${esc(c.name)}</span></button>`).join('');
+    thumbs.innerHTML = allCams().map((c, i) => `<button role="tab" type="button" aria-selected="false" data-i="${i}" class="${c.youtube || c.video || c.embed ? 'video' : ''}${camStill(c) ? '' : ' no-still'}"><img alt="" loading="lazy"><span>${esc(c.name)}</span></button>`).join('');
     thumbs.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => showCam(Number(b.dataset.i), true)));
   }
   // Large (4K) stills are the same file as the full view, so their thumbnails refresh every 30 minutes, not every 5.
-  thumbs.querySelectorAll('button').forEach((b) => { const cam = allCams()[b.dataset.i]; b.querySelector('img').src = camUrl(camStill(cam, true), cam.heavy ? 30 : 1); });
+  thumbs.querySelectorAll('button').forEach((b) => { const cam = allCams()[b.dataset.i]; if (camStill(cam, true)) b.querySelector('img').src = camUrl(camStill(cam, true), cam.heavy ? 30 : 1); });
   if (camIndex == null) camIndex = document.documentElement.dataset.mode === 'preseason' ? Math.min(1, allCams().length - 1) : 0;
   // A refresh must not cut off a live video the viewer is watching.
   if (!$('cam-frame').classList.contains('playing')) showCam(camIndex);
