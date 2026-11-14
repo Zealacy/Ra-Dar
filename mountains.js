@@ -219,6 +219,101 @@ const MOUNTAINS = {
     },
   },
 
+  timberline: {
+    name: 'Timberline',
+    region: 'Mt. Hood, south side, above Government Camp · Oregon, USA',
+    // Timberline Lodge. Researched 2026-11-14 (see CLAUDE.md).
+    lat: 45.330,
+    lon: -121.711,
+    timezone: 'America/Los_Angeles',
+    // The main ski area, from the lowest lift to the top of the terrain. Lodge 6,000 ft and top of Palmer 8,540 ft
+    // ("highest operation point") are the resort's own figures (Skiing & Snowboarding page). The bottom of the Jeff
+    // Flood chair, 4,850 ft, is the lowest lift on the mountain (USFS lift specifications, via Wikipedia's lift
+    // table; NWS cell 142,88 averages 4,843 ft). Owner left it to Claude (2026-11-14): Summit Pass, the resort's
+    // small separate area in Government Camp (bottom 4,000 ft, reached by the Alpine Trail and a shuttle), is not
+    // part of the picture; its cam and the resort's "4,540' vertical" are mentioned instead.
+    zones: [
+      { key: 'base', name: 'Bottom of Jeff Flood', short: 'Jeff Flood bottom', ft: 4850 },
+      { key: 'mid', name: 'Timberline Lodge', short: 'Lodge', ft: 6000 },
+      { key: 'summit', name: 'Top of Palmer', short: 'Top of Palmer', ft: 8540 },
+    ],
+    // Winter lift hours aren't posted yet (fall hours only, 2026-11-14), so the default 9am-4pm applies.
+    // National Weather Service Portland. This cell holds both the lodge and Magic Mile stations and averages
+    // 6,339 ft; 142,90 (6,975 ft) covers the upper mountain and 142,88 (4,843 ft) the lower. All three publish
+    // snow level, visibility and snowfall.
+    nws: { office: 'PQR', officeName: 'Portland', x: 142, y: 89 },
+    // Northwest Avalanche Center stations on the ski area, read through the NWS network (hourly). Checked
+    // 2026-11-14 against NWAC's own tables (Magic Mile 31.2°F in the feed = 31°F on NWAC's page at 1pm).
+    // The lodge station's temperature is missing from about a quarter of the feed's reports; the latest within
+    // 3 hours is used. Left out: Timberline - Pucci (TPI59, 5,920 ft, the lodge-level wind sensor): no reports in
+    // the NWS feed, and NWAC lists its last report as Oct 27, 2026. Add it when it reports again. Nothing measures
+    // the weather above the Magic Mile. ODOT's US-26 sensors at Government Camp (2.6 mi, ~4,000 ft) are left out:
+    // below and away from the ski area.
+    stations: [
+      { id: 'TIM70', name: 'Magic Mile', operator: 'Northwest Avalanche Center', ft: 6990, where: 'top of the Magic Mile chair, beside Silcox Hut, 1.0 mi N of the lodge' },
+      { id: 'TIM59', name: 'Timberline Lodge', operator: 'Northwest Avalanche Center', ft: 5800, where: 'at the lodge' },
+    ],
+    stationMaxAgeHours: 3,
+    snowZone: 'mid',
+    windHoldLifts: 'Magic Mile and Palmer',
+    // Measured snow on the ground: the Mt Hood Test Site SNOTEL, on the ski area among the lower-mountain runs
+    // (between two lift lines on OpenStreetMap's lift map), 0.7 mi SSW of the lodge, 5,380 ft. Owner decision
+    // (2026-11-14): yes. Checked over 2025-26 (Nov 15 - Apr 15): depth in 97% of hours, longest gap 24 h, peak 75"
+    // on Mar 12. On 2026-11-14 it read 2" while NWAC's lodge sensor and the resort (top of Pucci) read 3".
+    snowSensor: { id: '651:OR:SNTL', name: 'Mt Hood Test Site', operator: 'USDA NRCS SNOTEL', ft: 5380, mi: 0.7, where: 'on the lower mountain, among the runs 0.7 mi SSW of the lodge', maxAgeHours: 6 },
+    // Regional reference only (collapsed in Live readings); never feeds the summary.
+    snotel: [
+      // Distances from this mountain's point above (measured 2026-11-14 from the NRCS station records).
+      { id: '655:OR:SNTL', name: 'Mud Ridge', ft: 4070, mi: 5.4 },
+      { id: '401:OR:SNTL', name: 'Clear Lake', ft: 3810, mi: 9.8 },
+      { id: '351:OR:SNTL', name: 'Blazed Alder', ft: 3660, mi: 9.8 },
+    ],
+    // The resort's own cams: public stills on its site, 720x480, each with an on-image date and time, updated every
+    // minute or two (checked 2026-11-14, in fog). Names are the resort's (its webcams page). The resort's snow
+    // stake cam (/snowcameras/snowstake.jpg) showed "No signal ... timeout" all afternoon on 2026-11-14, so it is
+    // left out for now; when it works, add it as `snowStake`. Re-check every cam in clear daylight.
+    // The first camera is the one shown large at the top in preseason.
+    cams: [
+      { name: 'Pucci', why: 'Resort camera at the Pucci chair, just below the lodge: snow cover on the runs. Date and time are on the picture.', src: 'https://timberlinelodge.com/snowcameras/pucci.jpg', caption: 'Pucci cam (resort), time-stamped. The resort\'s snow stake cam was offline when checked (Nov 14).' },
+      { name: 'Jeff Flood', why: 'Resort camera on the Jeff Flood chair, looking along the lift line: snow cover on the lower mountain.', src: 'https://timberlinelodge.com/snowcameras/FloodSouth.jpg' },
+      { name: 'Palmer / Silcox', why: 'Resort camera by Silcox Hut at the bottom of Palmer (about 7,000 ft): upper-mountain visibility. White means cloud.', src: 'https://timberlinelodge.com/snowcameras/palmerbottom.jpg' },
+      { name: 'Magic Mile (resort\'s name)', why: 'A chairlift terminal and lift building in the trees. The resort calls this its Magic Mile camera; its exact spot isn\'t confirmed.', src: 'https://timberlinelodge.com/snowcameras/FloodEast.jpg' },
+      { name: 'Bruno\'s', why: 'Resort camera at the Bruno\'s chair, the beginner area beside the lodge, looking toward the parking lot.', src: 'https://timberlinelodge.com/snowcameras/brunotop.jpg' },
+      { name: 'Timberline Lodge', why: 'The lodge (6,000 ft) and its parking lot: snow on the roofs and the lot.', src: 'https://timberlinelodge.com/snowcameras/lodge.jpg' },
+      { name: 'Summit Pass (Government Camp)', why: 'Timberline\'s small separate area in Government Camp (about 4,000 ft), at the bottom of its 4,540 ft run. Not part of the main ski area shown above.', src: 'https://timberlinelodge.com/snowcameras/summit.jpg' },
+    ],
+    // Conditions page (checked 2026-11-14): "Timberline is Closed for Skiing & Snowboarding: We plan to open for the
+    // winter season as soon as there is enough snow to responsibly operate." No date. The resort says its season
+    // "typically" runs "from mid-November through late May".
+    season: { openingDay: null, closed: true, checked: '2026-11-14' },
+    liftStatusUrl: 'https://timberlinelodge.com/conditions/',
+    // The resort's pages send "X-Frame-Options: SAMEORIGIN", so the board can only be linked.
+    liftStatusEmbed: false,
+    liftStatusLinkWhy: 'linked; the resort\'s conditions page lists every lift',
+    features: { liftEstimate: false },
+    links: [
+      { label: 'Official conditions & lift status', url: 'https://timberlinelodge.com/conditions/' },
+      { label: 'Official webcams', url: 'https://timberlinelodge.com/webcams/' },
+      { label: 'Official hours of operation', url: 'https://timberlinelodge.com/mountain/hours-of-operation/' },
+      { label: 'Northwest Avalanche Center: Mt Hood forecast', url: 'https://nwac.us/forecasts/avalanche/mt-hood' },
+      { label: 'NWAC Timberline Lodge station (every hour, incl. snow depth)', url: 'https://nwac.us/weather/stations/timberline-base' },
+      { label: 'NWAC Magic Mile station (every hour)', url: 'https://nwac.us/weather/stations/timberline-upper' },
+      { label: 'Mt Hood Test Site SNOTEL', url: 'https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=651' },
+      { label: 'ODOT TripCheck (roads)', url: 'https://www.tripcheck.com/' },
+    ],
+    afdWords: ['cascades?', 'cascade crest', 'mount hood', 'mt\\.? hood', 'timberline', 'government camp', 'passes', 'us 26', 'highway 26', 'east winds?', 'snow levels?'],
+    text: {
+      liveLead: 'Live readings from the Northwest Avalanche Center\'s stations on the ski area (top of the Magic Mile and the lodge) and the federal snow station on the lower mountain. Nothing measures the weather above the Magic Mile.',
+      stationsNote: 'Northwest Avalanche Center stations on the ski area, reporting hourly, read through the National Weather Service network. The feed leaves the lodge\'s temperature out of some reports; the latest within 3 hours is shown, with its age. The lodge\'s wind sensor (Pucci) has been offline since Oct 27, so only the Magic Mile measures wind. Offline stations are ignored.',
+      snowDepthNote: 'Measured snow depth comes from the Mt Hood Test Site snow station on the lower mountain (5,380 ft, 600 ft below the lodge). NWAC also measures depth at the lodge, on its own site only (see Links).',
+      regionalWhy: 'lower and on other slopes of Mt. Hood, so their snow differs from the ski area\'s',
+      camsSource: 'Timberline Lodge',
+      camsNote: 'Official resort cameras, each with its own date and time on the picture. The resort\'s snow stake cam was offline when checked (Nov 14), so it isn\'t shown.',
+      radarNote: 'Radar coverage over the Cascades is limited by terrain, so light snow can be missed.',
+      footer: 'Webcams © Timberline Lodge. Official sources: the Timberline conditions page and the Northwest Avalanche Center forecast.',
+    },
+  },
+
   willamette: {
     name: 'Willamette Pass',
     region: 'Oregon Cascades, Highway 58 · Oregon, USA',
