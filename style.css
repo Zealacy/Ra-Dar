@@ -58,10 +58,28 @@ a { color: var(--accent); }
 /* ---------- Header ---------- */
 .top { position: sticky; top: 0; z-index: 1000; color: #fff; background: linear-gradient(120deg, var(--top-1), var(--top-2)); box-shadow: 0 2px 12px rgba(0,0,0,.18); }
 .top-row { display: flex; align-items: center; gap: 16px; padding-top: 10px; padding-bottom: 10px; }
-.title { flex: 1; min-width: 0; }
-.brand { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: #8fc1ff; font-weight: 700; }
-.brand span { color: #9fb0c2; font-weight: 500; }
-.top h1 { font-size: 1.35rem; white-space: nowrap; }
+.title { flex: 0 0 auto; }
+.brand { font-size: 1.2rem; font-weight: 800; letter-spacing: -.01em; color: #fff; line-height: 1.1; white-space: nowrap; }
+.brand span { display: block; font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; color: #8fc1ff; font-weight: 700; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+/* mountain switcher: one pill per mountain, the current one filled */
+.mtn-switch { display: flex; gap: 2px; padding: 3px; margin-right: auto; border-radius: 999px; background: rgba(255,255,255,.1); overflow-x: auto; scrollbar-width: none; }
+.mtn-switch::-webkit-scrollbar { display: none; }
+/* Wider screens with more mountains than fit beside the header buttons: the switcher gets its own row (set from JS). */
+.top-row.sw-wrap { flex-wrap: wrap; row-gap: 8px; }
+.top-row.sw-wrap::after { content: ""; order: 4; flex-basis: 100%; }
+.top-row.sw-wrap .mtn-switch { order: 5; margin-right: 0; }
+/* Wider screens: if even its own row is too narrow (nine mountains at 1280 px), the switcher wraps onto
+   a second line rather than hiding mountains off the edge. Phones keep the sideways-scrolling row. */
+.top-row.sw-wrap .mtn-switch { flex-wrap: wrap; row-gap: 2px; border-radius: 20px; }
+.top-row.sw-wrap .jump { margin-left: auto; }
+/* More mountains than fit: fade the edge they're hidden behind (set from JS as data-more="l", "r" or "lr"). */
+.mtn-switch[data-more="r"] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); }
+.mtn-switch[data-more="l"] { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); }
+.mtn-switch[data-more="lr"] { -webkit-mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent); }
+.mtn-switch a { flex: 0 0 auto; padding: 6px 16px; border-radius: 999px; color: #d5e2ef; text-decoration: none; font-size: .92rem; font-weight: 650; white-space: nowrap; transition: background .2s, color .2s; }
+.mtn-switch a:hover { background: rgba(255,255,255,.14); color: #fff; }
+.mtn-switch a[aria-current="page"] { background: #fff; color: #0b1a2b; }
 .jump { display: flex; gap: 4px; }
 .jump a { color: #d5e2ef; text-decoration: none; font-size: .85rem; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.07); transition: background .2s; }
 .jump a:hover { background: rgba(255,255,255,.16); }
@@ -80,25 +98,22 @@ main { padding-top: 16px; padding-bottom: 8px; }
 .src.f { background: color-mix(in srgb, var(--f) 15%, transparent); color: var(--f); }
 .src.e { background: color-mix(in srgb, var(--e) 15%, transparent); color: var(--e); }
 .updated-s { color: var(--muted); font-size: .78rem; }
+/* "Taking longer than usual" note at the top of the page, with a spinner as its icon. */
+.slow-note { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); color: var(--text); font-size: .86rem; line-height: 1.4; animation: fadein .4s var(--ease); }
+.slow-note[hidden] { display: none; }
+.slow-note b { font-weight: 700; }
+.spin-dot { flex: 0 0 auto; width: 14px; height: 14px; margin-top: 2px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--s1); animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* reveal on scroll */
 .reveal { opacity: 0; transform: translateY(14px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
 .reveal.in { opacity: 1; transform: none; }
 
 /* ---------- The Call ---------- */
-.call-hero { display: flex; align-items: center; gap: 22px; margin-bottom: 10px; }
-.gauge-wrap { position: relative; width: 190px; flex: none; }
-.gauge { width: 100%; display: block; overflow: visible; }
-.g-track, .g-fill { fill: none; stroke-width: 16; stroke-linecap: round; }
-.g-track { stroke: var(--surface-2); }
-.g-fill { stroke: var(--muted); stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset 1.4s var(--ease), stroke .6s; }
-.gauge-num { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: 2.8rem; font-weight: 800; line-height: 1; letter-spacing: -.03em; }
-.gauge-num small { font-size: 1rem; color: var(--text-2); font-weight: 600; }
-.gauge-num em { display: block; font-style: normal; font-size: .62rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); margin-top: 2px; }
+.call-hero { margin-bottom: 10px; }
 .eyebrow { font-size: .72rem; text-transform: uppercase; letter-spacing: .09em; color: var(--text-2); font-weight: 700; }
 .call-words h2 { font-size: 1.9rem; margin: 4px 0 6px; letter-spacing: -.01em; }
-.call-words p { margin: 0; color: var(--text-2); }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; padding-left: 212px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
 .chip { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; font-weight: 600; padding: 4px 10px 4px 6px; border-radius: 999px; background: var(--surface-2); color: var(--text); opacity: 0; transform: scale(.9); animation: pop .5s var(--ease) forwards; }
 .chip i { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: .7rem; color: #fff; }
 @keyframes pop { to { opacity: 1; transform: none; } }
@@ -112,8 +127,6 @@ main { padding-top: 16px; padding-bottom: 8px; }
 .brief-lines li { font-size: .92rem; line-height: 1.45; padding-left: 16px; position: relative; }
 .brief-lines li::before { content: ''; position: absolute; left: 2px; top: .6em; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
 .brief-lines li.warn::before { background: var(--critical); }
-.brief-lines li.bottom { font-weight: 700; }
-.brief-lines li.bottom::before { background: var(--text); }
 
 /* status badge: icon + label, never color alone */
 .st { display: inline-flex; align-items: center; gap: 5px; font-size: .72rem; font-weight: 700; }
@@ -183,6 +196,10 @@ main { padding-top: 16px; padding-bottom: 8px; }
 .board-frame { position: relative; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface-2); height: 720px; }
 .board-frame iframe { width: 100%; height: calc(100% + var(--board-offset, 0px)); margin-top: calc(-1 * var(--board-offset, 0px)); border: 0; display: block; background: #fff; opacity: 0; transition: opacity .5s ease; }
 .board-frame iframe.ready { opacity: 1; }
+.board-frame.linked, [data-device] .board-frame.linked { height: auto; }
+.board-linked { display: grid; gap: 12px; justify-items: start; padding: 22px; }
+.board-linked p { margin: 0; color: var(--text-2); }
+.board-linked b { color: var(--text); }
 .board-loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-2); font-size: .85rem; }
 .wind-est { border-top: 1px solid var(--line); padding-top: 16px; }
 .lift-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
@@ -226,17 +243,28 @@ main { padding-top: 16px; padding-bottom: 8px; }
 /* stake thumbnail inside the snow card */
 .stake-thumb { margin-left: auto; align-self: flex-start; width: 96px; text-decoration: none; color: var(--text-2); font-size: .66rem; text-align: center; }
 .stake-thumb img { width: 92px; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; display: block; margin-bottom: 3px; }
+.snow-measured { margin-left: auto; align-self: flex-start; width: 124px; padding: 8px 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; font-size: .68rem; line-height: 1.25; color: var(--text-2); }
+.snow-measured .sm-k { font-size: .6rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--m); }
+.snow-measured .sm-v { font-size: 1.7rem; font-weight: 800; line-height: 1; color: var(--text); }
+.snow-measured .sm-l { color: var(--text); font-weight: 600; }
+.snow-measured .sm-a { margin-top: 3px; color: var(--text); font-weight: 700; }
 /* right-now station list */
 .now-list { display: flex; flex-direction: column; gap: 8px; }
 .now-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; padding: 8px 10px; background: var(--surface); border-radius: 10px; animation: fadein .5s var(--ease) both; }
 .now-row .nm { font-size: .8rem; font-weight: 700; min-width: 0; }
 .now-row .nm small { display: block; font-weight: 500; color: var(--text-2); font-size: .7rem; }
-.now-row .tv { font-size: 1.35rem; font-weight: 750; }
+.now-row .tv { font-size: 1.35rem; font-weight: 750; text-align: right; }
+.now-row .tv small { display: block; font-size: .62rem; font-weight: 600; color: var(--text-2); line-height: 1.1; }
 .now-row .wv { grid-column: 1 / -1; font-size: .8rem; color: var(--text-2); display: flex; align-items: center; gap: 4px; }
 .now-row .wv:empty { display: none; }
 .now-row .wv svg { width: 16px; height: 16px; transition: transform 1.2s var(--ease); }
 .now-row.offline { opacity: .55; }
+/* Model estimates (where nothing is measured): dashed, like every other model or forecast mark on the page. */
+.now-row.model { background: transparent; border: 1.5px dashed var(--line); }
 .now-row.offline .tv { font-size: .8rem; font-weight: 600; color: var(--text-2); }
+.now-row .tv .na { display: block; font-size: .7rem; font-weight: 600; line-height: 1.2; color: var(--text-2); text-align: right; }
+/* a station that isn't on the ski area says so next to its name */
+.now-row .nm small b.off, .pre-now .pn b.off { font-weight: 700; font-size: inherit; color: var(--text); }
 details.regional > summary { color: var(--text-2); }
 .chart-card + .table-wrap, details .chart-card { margin: 10px 0; }
 /* snowpack meter */
@@ -294,9 +322,6 @@ tr.fc td { color: var(--text-2); }
 .day .dn { font-weight: 800; font-size: .9rem; }
 .day .dd { font-size: .68rem; color: var(--text-2); }
 .day .di svg { width: 44px; height: 44px; display: block; }
-.day .ds { min-width: 44px; height: 30px; padding: 0 8px; border-radius: 999px; display: flex; align-items: baseline; justify-content: center; gap: 1px; line-height: 30px; font-weight: 800; color: #fff; background: var(--muted); font-size: .95rem; }
-.day .ds small { font-size: .6rem; opacity: .85; }
-.day .ds.good { background: var(--good); } .day .ds.ok { background: var(--warning); color: #111; } .day .ds.bad { background: var(--critical); }
 .day .dsnow { display: flex; flex-direction: column; line-height: 1.1; margin-top: 2px; }
 .day .dsnow b { font-size: .95rem; } .day .dsnow small { font-size: .62rem; color: var(--text-2); }
 .day .dt { font-size: .7rem; } .day .dt small { color: var(--text-2); }
@@ -314,9 +339,6 @@ tr.fc td { color: var(--text-2); }
 .wk-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .wk-head h3 { font-size: 1.15rem; }
 .wk-icon svg { width: 56px; height: 56px; display: block; }
-.wk-score { margin-left: auto; font-size: 1.9rem; font-weight: 800; padding: 4px 12px; border-radius: 12px; background: var(--surface-2); }
-.wk-score small { font-size: .8rem; color: var(--text-2); }
-.wk-score.good { color: var(--good); } .wk-score.bad { color: var(--critical); }
 .wk-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .wk-stat { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .wk-stat .wk-k { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-2); font-weight: 700; }
@@ -335,10 +357,27 @@ table.chance td.pc { text-align: center; font-weight: 700; }
 .cam-main-wrap { min-width: 0; }
 .cam-viewer .thumbs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; overflow: visible; padding: 0; }
 .cam-viewer .thumbs button, .cam-viewer .thumbs img { width: 100%; }
-.img-frame { display: block; border-radius: 12px; overflow: hidden; background: var(--surface-2); aspect-ratio: 16 / 9; }
+.img-frame { position: relative; display: block; border-radius: 12px; overflow: hidden; background: var(--surface-2); aspect-ratio: 16 / 9; }
+.img-frame a { display: block; width: 100%; height: 100%; }
 .img-frame img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .45s ease, transform 6s ease; }
 .img-frame:hover img { transform: scale(1.03); }
 .img-frame img.fading { opacity: 0; }
+.img-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
+/* small stills (road cams carry their own stamp): shown whole at about their real size */
+.img-frame.is-small { aspect-ratio: 328 / 314; max-width: 430px; margin: 0 auto; }
+.img-frame.is-small img { object-fit: contain; }
+/* A live player with no still picture: a dark panel until the viewer starts the stream. */
+.img-frame.no-still { background: #0b1a2b; }
+.img-frame.no-still img { visibility: hidden; }
+.thumbs button.no-still img { background: #0b1a2b; aspect-ratio: 16 / 9; }
+.img-frame.is-small:hover img { transform: none; }
+.cam-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border: 0; border-radius: 999px; background: rgba(11, 26, 43, .82); color: #fff; font: inherit; font-size: .9rem; font-weight: 700; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,.3); transition: background .2s, transform .2s; }
+.cam-play:hover { background: rgba(11, 26, 43, .95); transform: translate(-50%, -50%) scale(1.04); }
+/* A link to an outside player sits in the corner, so it never covers the snow stake's numbers. */
+.img-frame.video-link .cam-play { left: 10px; top: auto; bottom: 10px; transform: none; padding: 7px 13px; font-size: .78rem; }
+.img-frame.video-link .cam-play:hover { transform: scale(1.03); }
+.thumbs button.video { position: relative; }
+.thumbs button.video::after { content: "▶ live"; position: absolute; left: 6px; top: 6px; padding: 1px 6px; border-radius: 999px; background: rgba(11, 26, 43, .8); color: #fff; font-size: .6rem; font-weight: 700; }
 .thumbs { display: flex; gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 10px 2px 4px; scrollbar-width: thin; }
 .thumbs button { flex: 0 0 auto; width: 118px; border: 0; padding: 0; background: none; cursor: pointer; scroll-snap-align: start; text-align: left; color: var(--text-2); font-size: .7rem; }
 .thumbs img { width: 118px; aspect-ratio: 16/9; object-fit: cover; border-radius: 8px; display: block; outline: 2px solid transparent; outline-offset: 2px; transition: outline-color .25s, opacity .25s; opacity: .75; }
@@ -358,6 +397,7 @@ table.chance td.pc { text-align: center; font-weight: 700; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .chart-card { margin: 0; background: var(--surface-2); border-radius: 12px; padding: 12px; min-width: 0; }
 .chart-card.wide { grid-column: 1 / -1; }
+.chart-card.empty .chart-box { display: none; }
 .chart-card figcaption { font-size: .8rem; font-weight: 650; color: var(--text-2); margin-bottom: 6px; }
 .chart-box { position: relative; height: 230px; }
 .stations-img { width: 100%; max-width: 640px; margin: 0 auto; aspect-ratio: 1150 / 880; object-fit: cover; object-position: top; border-radius: 8px; display: block; }
@@ -414,23 +454,23 @@ footer { padding-bottom: 28px; }
 [data-device="tablet"] .cam-viewer { grid-template-columns: 1fr; }
 [data-device="tablet"] .cam-viewer .thumbs { display: flex; overflow-x: auto; padding: 4px 2px; }
 [data-device="tablet"] .cam-viewer .thumbs button, [data-device="tablet"] .cam-viewer .thumbs img { width: 130px; flex: 0 0 auto; }
-[data-device="tablet"] .chips { padding-left: 0; }
 [data-device="tablet"] .tiers { grid-template-columns: 1fr 1fr; }
 [data-device="tablet"] .wk-grid { grid-template-columns: 1fr 1fr; }
 [data-device="tablet"] .pre-body { grid-template-columns: 1fr 1fr; }
 
 /* Phone */
 [data-device="mobile"] .wrap { padding: 0 12px; }
-[data-device="mobile"] .top-row { gap: 8px; padding-top: 8px; padding-bottom: 8px; }
-[data-device="mobile"] .top h1 { font-size: 1.15rem; }
+[data-device="mobile"] .top-row { gap: 6px 8px; padding-top: 8px; padding-bottom: 8px; flex-wrap: wrap; }
+[data-device="mobile"] .title { flex: 1 1 auto; }
+[data-device="mobile"] .brand { font-size: 1.05rem; }
+[data-device="mobile"] .mtn-switch { order: 5; flex: 1 0 100%; margin: 0; }
+[data-device="mobile"] .mtn-switch a { flex: 1 0 auto; text-align: center; padding: 5px 12px; font-size: .86rem; }
+html[data-device="mobile"] { scroll-padding-top: 112px; }
+[data-device="tablet"] .jump { display: none; }
 [data-device="mobile"] .jump { display: none; }
 [data-device="mobile"] .updated { max-width: 96px; font-size: .7rem; }
 [data-device="mobile"] .panel { padding: 14px; border-radius: 14px; margin-bottom: 12px; }
-[data-device="mobile"] .call-hero { gap: 12px; }
-[data-device="mobile"] .gauge-wrap { width: 118px; }
-[data-device="mobile"] .gauge-num { font-size: 1.9rem; bottom: 0; }
 [data-device="mobile"] .call-words h2 { font-size: 1.35rem; }
-[data-device="mobile"] .call-words p { font-size: .85rem; }
 [data-device="mobile"] .widgets { grid-template-columns: 1fr 1fr; gap: 8px; }
 [data-device="mobile"] .w { padding: 10px; }
 [data-device="mobile"] .w-mtn { grid-row: auto; grid-column: 1 / -1; }
@@ -450,14 +490,12 @@ footer { padding-bottom: 28px; }
 [data-device="mobile"] .pre-count span { font-size: 2rem; }
 [data-device="mobile"] .pre-title h2 { font-size: 1.2rem; }
 [data-device="mobile"] .view-toggle { padding: 4px 8px; font-size: .66rem; max-width: 92px; line-height: 1.2; }
-[data-device="mobile"] .brand span { display: none; }
 [data-device="mobile"] .w-snow, [data-device="mobile"] .w-wind { grid-column: 1 / -1; }
 [data-device="mobile"] .wind-svg { max-width: 220px; }
 [data-device="mobile"] .week-strip { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -14px; padding: 12px 14px 6px; gap: 8px; scrollbar-width: none; }
 [data-device="mobile"] .week-strip::-webkit-scrollbar { display: none; }
 [data-device="mobile"] .day { flex: 0 0 31%; scroll-snap-align: start; }
 [data-device="mobile"] .wk-grid { grid-template-columns: 1fr 1fr; }
-[data-device="mobile"] .wk-score { font-size: 1.4rem; }
 [data-device="mobile"] .brief { padding: 10px 12px; }
 [data-device="mobile"] .brief-lines li { font-size: .86rem; }
 [data-device="mobile"] .board-frame { height: 560px; }
