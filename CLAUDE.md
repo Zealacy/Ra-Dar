@@ -8,6 +8,7 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
 ## Where things live (since Nov 9, 2026)
 
 - **Live website: Vercel**, at **https://ra-dar-alpha.vercel.app/**. See Publishing below.
+- **Helper scripts: `tools/`** in the repo (tests, audit, research, deploy). See `tools/README.md`. They're never deployed.
 - **Code and history: GitLab**, in the private project **https://gitlab.com/zealacy-group/ra-dar-storage**, branch `main`. This is the only code repository in use. Its git remote is `origin`.
   - Getting the code in a new session: `git clone https://gitlab.com/zealacy-group/ra-dar-storage.git`. A cloud session may first try to check out an old repository elsewhere and fail; that's expected, so ignore it.
   - Access: the owner's GitLab token is a network secret on the Ra-Dar environment for `gitlab.com` (basic auth). It's a legacy personal access token with only `read_repository` and `write_repository`, so it can't call the GitLab API, and it expires within a year; the owner renews it through the secure credential form.
@@ -15,14 +16,25 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
   - The tag `archive/2026-11-08-old-host-final` marks the last version published on the previous host. It's history only.
 - **GitHub is back (Nov 12, 2026), as a backup only for now.** The owner said they fixed the account; checked read-only: the profile loads normally with no restriction notice, `Zealacy/Ra-Dar` is public, and a dry-run push was accepted.
   - The owner asked to "back it up atm" and will decide "the ultimate solution" later (keep Vercel, move back to GitHub Pages, or something else). **Ask before doing more than the backup.**
-  - Backup: GitLab `main` was pushed to GitHub branch `claude/ecstatic-mccarthy-firdru` (it has GitLab's history, unrelated to GitHub's old branches). To refresh it: `git push https://github.com/Zealacy/Ra-Dar origin/main:refs/heads/claude/ecstatic-mccarthy-firdru` from the GitLab clone (a fast-forward; never force).
+  - Backup: GitLab `main` was pushed to GitHub branch `claude/ecstatic-mccarthy-firdru` (it has GitLab's history, unrelated to GitHub's old branches). Refresh it after each GitLab push, from the GitLab clone: `git fetch -q origin main && git push https://github.com/Zealacy/Ra-Dar origin/main:refs/heads/claude/ecstatic-mccarthy-firdru` (a fast-forward; never force). A cloud session's harness may also check out the GitHub repository on its own; ignore that copy for work.
   - **Not touched:** `claude/weather-tracker-github-v48153` (the old Pages branch, still the Nov 8 version) and `claude/youthful-allen-iq65pi`. Whether `zealacy.github.io/Ra-Dar/` is serving again wasn't checked (cloud sessions can't reach that host); if it is, it shows Nov 8 data and should be updated or redirected, at the owner's choice.
   - The GitHub repository is **public**; GitLab is private. Everything pushed there, CLAUDE.md included, is visible to anyone.
 - **Before Nov 12: GitHub was not used.** The project started on GitHub, but GitHub locked the owner's account on Nov 8, 2026, and the old `github.io` address is dead. The owner has an appeal open; if access comes back, ask the owner before using it for anything. Don't suggest a second GitHub account, since GitHub allows one free account per person.
   - On Nov 9 the session's automatic checkout of the GitHub repository *succeeded* (an old Nov 8 copy), so access may be back. The owner was told and kept the rule: GitLab only.
 - **Cloudflare Pages was tried and doesn't work from cloud sessions. Don't retry it.** The proxy injects the saved token into every request to `api.cloudflare.com`, overwriting the short-lived upload JWT, so asset uploads fail (code 8000013). An empty `ra-dar` Pages project and a Pages-only token remain on the owner's Cloudflare account.
 
-## Handoff: where things stand (updated 2026-11-13, 8:20pm Pacific)
+## Handoff: where things stand (updated 2026-11-14)
+
+- **Current state:** twelve mountains are live on Vercel (site files of commit `ff36b0a`; later commits only touch `CLAUDE.md` and `tools/`). Nothing is half-built or waiting to publish. No scheduled check-ins or routines exist.
+- **Scripts now live in the repo, in `tools/`** (browser tests, the data audit, station research, the link-preview drawing and `tools/deploy.sh`); see `tools/README.md`. Earlier notes below that mention "the session scratchpad" mean these. Nothing in `tools/` is deployed.
+- **Opening Days coming up** (each switches that mountain out of preseason by itself; check the resort's page shortly before, since dates slip when snow is thin): Appalachian Ski Mtn. **Fri Nov 20**, Sun Peaks **Sat Nov 21**, Palisades Tahoe and Alpine Meadows **Wed Nov 25**, Mission Ridge **Fri Nov 27 (planned)**, Mt. Bachelor **Fri Dec 4**, Mt. Spokane **Sat Dec 5 (projected)**, Willamette Pass **Fri Dec 11**. Not announced yet: Stevens Pass, Alpental, the Summit at Snoqualmie, Mt. Hood Skibowl. The first mountains to open will be the first real test of the ski-day view on an open mountain; look at Appalachian on Nov 20.
+- **Open items (none in progress):**
+  - Set Opening Days when announced: Stevens Pass, Alpental, the Summit at Snoqualmie, Skibowl.
+  - Mt. Spokane: set `skiHours` when it posts this season's hours; remove the title-card sentences and `thumbLabel` when its streams come back (see below).
+  - Re-check resort cams in daylight: Alpental and the Summit (frozen frames or title cards on Nov 13), Mt. Spokane (title cards), Appalachian's slope cam (describe what it shows), Willamette's Eagle Peak cam (left out).
+  - Skibowl: identify the unnamed third Nest stream (`npsFa2hlJU`) in a browser that can play it (the sandbox's Chromium shows Nest video black).
+  - GitHub: backup only; the owner hasn't decided "the ultimate solution". Ask before doing more than refreshing the backup.
+  - Ideas not built: a snowmaking-weather readout; post-season handling (nothing handles the end of the season); real lift status (needs each resort's permission).
 
 - **Vercel serves commit `ff36b0a`** (Nov 13, about 8:12pm Pacific; owner: "build and publish skibowl"): twelve mountains, adding **Mt. Hood Skibowl**, plus per-mountain ski hours (`skiHours`) and the `embed` live-player cam type. Checked: all twelve mountains locally (desktop and phone, both views); on the live site Skibowl, Appalachian and Mt. Bachelor loaded every source with no page errors or blocked requests; Skibowl's window read "Ski-day forecast · 3–10pm" on a Friday evening; its Skibowl West stream loaded when tapped with no CSP errors.
   - **Still to do:** identify the unnamed third Nest stream on Skibowl's home page (`npsFa2hlJU`) in a browser that can play it, and add it if it shows the ski terrain. Set Skibowl's Opening Day when announced; set Mt. Spokane's `skiHours` when it posts this season's hours.
@@ -39,7 +51,7 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
   - So each cam's text says "Until the resort switches its streams on, this shows their title card (an old photo)", the stake caption says it's "not today's snow", and the Fresh snow card's thumbnail reads "Stake cam" instead of "Measured: stake cam" (`snowStake.thumbLabel`).
   - **When the streams come back** (probably near the projected Dec 5 opening): check each picture against its caption, then remove those sentences and `thumbLabel`.
   - `draft: true` (added Nov 11 morning, removed that evening) still works for holding any finished mountain off the site: it's removed from the switcher and from `?mtn=`.
-  - Quartz Peak is regional only ("3 miles is a lil too much"), and "Right now" shows labeled model estimates (`nowModel: true`; "if the data is sufficiently accurate include it"). Model accuracy over 7 days, hour by hour, at each station's own location and height: Quartz Peak 1.7°F average miss (84% of hours within 3°F), Ragged Mountain 2.3°F; yardstick, Stevens Pass's on-mountain station 2.4°F, its SNOTEL 2.6°F. Script: session scratchpad `spokane/verify.py`.
+  - Quartz Peak is regional only ("3 miles is a lil too much"), and "Right now" shows labeled model estimates (`nowModel: true`; "if the data is sufficiently accurate include it"). Model accuracy over 7 days, hour by hour, at each station's own location and height: Quartz Peak 1.7°F average miss (84% of hours within 3°F), Ragged Mountain 2.3°F; yardstick, Stevens Pass's on-mountain station 2.4°F, its SNOTEL 2.6°F. Script: `tools/research/model-check-spokane.py`.
   - Shared code it brought: YouTube snow stake (`snowStake.youtube`), `season.projected`, the "no station" Right now state (`text.noStation`), and the switcher's own header row when five mountains don't fit at 1280 px.
 - **Stevens Pass cams checked in daylight (Nov 11):** Skyline looks down across the front side from high on the mountain (dusting of snow on the upper runs, cloud in the valley); Jupiter is a close view of a lift building on the back side (fogged in). Their `why` text says so.
 - **Earlier publish, commit `aacce7d`** (Nov 11, about 9:50pm Pacific, owner: "Publish them both"): all six mountains, Mission Ridge included, and the new general link preview (see "Link preview").
@@ -60,7 +72,7 @@ The owner isn't a programmer. Explain things in plain language, keep setup steps
   - It's used for preseason snowfall since Oct 1, the Snowpack tab, Fresh snow by elevation, the Base to summit tab's daily snow and rain, and `week.js`'s fallback past NWS coverage.
   - The week's snow ranges and the 4-model comparison (one elevation, the models' own split) are unchanged.
   - Effect on Nov 9: Bachelor's last 7 days at 7,800 ft went from 0.1" to 2.4". Season snowfall now rises with elevation at every mountain (Sun Peaks 5.3 / 6.8 / 7.0", was 4" everywhere). It matches Willamette's measured 0" base and bare base cam.
-- **Mountains:** Mt. Bachelor, Willamette Pass, Stevens Pass and Sun Peaks are all live. A switcher at the top of the page picks the mountain; see "Mountains" below.
+- **Mountains:** all twelve are live. A switcher at the top of the page picks the mountain; see "Mountains" below.
 - **Seasons:**
   - **Stevens Pass** has **no Opening Day announced**: the resort's Hours of Operation page lists "Winter 2026/27: Skiing & Riding TBD" (checked Nov 10). `season: { openingDay: null, closed: true }` keeps preseason on. **Set the date when they post one.**
   - **Mt. Bachelor** is closed until **Opening Day, Dec 4, 2026 (scheduled)**, per the official Lift & Trail Status page (re-checked Nov 9, 9pm Pacific). **Preseason mode** is on until then, and switches off by itself on that date.
@@ -174,7 +186,7 @@ The page layout is identical for every mountain. **Everything that differs lives
   - **Measured: no public station on or beside the ski area.**
     - `BNKN7` Blackburn Knob (4,000 ft, 1.5 mi E) and `HKWN7` Howards Knob (4,432 ft, 3.9 mi N): listed, no observations.
     - `KTNB` Watauga County Hospital heliport (3,146 ft, 1.8 mi N in Boone, 490 ft below the base; temperature only, about every 20 min). `0586W` App State WeatherSTEM (3,291 ft, 2.8 mi, in town). `G5604`, `G2394`: amateur (APRSWXNET/CWOP) — not reputable enough.
-    - **Model accuracy** (7 days to Nov 13, hourly, model at each station's own location and height): KTNB 2.1°F average miss (model 1.7°F cooler), App State 1.6°F; yardstick Stevens Pass Tye Mill 2.1°F. As good as at Mt. Spokane. Script: session scratchpad `appski/verify.py`.
+    - **Model accuracy** (7 days to Nov 13, hourly, model at each station's own location and height): KTNB 2.1°F average miss (model 1.7°F cooler), App State 1.6°F; yardstick Stevens Pass Tye Mill 2.1°F. As good as at Mt. Spokane. Script: `tools/research/model-check-appalachian.py`.
     - **No snow-depth sensor:** no SNOTEL in North Carolina; CDEC-like state networks don't cover it. The resort hand-reports base depth on its slope report.
   - **Forecast:** NWS **Blacksburg** `RNK`, zone NCZ018. Cell `18,14` is centered on the ski area (36.175, -81.664) and averages 3,507 ft; neighbors 17,14 (3,632), 19,14 (3,704), 18,13 (3,501). **RNK publishes no snow level** here (visibility yes), so rain vs. snow comes from temperatures, as at Sun Peaks. Open-Meteo: base cell 36.186, -81.664 (0.8 mi N), mid/top 36.160, -81.670 (1 mi S); Nov 12, 10:45pm: 35.2 / 34.5 / 33.9°F at 3,635 / 3,819 / 3,999 ft.
   - **Cams:**
@@ -371,7 +383,7 @@ The owner asked for every number to be double-checked ("we cant be having shoddy
   - the preseason chart (since Oct 1, last 7 days, coming)
   - model Right now, and ECCC daily reports
 
-  The scripts are in the session scratchpad (`audit/capture.js`, `audit.py`, `meta.py`). **Re-run them after any change to how numbers are computed.**
+  The scripts are in `tools/audit/` (`capture.js`, `audit.py`, `meta.py`; see `tools/README.md`). **Re-run them after any change to how numbers are computed.** They were run on the first five mountains; later mountains were verified when each was built.
 - **Config checked against the sources' records:** every station, SNOTEL and ECCC elevation matches its owner's record exactly. Each NWS cell's height matches its comment.
 - **Fixed:**
   1. **Sun Peaks' time zone.** British Columbia stopped changing its clocks on Nov 1, 2026 and stays on UTC−7 (tz database 2026e; Open-Meteo and the resort's own page times agree). Browsers with older time-zone data still put `America/Vancouver` on UTC−8, which shifted every Sun Peaks time and its 9am–4pm window by an hour. Sun Peaks now uses `Etc/GMT+7` (that's UTC−7). **If BC ever changes its clocks again, revisit this.**
@@ -445,7 +457,7 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 - **Charts** follow the dataviz rules: one y-axis per chart (no dual axes), the validated palette (`--s1`…`--s4`), hairline grids, hover tooltips, and a table for every chart. Status colors always come with an icon and a label. Set axis ranges before drawing, never mid-animation (that once misplaced a line).
 - **Link preview:** `preview.png` (1200×630) and `icon.svg`/`icon-180.png` are referenced by the Open Graph tags in `index.html`, which point at `https://ra-dar-alpha.vercel.app/`.
   - **Since Nov 11 the preview is deliberately general** (owner: "more general and less informative... just look pretty"): a dawn mountain landscape with alpenglow, stars and light snow, and only "Ra-Dar / SKI WEATHER". No mountain names, feature lists or live numbers, so it never goes stale when mountains are added. The link title is "Ra-Dar · Ski Weather" and the descriptions name no mountains, for the same reason.
-  - It's drawn as an SVG by a script and rendered with Playwright (session scratchpad `preview/make.py`, `shot.js`); redraw it the same way rather than editing the PNG.
+  - It's drawn as an SVG by a script and rendered with Playwright (`tools/preview/make.py`, `shot.js`); redraw it the same way rather than editing the PNG.
   - The image address carries `?v=3`. Raise the number whenever the picture changes, so apps fetch the new one instead of a cached copy. Old shares may still show the old card; adding `?v=2` (or higher) to a shared page link forces a fresh one too. (The very first version of the site showed London, and some apps cached that.)
 - Support light and dark mode.
 
@@ -478,7 +490,7 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 ## Working in this repo
 
 - **Test in a real browser before pushing.**
-  - Use Playwright with `proxy: { server: process.env.HTTPS_PROXY, bypass: 'localhost,127.0.0.1' }`, and serve the site with `python3 -m http.server 8765`.
+  - The main test is `tools/test/test.js` (all mountains, desktop and phone, both views, every tab; see `tools/README.md`). It uses Playwright with `proxy: { server: process.env.HTTPS_PROXY, bypass: 'localhost,127.0.0.1' }`; serve the site from the repo with `setsid nohup python3 -m http.server 8765 &` (it dies when the container restarts).
   - Wait for `#updated` to contain "Updated", and check that `state.elev`, `state.nws`, `state.week.models`, `state.week.ens` and `state.pre` loaded before judging the numbers. The `#updated` text lists any source that failed.
   - Take screenshots on desktop (1280px) and phone (iPhone 13), and look at them.
   - To test the ski-day view in preseason, click `#view-toggle`. Its choice persists in that browser.
@@ -486,15 +498,13 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
   - On Nov 9 at 10:40pm Pacific, `api.weather.gc.ca` also reset connections from the sandbox for several minutes (curl: "Connection reset by peer"), then answered again. `weather.gc.ca` loaded fine meanwhile. The page showed "no daily snow reports" as designed.
   - To test a failure state on purpose, block the request in the Playwright test only (`page.route(..., r => r.abort())`), never in the site.
 - **Open-Meteo's free tier allows 10,000 requests per day per IP address, and ensemble requests count heavily.** Heavy browser testing from the sandbox can use up the whole day's allowance (HTTP 429 "Daily API request limit exceeded"; resets at 00:00 UTC = 4pm Pacific). **Keep test page loads few.** When it's blocked, test layout with fixtures injected in the test only, never in the site. The site caches Open-Meteo responses in each visitor's browser (`getJSONCached`: 45 min, ensemble 90 min, preseason snowfall 3 h).
-- Cloud sessions should use the **Ra-Dar** environment, in **Auto** mode. It allows these hosts:
-  - `api.weather.gov`, `api.open-meteo.com`, `ensemble-api.open-meteo.com`, `wcc.sc.egov.usda.gov`
-  - `api.mtbachelor.com`, `www.mtbachelor.com`
-  - `api.rainviewer.com`, `tilecache.rainviewer.com`, `tile.openstreetmap.org`, `cdnjs.cloudflare.com`
+- Cloud sessions should use the **Ra-Dar** environment, in **Auto** mode. Its network is limited to an allowlist (check the current list with the `get_environment` tool; about 80 hosts on Nov 14). It covers:
+  - the data sources: `api.weather.gov`, `api.open-meteo.com`, `ensemble-api.open-meteo.com`, `wcc.sc.egov.usda.gov`, `api.weather.gc.ca`, `dd.weather.gc.ca`, `cdec.water.ca.gov`, `api.rainviewer.com`, `tilecache.rainviewer.com`, `tile.openstreetmap.org`, `cdnjs.cloudflare.com`
+  - each mountain's resort site and cams (mtbachelor, willamettepass.ski, stevenspass, mtspokane, missionridge, palisadestahoe, appskimtn and resortcams, summitatsnoqualmie, skibowl, sunpeaksresort), road cams (`tripcheck.com`, `images.wsdot.wa.gov`, `cwwp2.dot.ca.gov`, `www.drivebc.ca`), `i.ytimg.com`, `www.youtube.com`, `relay.ozolio.com`, `video.nest.com`, `player.brownrice.com`
+  - avalanche centers (NWAC, Central Oregon, Idaho Panhandle, Sierra, Avalanche Canada) and BC government pages, for research
   - `ra-dar-alpha.vercel.app` (live-site checks), plus `gitlab.com`, `api.vercel.com` and `api.cloudflare.com` via saved network secrets
-  - `tripcheck.com`, `i.ytimg.com`, `www.youtube.com`, `www.willamettepass.ski` (Willamette Pass cams and source checks)
-  - For Sun Peaks (added Nov 9 with the owner's approval): `api.weather.gc.ca`, `dd.weather.gc.ca`, `weather.gc.ca`, `www.sunpeaksresort.com`, `sunpeaksresort.com`, `avalanche.ca`, `www.avalanche.ca`, `api.avalanche.ca`, `www2.gov.bc.ca`, `www.env.gov.bc.ca`, `www.drivebc.ca`. Not yet allowed: `weather.prod.avalanche.ca` and `avcan-services-api.prod.avalanche.ca` (Avalanche Canada's documented station and forecast APIs).
-  - For Stevens Pass (added Nov 10 with the owner's approval): `www.stevenspass.com`, `stevenspass.com`, `nwac.us`, `www.nwac.us`, `images.wsdot.wa.gov`, `wsdot.com`, `www.wsdot.com`, `wsdot.wa.gov`, `player.brownrice.com`. Not allowed: Brownrice's video servers (`live6.brownrice.com` and others), so live video can't be tested from the sandbox.
-  - plus a few used only for research (MesoWest, Synoptic, COAC, NOHRSC and others)
+  - a few used only for research (MesoWest, Synoptic, NOHRSC, Wikipedia, OpenSnow and others)
+  - Not allowed: Brownrice's video servers (Stevens Pass live video can't be played from the sandbox), and Avalanche Canada's `weather.prod.avalanche.ca` / `avcan-services-api.prod.avalanche.ca`. A new mountain usually needs its resort and cam hosts added: propose them with `update_environment` (the owner approves each change).
 - Libraries (from cdnjs): Leaflet 1.9.4, Chart.js 4.4.1.
 
 ## Publishing (standing permission from the owner)
@@ -505,18 +515,20 @@ The owner wants finished changes to go live without extra approval steps, and ha
 - **When a requested change is finished**, publish it without waiting to be asked:
   1. Run the checks first: `node --check` on every JS file, then the Playwright browser test on desktop and phone (local server), with no page errors and the screenshots looked at.
   2. Commit with a clear message, then push it to GitLab (`git push origin HEAD:main`).
-  3. Copy **only the site files** (`index.html`, `style.css`, `app.js`, `week.js`, `preseason.js`, `mountains.js`, `icon.svg`, `icon-180.png`, `preview.png`) into a folder in the scratchpad. Never include `CLAUDE.md`, `README.md` or `.git`.
-  4. Deploy from inside that folder with the Vercel CLI (`npm install vercel` in the scratchpad):
-     - Command: `VERCEL_TELEMETRY_DISABLED=1 VERCEL_ORG_ID=… VERCEL_PROJECT_ID=… vercel deploy --prod --yes --token proxyinjectedplaceholder`
+  3. Run `bash tools/deploy.sh`. It does the following, and its comments explain each step:
+     - It copies **only the site files** (`index.html`, `style.css`, `app.js`, `week.js`, `preseason.js`, `mountains.js`, `icon.svg`, `icon-180.png`, `preview.png`) into a scratch folder. It never includes `CLAUDE.md`, `README.md`, `tools/` or `.git`.
+     - It deploys with the Vercel CLI (installed into the scratch folder on first use): `VERCEL_TELEMETRY_DISABLED=1 VERCEL_ORG_ID=… VERCEL_PROJECT_ID=… vercel deploy --prod --yes --token proxyinjectedplaceholder`.
      - The real token is a network secret on the Ra-Dar environment for `api.vercel.com`, and the proxy swaps it in. The CLI rejects placeholders that contain `-`.
-     - Look up the team and project IDs with the API (`GET https://api.vercel.com/v2/teams`, `GET https://api.vercel.com/v9/projects/ra-dar?teamId=…`).
-     - **Never write account, team or project IDs into the repo** (the owner asked).
-  5. Check the live site: confirm `https://ra-dar-alpha.vercel.app/` serves the new files, then run the Playwright test against it.
+     - It looks up the team and project IDs with the API each time (`GET https://api.vercel.com/v2/teams`, `GET https://api.vercel.com/v9/projects/ra-dar?teamId=…`). **Never write account, team or project IDs into the repo** (the owner asked).
+     - It then checks that `https://ra-dar-alpha.vercel.app/` serves the new files (sha256 of each).
+  4. Run the browser test against the live site: `node tools/test/test.js https://ra-dar-alpha.vercel.app/ <outDir>` (pick the changed mountains with `MTNS=`), and look at the screenshots.
+  5. Refresh the GitHub backup (see "Where things live").
   6. Tell the owner what went live and give the link.
-- **The Auto-mode safety check can block the production deploy** (it did on Nov 9), because it doesn't count this file as the owner's go-ahead. If it blocks, don't work around it: ask the owner to say "publish it" in the conversation, or to switch the session's mode menu to "Accept edits" and approve the deploy prompt.
+- **The Auto-mode safety check can block the production deploy** (it did on Nov 9 and on most deploys since), because it doesn't count this file as the owner's go-ahead. If it blocks, don't work around it: ask the owner to say "publish it" in the conversation, or to switch the session's mode menu to "Accept edits" and approve the deploy prompt.
 - Vercel's default Deployment Protection ("all except custom domains") puts a Vercel login in front of the individual deployment URLs. The production addresses above stay public, so leave the setting alone.
 - **Limits on this permission:**
   - Never publish a change that failed its checks. Fix it, or tell the owner what's broken.
-  - Never force-push, rewrite history, or delete branches or tags on GitLab.
+  - Never force-push, rewrite history, or delete branches or tags, on GitLab or GitHub.
+  - **If the owner's security plugins flag anything that affects a change, stop and tell the owner before publishing** (standing request since Nov 9).
   - Only publish the owner's own requested changes.
   - The permission covers this website only.

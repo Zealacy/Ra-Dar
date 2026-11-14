@@ -1,22 +1,29 @@
 # Ra-Dar: ski weather 🎿
 
-A ski weather tracker for **Mt. Bachelor** and **Willamette Pass**, Oregon: **https://ra-dar-alpha.vercel.app/**
+A ski weather tracker for twelve mountains: **https://ra-dar-alpha.vercel.app/**
 
 It's a static site hosted on Vercel, with no server, no build step and no API keys. Everything loads live in the visitor's browser from public sources. It's written for experienced skiers: it gives the data and calculations, and leaves the decisions to them.
 
-## Two mountains, one layout
+## Twelve mountains, one layout
 
-A switcher at the top of the page picks the mountain. The address carries the choice (`?mtn=bachelor`, `?mtn=willamette`), so links can be shared, and the browser remembers the last one. Every section sits in the same place for both mountains. Each mountain uses its own data sources, because weather changes sharply from one pass to the next:
+A switcher at the top of the page picks the mountain (sorted alphabetically). The address carries the choice (`?mtn=bachelor`, `?mtn=skibowl`, …), so links can be shared, and the browser remembers the last one. Every section sits in the same place for every mountain; where a mountain lacks something, the page says so. Each mountain uses its own data sources, because weather changes sharply from one pass to the next:
 
-| | Mt. Bachelor | Willamette Pass |
-|---|---|---|
-| Elevations | 6,300 / 7,800 / 9,065 ft | 5,120 / ~5,900 (midpoint) / 6,683 ft |
-| Live weather | ODOT Century Dr (base), COAC Moon Mountain (7,450 ft, 5 mi N, labeled not at the ski area) | ODOT road station on Highway 58 at the pass (base). No public station on the upper mountain. |
-| Measured snow | Snow stake cam | Cascade Summit SNOTEL snow depth (5,100 ft, 1.4 mi W, base elevation) |
-| Forecast office | NWS Pendleton | NWS Medford (no visibility forecast published) |
-| Webcams | 9 resort cams, led by the snow stake | Resort Base Area live stream (YouTube) and 2 ODOT road cams at the pass |
-| Lift board | Resort's board, embedded | Resort's board, linked (the resort blocks embedding) |
-| Opening Day | Dec 4, 2026 (scheduled) | Not announced yet |
+| Mountain | Base / mid / summit (ft) | Measured weather | Measured snow | Opening Day |
+|---|---|---|---|---|
+| Alpental (WA) | 3,140 / 4,280 / 5,420 | 3 stations on the mountain | Regional reference only | Not announced |
+| Alpine Meadows (CA) | 6,835 / 7,736 / 8,637 | 4 stations on the mountain | Regional reference only | Nov 25, 2026 |
+| Appalachian Ski Mtn. (NC) | 3,635 / 3,818 / 4,000 | None public: labeled model estimates | None | Nov 20, 2026 |
+| Mission Ridge (WA) | 4,570 / 5,695 / 6,820 | 3 stations on the mountain | Upper Wheeler snow sensor (base level) | Nov 27, 2026 (planned) |
+| Mt. Bachelor (OR) | 6,300 / 7,800 / 9,065 | Road and snow-pillow sensors, Moon Mountain (labeled not at the ski area) | Snow stake cam | Dec 4, 2026 |
+| Mt. Hood Skibowl (OR) | 3,650 / 4,340 / 5,027 | 2 stations on the mountain, road sensor | Regional reference only | Not announced |
+| Mt. Spokane (WA) | 4,200 / 5,045 / 5,889 | None public: labeled model estimates | Snow stake cam | Dec 5, 2026 (projected) |
+| Palisades Tahoe (CA) | 6,200 / 7,625 / 9,050 | 3 stations on the mountain | On-site snow sensor | Nov 25, 2026 |
+| Stevens Pass (WA) | 4,061 / 4,950 / 5,845 | 3 stations on the mountain | On-site snow sensor and stake cam | Not announced |
+| Summit at Snoqualmie (WA) | 3,000 / 3,430 / 3,865 | 2 stations on the mountain, road sensor | Regional reference only | Not announced |
+| Sun Peaks (BC) | 4,117 / 6,086 / 6,824 | None public: labeled model estimates | Daily reports (Environment Canada) | Nov 21, 2026 |
+| Willamette Pass (OR) | 5,120 / 5,900 / 6,683 | Road sensor at the pass | Cascade Summit snow sensor (base) | Dec 11, 2026 |
+
+Opening Days are the resorts' own scheduled dates, as checked in November 2026. Forecasts come from each mountain's National Weather Service office (Sun Peaks: Canada's GEM model), and its own resort and road cams.
 
 ## Two views
 
@@ -59,15 +66,15 @@ A switcher at the top of the page picks the mountain. The address carries the ch
 | Base to summit | 7-day temperatures, snow, rain, gusts and freezing level at three elevations | Open-Meteo |
 | Lifts | The resort's own live lift board: embedded where the resort allows it, otherwise a link | The resort |
 | Radar loop | The last 2 hours of radar | RainViewer |
-| Forecaster notes | The NWS forecast discussion, made readable: key messages, ski-relevant highlights, jargon explained, the original at the bottom | NWS Pendleton or Medford |
+| Forecaster notes | The NWS forecast discussion, made readable: key messages, ski-relevant highlights, jargon explained, the original at the bottom | The mountain's NWS office |
 
 All values are in US units (°F, inches, mph, feet). Data refreshes every 10 minutes and webcams every 5.
 
 ## Data quality rules
 
-- **Only data that represents the ski area.** Each mountain uses stations on or right next to it. A station that isn't on the ski area (Bachelor's Moon Mountain) is labeled "not at the ski area" everywhere it appears. Distant SNOTEL stations are a labeled regional reference only.
+- **Only data that represents the ski area.** Each mountain uses stations on or right next to it. A station that isn't on the ski area (Bachelor's Moon Mountain) is labeled "not at the ski area" everywhere it appears. Where no public station exists (Appalachian, Mt. Spokane, Sun Peaks), "Right now" shows model estimates labeled "Model, not measured". Distant SNOTEL stations are a labeled regional reference only.
 - **Stale data is dropped.** Weather stations silent for 3+ hours, and snow sensors silent for 6+ hours, show as offline and are ignored.
-- **Every value is tagged** *Measured*, *Forecast* or *Model*. Modeled snow *depth* isn't used, because it proved wrong. Modeled snowfall sits beside the measured view of the ground: the stake cam at Bachelor, the Cascade Summit snow sensor at Willamette Pass.
+- **Every value is tagged** *Measured*, *Forecast* or *Model*. Modeled snow *depth* isn't used, because it proved wrong. Modeled snowfall sits beside the measured view of the ground: a stake cam or an on-site snow sensor where the mountain has one.
 - **Forecasts are never shown as current conditions.** Each forecast graphic names its day and hours.
 - **No private APIs.** Real open/closed lift status comes only from each resort's own board. The per-lift wind estimate is shelved (`features.liftEstimate` in `mountains.js`).
 - Sources and their limits are listed on the page under "Where the data comes from".
@@ -82,9 +89,10 @@ All values are in US units (°F, inches, mph, feet). Data refreshes every 10 min
 - `preseason.js`: preseason mode (snowfall graphic, tiles, Snowpack tab, view switch)
 - `preview.png`, `icon.svg`, `icon-180.png`: link preview and site icons
 - `CLAUDE.md`: working notes and rules for Claude sessions
+- `tools/`: test, audit, research and deploy scripts for Claude sessions (not part of the website; see `tools/README.md`)
 
 ## Run locally
 
 `python3 -m http.server`, then open http://localhost:8000.
 
-An unofficial fan site, not affiliated with any ski resort. Official sources: each resort's own conditions page, and for Mt. Bachelor the Central Oregon Avalanche Center forecast.
+An unofficial fan site, not affiliated with any ski resort. Official sources: each resort's own conditions page, and the regional avalanche center's forecast.
