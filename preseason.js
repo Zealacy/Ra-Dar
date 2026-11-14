@@ -81,7 +81,9 @@ function computePreseason() {
   // The next 7 days: the middle of the 82 ensemble runs at mid-mountain (the same number as the "Snow next 7
   // days" tile), spread over the other elevations the way the one-model forecast spreads its snow (its rain/snow
   // split follows each elevation). The hours keep that forecast's timing, scaled to the new total.
+  // While the 82 runs are still on their way, no "coming" bars yet (rather than a one-model number that then changes).
   const w = ensNext7();
+  const wWait = pending('week');
   const midI = Math.max(0, P.findIndex((z) => z.zone.key === midZone().key));
   const det = P.map((z) => z.times.reduce((a, t, k) => a + (t > now && t <= in7 ? z.snow[k] : 0), 0));
   // Bounded so it can't blow up when the one-model forecast has little snow at mid-mountain (the snow line near it):
@@ -95,7 +97,7 @@ function computePreseason() {
     return det[midI] > 0 ? w.p50 * Math.min(1, det[i] / det[midI]) : Math.min(det[i], w.p50);
   };
   const zones = P.map((z0, zi) => {
-    const coming = w ? comingAt(zi) : det[zi];
+    const coming = wWait ? 0 : w ? comingAt(zi) : det[zi];
     // Hour-by-hour timing follows this elevation's own forecast, or mid-mountain's where this one has none.
     const shapeI = det[zi] > 0 ? zi : midI;
     const scale = det[shapeI] > 0 ? coming / det[shapeI] : 0;
@@ -129,6 +131,11 @@ function computePreseason() {
 }
 
 // ---------------------------------------------------------------- summary card
+// The big picture beside the snowfall chart (set once the cams start loading; see startCams in app.js).
+function setHeroCam() {
+  if (document.documentElement.dataset.mode !== 'preseason') return;
+  $('pre-stake').src = camUrl(camStill(heroCam()));
+}
 function renderPreseason() {
   const box = $('pre');
   if (!box || document.documentElement.dataset.mode !== 'preseason') return;
@@ -144,18 +151,21 @@ function renderPreseason() {
     $('pre-count').textContent = 'TBA';
     $('pre-open').textContent = `Opening Day not announced yet${checked ? ` · checked ${checked}` : ''}`;
   }
-  // The measured view of the ground: the snow stake cam, or the first cam where there is no stake.
+  // The measured view of the ground: the snow stake cam, or the first cam where there is no stake. Its picture
+  // loads once the weather is on screen (startCams in app.js).
   const hero = heroCam();
-  $('pre-stake').src = camUrl(camStill(hero));
+  if (camsStarted) setHeroCam();
   $('pre-stake').alt = `${hero.name} webcam`;
   $('pre-stake-cap').textContent = hero.caption || hero.name;
   // Right now: measured readings, so nobody mistakes a forecast for the current temperature. Where nothing
   // on the mountain is measured and the owner allowed it, labeled model estimates for this hour instead.
   const live = (state.stations || []).filter((st) => st.stats.fresh && st.stats.temp != null);
   const sn = snowSensor(), snOk = !!sn?.stats.fresh;
-  const snowNow = snOk ? `<span class="pn"><b>${r0(sn.stats.depth)}" snow on the ground</b> ${esc(sn.name)} snow station · ${ftFmt(sn.ft)} ft · ${esc(sn.where)} · ${ageText(sn.stats.depthAgeH)}</span>` : '';
+  const snowNow = snOk ? `<span class="pn"><b>${r0(sn.stats.depth)}" snow on the ground</b> ${esc(sn.name)} snow station · ${ftFmt(sn.ft)} ft · ${esc(sn.where)} · ${ageText(sn.stats.depthAgeH)}</span>`
+    : M.snowSensor && pending('snotel') ? '<span class="pn">Loading the snow station…</span>' : '';
   const est = !live.length && !snOk && useModelNow() ? modelNow() : null;
-  $('pre-now').innerHTML = live.length || snOk
+  $('pre-now').innerHTML = pending('stations') || (useModelNow() && pending('elev')) ? '<span class="pn-h">Right now</span><span class="pn">Loading…</span>'
+    : live.length || snOk
     ? `<span class="pn-h">Right now <span class="src m">Measured</span></span>${snowNow}${live.map((st) => `<span class="pn"><b>${r0(st.stats.temp)}°F</b> ${esc(st.name)} · ${ftFmt(st.ft)} ft${st.offSite ? ` · <b class="off">${esc(st.offSite)}</b>` : ''} · ${ageText(st.stats.tempAgeH ?? st.stats.ageH)}</span>`).join('')}`
     : est?.zones.some((z) => z.temp != null)
       ? `<span class="pn-h">Right now <span class="src e" title="Model: a computer-model estimate for this hour, not a measurement">${esc(NOW_MODEL_TAG)}</span></span>${est.zones.filter((z) => z.temp != null).map((z) => `<span class="pn"><b>${r0(z.temp)}°F</b> ${esc(zShort(z))} · ${ftFmt(z.ft)} ft</span>`).join('')}<span class="pn">${esc(noStationNote())}.</span>`
@@ -164,6 +174,7 @@ function renderPreseason() {
   if (!p) {
     $('pre-depth-svg').innerHTML = '';
     fig.classList.add('empty');
+    if (pending('pre')) { fig.dataset.msg = 'Loading the snowfall chart…'; renderPreTiles(null); return; }
     fig.dataset.msg = `Snowfall model data couldn't load right now. Refresh to try again. ${M.snowStake ? 'The stake cam is live.' : M.stations.length || M.snowSensor ? 'The cam and the measured readings are live.' : 'The cams are live.'}`;
     renderPreTiles(null);
     return;
@@ -175,19 +186,22 @@ function renderPreseason() {
 
 function renderPreTiles(p) {
   const w = state.weekView?.weekEns || null;
+  // Still on their way: say so rather than "unavailable" or a stand-in number that then changes.
+  const wait = (name) => pending(name) ? 'loading…' : null;
   const sinceNice = new Date(seasonStartDate() + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const midFt = ftFmt(midZone().ft);
   const tile = (k, v, s) => `<div class="pre-tile"><span class="pk">${k}</span><span class="pv">${v}</span><span class="ps">${s}</span></div>`;
   $('pre-tiles').innerHTML = [
-    p ? tile(`Snowfall last 7 days · ${midFt} ft`, `${r1(p.zones[1]?.last7 ?? p.zones[0].last7)}"`, `model · since ${sinceNice}: ${r0((p.zones[1] || p.zones[0]).seasonSnow)}"`) : tile('Snowfall last 7 days', '–', 'model data unavailable right now'),
-    tile('Snow next 7 days', w ? `${Math.floor(w.p10)}–${Math.ceil(w.p90)}"` : p ? `~${r0(p.zones[1]?.next7)}"` : '–', w ? `likely range at ${midFt} ft (82 runs) · middle ${r1(w.p50)}"` : p ? `model, ${midFt} ft` : 'forecast data unavailable right now'),
-    tile('Chance this week', w ? `${w.chance[6]}% <small>≥6"</small> · ${w.chance[12]}% <small>≥12"</small>` : '–', w ? `${w.chance[1]}% chance of at least 1"` : ''),
+    p ? tile(`Snowfall last 7 days · ${midFt} ft`, `${r1(p.zones[1]?.last7 ?? p.zones[0].last7)}"`, `model · since ${sinceNice}: ${r0((p.zones[1] || p.zones[0]).seasonSnow)}"`) : tile('Snowfall last 7 days', '–', wait('pre') || 'model data unavailable right now'),
+    wait('week') ? tile('Snow next 7 days', '–', 'loading the 82 model runs…')
+      : tile('Snow next 7 days', w ? `${Math.floor(w.p10)}–${Math.ceil(w.p90)}"` : p ? `~${r0(p.zones[1]?.next7)}"` : '–', w ? `likely range at ${midFt} ft (82 runs) · middle ${r1(w.p50)}"` : p ? `model, ${midFt} ft` : 'forecast data unavailable right now'),
+    tile('Chance this week', w ? `${w.chance[6]}% <small>≥6"</small> · ${w.chance[12]}% <small>≥12"</small>` : '–', w ? `${w.chance[1]}% chance of at least 1"` : wait('week') || ''),
     // Measured snow on the ground from the daily climate stations, with its date (where a mountain has them).
     M.snowDaily && (() => {
       const d = dailyLatest();
       return d
         ? tile(`Measured on the ground · ${ftFmt(d.ft)} ft`, `${r0(d.last.depth)}"`, `${esc(d.name)} · daily report, ${esc(dayNice(d.last.date))}`)
-        : tile('Measured on the ground', '–', state.daily ? `Daily snow reports: ${esc(dailyNone())}` : 'Daily snow reports unavailable right now');
+        : tile('Measured on the ground', '–', state.daily ? `Daily snow reports: ${esc(dailyNone())}` : wait('daily') || 'Daily snow reports unavailable right now');
     })(),
   ].filter(Boolean).join('');
 }

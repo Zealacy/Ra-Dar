@@ -85,7 +85,9 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SVGNS = 'http://www.w3.org/2000/svg';
 
 const $ = (id) => document.getElementById(id);
-const state = { stations: null, snotel: null, daily: null, nws: null, elev: null, week: null, weekView: null, pre: null, call: null };
+const state = { stations: null, snotel: null, daily: null, nws: null, elev: null, week: null, weekView: null, pre: null, call: null, pending: new Set() };
+// True while a source is still on its way (as opposed to failed), so a section can say "Loading…" instead of "unavailable".
+const pending = (name) => state.pending.has(name);
 const charts = {};
 let activeTab = 'measured';
 
@@ -1271,6 +1273,7 @@ function renderSnow(c) {
     const sensor = c.now?.sensor, x = sensor?.stats, chg = x?.fresh ? depthChange(x.d24) : null;
     box.innerHTML = x?.fresh
       ? `<span class="sm-k">Measured</span><span class="sm-v">${r0(x.depth)}"</span><span class="sm-l">on the ground</span>${chg ? `<span class="sm-l">24 hrs: ${chg}</span>` : ''}<span class="sm-s">${esc(M.snowSensor.name)} · ${ftFmt(M.snowSensor.ft)} ft · ${ageText(x.depthAgeH)}</span>`
+      : pending('snotel') ? '<span class="sm-k">Measured</span><span class="sm-l">Loading the snow station…</span>'
       : `<span class="sm-k">Measured</span><span class="sm-l">${sensor ? `${esc(M.snowSensor.name)} snow station is offline${x?.depthAgeH != null ? ` (last report ${ageText(x.depthAgeH)})` : ''}.` : 'Snow station data unavailable right now.'}</span>`;
     if (M.snowStake) {
       box.insertAdjacentHTML('beforeend', '<a class="sm-a" href="#cams">New snow: stake cam ↓</a>');
@@ -1935,6 +1938,15 @@ function setupCamPlayer() {
   $('cam-play').addEventListener('click', playCam);
   $('cam-main-link').addEventListener('click', (e) => { if (allCams()[camIndex]?.youtube) { e.preventDefault(); playCam(); } });
 }
+// Cam pictures (up to a few MB) start loading once the weather is on screen, so they don't compete with it.
+let camsStarted = false;
+function startCams() {
+  if (camsStarted) return;
+  camsStarted = true;
+  renderCams();
+  setHeroCam();
+  setInterval(renderCams, CAM_REFRESH_MS);
+}
 function renderCams() {
   if (M.snowStake) $('stake-thumb').src = camUrl(camStill(allCams()[0], true));
   if (M.stationGraphic) { $('stations').src = camUrl(M.stationGraphic); $('stations-link').href = M.stationGraphic; }
@@ -2097,30 +2109,80 @@ function setupMountain() {
 }
 
 // ================================================================ Main
+// Each part of the page is drawn as soon as the sources it needs have answered, instead of waiting for the
+// slowest one (the federal snow-station service usually is, and it mostly feeds a collapsed reference table):
+//  - the ski-day summary, Right now and the tabs need the stations, the hourly forecast and the elevation
+//    forecasts (plus the snowpack model in preseason, and daily snow reports where a mountain has them). It is
+//    drawn again when the mountain's own snow sensor arrives, if it has one;
+//  - the 7-day strip and the preseason section also need the 82 model runs.
+// Until then each part says "Loading…". Requests keep their full time (20 s, then one retry); when anything takes
+// longer than SLOW_MS a note at the top names what is still on its way.
+const SLOW_MS = 6000;
+const CORE = ['stations', 'nws', 'elev', 'daily', 'pre'];
+const sourceName = (n) => ({ stations: 'the station readings', snotel: 'the snow stations', daily: 'the daily snow reports', nws: FC.official ? 'the National Weather Service forecast' : `the ${FC.short} forecast`, elev: 'the elevation forecasts', week: 'the 7-day model runs', pre: 'the snowpack model', afd: 'the forecaster notes' }[n]);
+function showSlowNote(first) {
+  const note = $('slow-note');
+  const left = [...state.pending].map(sourceName).filter(Boolean);
+  if (!left.length) { note.hidden = true; return; }
+  const list = left.length > 1 ? `${left.slice(0, -1).join(', ')} and ${left.at(-1)}` : left[0];
+  note.innerHTML = `<span class="spin-dot" aria-hidden="true"></span><span><b>Taking longer than usual.</b> Still waiting on ${esc(list)}${first ? '' : ' (the rest is up to date)'}. These services are sometimes slow; nothing is wrong on your end.</span>`;
+  note.hidden = false;
+}
 async function refreshData() {
   $('updated').textContent = 'Updating…';
   $('refresh').classList.add('spin');
+  const first = !state.call;
   const errors = [];
+  const drawn = { call: null, week: null };
+  const settled = (...n) => n.every((k) => !pending(k));
+  // Draws whatever has become possible since the last call (each step at most once per stage).
+  const progress = () => {
+    if (!settled(...CORE)) return;
+    const sensorIn = !M.snowSensor || settled('snotel');
+    if (drawn.call !== sensorIn) {
+      drawn.call = sensorIn;
+      applySnowLevel();
+      state.call = computeCall();
+      renderCall(state.call);
+      // The preseason chart can show the snow so far now; the "coming" bars follow with the 82 runs.
+      if (!settled('week')) { try { renderPreseason(); } catch (e) { console.error('preseason', e); } }
+      drawActiveTab();
+      startCams();
+    }
+    if (settled('week') && drawn.week !== sensorIn) {
+      drawn.week = sensorIn;
+      try { state.weekView = buildWeek(); renderWeekStrip(state.weekView); } catch (e) { console.error('week', e); renderWeekStrip(null); }
+      try { renderPreseason(); } catch (e) { console.error('preseason', e); }
+      drawActiveTab();
+    }
+  };
   const run = async (name, loader, render) => {
     try { state[name] = await loader(); render?.(state[name]); }
     catch (e) { errors.push(name); console.error(name, e); }
+    state.pending.delete(name);
+    if (!$('slow-note').hidden) showSlowNote(first);
+    progress();
   };
+  const jobs = [
+    ['stations', loadStations, renderStationTable],
+    ['snotel', loadSnotel, renderSnotelTable],
+    ...(M.snowDaily ? [['daily', loadSnowDaily, renderDailyTable]] : []),
+    ['nws', loadNws, renderNwsTable],
+    ['elev', loadElevation, renderElevTable],
+    ['week', loadWeek],
+    ...(preseasonActive() ? [['pre', loadPreseason]] : []),
+  ];
+  jobs.forEach(([n]) => state.pending.add(n));
+  state.pending.add('afd');
+  if (first) { try { renderPreseason(); } catch (e) { console.error('preseason', e); } } // countdown and "Loading…" right away
+  const slowTimer = setTimeout(() => showSlowNote(first), SLOW_MS);
   await Promise.all([
-    run('stations', loadStations, renderStationTable),
-    run('snotel', loadSnotel, renderSnotelTable),
-    ...(M.snowDaily ? [run('daily', loadSnowDaily, renderDailyTable)] : []),
-    run('nws', loadNws, renderNwsTable),
-    run('elev', loadElevation, renderElevTable),
-    run('week', loadWeek),
-    ...(preseasonActive() ? [run('pre', loadPreseason)] : []),
-    loadAfd().catch((e) => console.error('afd', e)),
+    ...jobs.map(([n, loader, render]) => run(n, loader, render)),
+    loadAfd().catch((e) => console.error('afd', e)).finally(() => { state.pending.delete('afd'); if (!$('slow-note').hidden) showSlowNote(first); }),
   ]);
-  applySnowLevel();
-  state.call = computeCall();
-  renderCall(state.call);
-  try { state.weekView = buildWeek(); renderWeekStrip(state.weekView); } catch (e) { console.error('week', e); renderWeekStrip(null); }
-  try { renderPreseason(); } catch (e) { console.error('preseason', e); }
-  drawActiveTab();
+  clearTimeout(slowTimer);
+  $('slow-note').hidden = true;
+  progress();
   const names = { stations: 'stations', snotel: 'SNOTEL', daily: 'daily snow reports', nws: FC.official ? 'NWS' : `${FC.short} forecast`, elev: 'Open-Meteo', week: '7-day models', pre: 'snowpack model' };
   $('updated').textContent = `Updated ${fmtTime(new Date(), { hour: 'numeric', minute: '2-digit' })}` + (errors.length ? ` · no ${errors.map((e) => names[e]).join(', ')}` : '');
   setTimeout(() => $('refresh').classList.remove('spin'), 600);
@@ -2152,9 +2214,9 @@ function init() {
     renderPreseason();
     window.scrollTo({ top: 0, behavior: REDUCED ? 'auto' : 'smooth' });
   });
-  renderCams();
+  setTimeout(startCams, 4000); // cams start after the weather is drawn, or after 4 s at the latest
   refreshData();
-  $('refresh').addEventListener('click', () => { renderCams(); refreshData(); });
+  $('refresh').addEventListener('click', () => { if (camsStarted) renderCams(); else startCams(); refreshData(); });
   let rt;
   window.addEventListener('resize', () => {
     clearTimeout(rt);
@@ -2165,6 +2227,5 @@ function init() {
   const tick = () => { if (document.hidden) return; lastRefresh = Date.now(); refreshData(); };
   setInterval(tick, DATA_REFRESH_MS);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - lastRefresh > DATA_REFRESH_MS) tick(); });
-  setInterval(renderCams, CAM_REFRESH_MS);
 }
 init();

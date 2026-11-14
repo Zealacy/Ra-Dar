@@ -274,7 +274,7 @@ const confWord = { high: 'High confidence', med: 'Medium confidence', low: 'Low 
 // ---------------------------------------------------------------- easy-access strip
 function renderWeekStrip(week) {
   const box = $('week-strip');
-  if (!week) { box.innerHTML = '<div class="lbl">7-day forecast unavailable right now.</div>'; return; }
+  if (!week) { box.innerHTML = `<div class="lbl">${pending('week') || pending('nws') ? 'Loading the 7-day forecast…' : '7-day forecast unavailable right now.'}</div>`; return; }
   box.innerHTML = week.days.map((d, k) => {
     const base = d.zones[0], top = d.zones[d.zones.length - 1];
     return `<button class="day ${d.mostSnow ? 'best' : ''}" type="button" data-i="${k}" style="animation-delay:${k * 0.05}s" aria-label="${esc(d.long)}: snow ${snowRangeText(d)}, ${confWord[d.conf]}">
@@ -329,7 +329,7 @@ function weekSummary(week) {
 // ---------------------------------------------------------------- in-depth tab
 function drawWeekTab() {
   const week = state.weekView;
-  if (!week) { $('wk-detail').innerHTML = '<p class="lead">7-day forecast unavailable right now.</p>'; return; }
+  if (!week) { $('wk-detail').innerHTML = `<p class="lead">${pending('week') || pending('nws') ? 'Loading the 7-day forecast…' : '7-day forecast unavailable right now.'}</p>`; return; }
   weekSel = clamp(weekSel, 0, week.days.length - 1);
   const pick = $('wk-pick');
   pick.innerHTML = week.days.map((d, k) => `<button type="button" role="tab" aria-selected="${k === weekSel}" data-i="${k}">${esc(d.name)}<small>${new Date(d.date + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small></button>`).join('');

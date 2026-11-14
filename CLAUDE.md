@@ -434,11 +434,14 @@ The owner asked for "empirical measurements". That's been read as **US imperial 
 - `index.html`: page structure. Scripts load in this order: `mountains.js`, `week.js`, `preseason.js`, `app.js`. `week.js` and `preseason.js` contain only functions, because `app.js` starts the page as soon as it loads.
 - `mountains.js`: everything specific to a mountain (see "Mountains" above). `app.js` picks it at load as `M` (`MTN_KEY`); `setupMountain()` builds the switcher and fills in per-mountain wording and slots.
 - `app.js`:
-  - `refreshData()` loads the sources in parallel into the `state` object (`stations`, `snotel`, `nws`, `elev`, `week`, `pre`), then:
-    - `computeCall()` → `renderCall()` (day heading, status chips, mountain, wind, snow, sky, right-now, briefing)
-    - `buildWeek()` → `renderWeekStrip()`
-    - `renderPreseason()`
-    - `drawActiveTab()`
+  - `refreshData()` loads the sources in parallel into the `state` object (`stations`, `snotel`, `nws`, `elev`, `week`, `pre`, `daily`) and **draws each part as soon as what it needs has arrived** (since Nov 13; the owner found first loads slow):
+    - `state.pending` holds the sources still on their way; `pending(name)` lets a section say "Loading…" instead of "unavailable".
+    - When the `CORE` sources have settled (stations, NWS/hourly, elevation forecasts, plus `pre` in preseason and `daily` where configured): `applySnowLevel()`, `computeCall()` → `renderCall()`, `renderPreseason()` (snow so far, no "coming" bars yet), `drawActiveTab()`, and the cams start (`startCams()`). Drawn again once if the mountain's own snow sensor (`snotel`) arrives later.
+    - When the 82 model runs (`week`) have settled too: `buildWeek()` → `renderWeekStrip()`, `renderPreseason()` with the "coming" bars and tiles.
+    - The federal snow-station service is usually the slowest (0.8–1.8 s) and no longer holds anything else back.
+    - **Timeouts are unchanged** (20 s, then one retry; the owner didn't want sources given up on sooner). After `SLOW_MS` (6 s) a note at the top (`#slow-note`) names what's still on its way ("Taking longer than usual…").
+    - Cam pictures start after the first full draw, or after 4 s at the latest, so they don't compete with the data on phones (Mt. Bachelor's are ~2.4 MB).
+    - Measured Nov 13 (fresh visit, live site): weather on screen in about 3.3 s on a fast connection, 2.7–3.7 s on a simulated 4G phone before this change. With one source held back 9 s, the main picture now appears in about 1 s instead of waiting.
   - Helpers: `getJSON` (retries once) and `getJSONCached` (localStorage, for Open-Meteo and the ECCC daily data). `snowSensor()` returns the on-site SNOTEL from `state.snotel` (loaded together with the regional ones).
   - Mountains without the NWS:
     - `FC` names the hourly source.
