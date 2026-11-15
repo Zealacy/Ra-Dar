@@ -45,6 +45,8 @@
 [hidden] { display: none !important; }
 html { scroll-behavior: smooth; scroll-padding-top: 76px; -webkit-text-size-adjust: 100%; }
 body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.45; }
+/* Never wider than the screen (no sideways page scroll; phones would zoom out). `clip` keeps the sticky header working. */
+body { overflow-x: clip; }
 .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
 h1, h2, h3 { margin: 0; line-height: 1.2; }
 h2 { font-size: 1.05rem; }
@@ -83,10 +85,23 @@ a { color: var(--accent); }
 
 /* Phones: one button opens every mountain grouped by state (app.js setupMountainMenu). Hidden on wider screens,
    which keep the row of pills above. The list hangs below the header (.top is the positioned ancestor). */
-.mtn-menu-btn, .mtn-menu-list, .mtn-menu-scrim { display: none; }
+.mtn-menu-list, .mtn-menu-scrim { display: none; }
+.mtn-menu-btn { display: none; order: 5; flex: 1 0 100%; align-items: center; gap: 10px; min-height: 40px; padding: 5px 5px 5px 16px; border: 0; border-radius: 999px; background: rgba(255,255,255,.1); color: #fff; font: inherit; text-align: left; cursor: pointer; transition: background .2s; }
+.mtn-menu-btn:active { background: rgba(255,255,255,.18); }
 [data-device="mobile"] .mtn-switch { display: none; }
-[data-device="mobile"] .mtn-menu-btn { display: flex; order: 5; flex: 1 0 100%; align-items: center; gap: 10px; min-height: 40px; padding: 5px 5px 5px 16px; border: 0; border-radius: 999px; background: rgba(255,255,255,.1); color: #fff; font: inherit; text-align: left; cursor: pointer; transition: background .2s; }
-[data-device="mobile"] .mtn-menu-btn:active { background: rgba(255,255,255,.18); }
+[data-device="mobile"] .mtn-menu-btn { display: flex; }
+/* A page's first paint on a phone comes before app.js sets data-device. Use the phone header already (same
+   640 px cut-off as detectDevice), so the page never starts wider than the screen: that made phones zoom out,
+   flashed the computer header, and cancelled the switching transition ("Viewport size changed", Nov 14). */
+@media (max-width: 639px) {
+  html:not([data-device]) .wrap { padding: 0 12px; }
+  html:not([data-device]) .top-row { gap: 6px 8px; padding-top: 8px; padding-bottom: 8px; flex-wrap: wrap; }
+  html:not([data-device]) .title { flex: 1 1 auto; }
+  html:not([data-device]) .brand { font-size: 1.05rem; }
+  html:not([data-device]) .jump, html:not([data-device]) .mtn-switch { display: none; }
+  html:not([data-device]) .updated { max-width: 96px; font-size: .7rem; }
+  html:not([data-device]) .mtn-menu-btn { display: flex; }
+}
 .mm-now { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .mm-name { font-size: .95rem; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mm-area { font-size: .78rem; color: #9fb0c2; white-space: nowrap; }
