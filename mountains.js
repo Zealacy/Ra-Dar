@@ -223,7 +223,8 @@ const MOUNTAINS = {
       { label: 'Official snow report', url: 'https://skiwhitepass.com/the-mountain/snow-report' },
       { label: 'Official hours & lifts', url: 'https://skiwhitepass.com/the-mountain/hours-and-lifts' },
       { label: 'Official mountain cams', url: 'https://skiwhitepass.com/mountain-cams' },
-      { label: 'Northwest Avalanche Center: White Pass forecast', url: 'https://nwac.us/forecasts/avalanche/white-pass' },
+      // The zone the resort's own snow report links (checked 2026-11-15; NWAC has no zone named for White Pass).
+      { label: 'Northwest Avalanche Center: East Slopes South forecast', url: 'https://nwac.us/forecasts/avalanche/east-slopes-south' },
       { label: 'NWAC White Pass stations (every hour, incl. snow depth)', url: 'https://nwac.us/weather/stations/white-pass' },
       { label: 'Pigtail Peak SNOTEL', url: 'https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=692' },
       { label: 'WSDOT mountain pass reports (White Pass, US 12)', url: 'https://wsdot.com/travel/real-time/mountainpasses' },

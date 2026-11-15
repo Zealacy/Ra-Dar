@@ -109,7 +109,10 @@ for m in MTNS:
         if temps: check(m, f'{cfg["id"]} 24h high', s['hi24'], max(temps), 0.6); check(m, f'{cfg["id"]} 24h low', s['lo24'], min(temps), 0.6)
         if g24: check(m, f'{cfg["id"]} 24h max gust', s['gust24'], max(g24), 0.6)
         check(m, f'{cfg["id"]} gust last hr', s['gustNow'], gnow, 0.01)
-        check(m, f'{cfg["id"]} wind', s['wind'], last['wind'] if last else None, 0.01)
+        # wind: the latest report that has one, shown only if it is within the max age (as temperature is)
+        wObs = next((o for o in reversed(obs) if o['wind'] is not None), None)
+        wind = wObs['wind'] if wObs and (now - wObs['t']).total_seconds() / 3600 <= maxAge else None
+        check(m, f'{cfg["id"]} wind', s['wind'], wind, 0.01)
 
     # ---------- SNOTEL (hourly; AWDB reports Pacific standard time all year)
     hr = resp(r'awdbRestApi.*duration=HOURLY')
@@ -170,7 +173,7 @@ for m in MTNS:
             check(m, f'ski-window avg temp {k}', sz['avg'], a, 1e-6); check(m, f'ski-window min {k}', sz['min'], lo, 1e-6); check(m, f'ski-window max {k}', sz['max'], hi, 1e-6)
         fl = [v for t, v in zip([iso(t) for t in E[0]['times']], E[0]['fl']) if inWin(t)]
         check(m, 'freezing level avg', call['temp']['freezing'], sum(fl) / len(fl) if fl else None, 1e-6)
-    # past snow (3 days), split by temperature (no NWS snow level for the past)
+    # past snow (3 days): the 3-day request, or the season series if that failed
     pastR = resp(r'hourly=precipitation,temperature_2m&past_days=3')
     pastR = pastR if isinstance(pastR, list) else [pastR]
     zi = next(i for i, z in enumerate(zones) if z['key'] == M['snowZone'])
@@ -181,7 +184,8 @@ for m in MTNS:
     else:  # the 3-day request failed: the page falls back to the season-long series from the same model
         print('   (3-day past-snow request failed; checking the page\'s fallback to the season series)')
         z_ = snap['preRaw'][zi]; pt = [iso(t) for t in z_['times']]; pp, pT = z_['precip'], z_['temp']
-    psn = [((p or 0) * min(1, max(0, (36 - T) / 4)) * 7 if T is not None else 0) for p, T in zip(pp, pT)]
+    # same split as everywhere else: the NWS snow level decides for the hours it covers, temperature otherwise
+    psn = [split(t, p, T, zones[zi]['ft'])[0] for t, p, T in zip(pt, pp, pT)]
     # the page uses its own clock (seconds before capture): same hours unless an hour boundary fell between
     d24 = sum(v for t, v in zip(pt, psn) if now - timedelta(hours=24) < t <= now); d72 = sum(v for t, v in zip(pt, psn) if now - timedelta(hours=72) < t <= now)
     print(f' fresh snow (model, {zones[zi]["ft"]} ft): 24h site {call["snow"]["d24"]:.2f} mine {d24:.2f} | 72h site {call["snow"]["d72"]:.2f} mine {d72:.2f}')
@@ -247,8 +251,10 @@ for m in MTNS:
             last7.append(sum(v for t, v in zip(ts, snow) if now - timedelta(days=7) < t <= now))
             det.append(sum(v for t, v in zip(ts, snow) if now < t <= now + timedelta(days=7)))
         for i, (z, s_, l7) in enumerate(zip(P['zones'], season, last7)):
-            share = det[i] / det[midI] if det[midI] >= 0.1 else (1 if i == midI else 0)
-            coming = P['week']['p50'] * share if P['week'] else det[i]
+            if not P['week']: coming = det[i]
+            elif i == midI: coming = P['week']['p50']
+            elif i > midI: coming = P['week']['p50'] + max(0, det[i] - det[midI])   # mid number plus the extra the one model adds above
+            else: coming = P['week']['p50'] * min(1, det[i] / det[midI]) if det[midI] > 0 else min(det[i], P['week']['p50'])
             print(f' preseason {z["key"]}: since Oct 1 site {z["seasonSnow"]:.2f} mine {s_:.2f} | last 7 days {z["last7"]:.2f}/{l7:.2f} | coming {z["next7"]:.2f}/{coming:.2f}')
             check(m, f'season snow {z["key"]}', z['seasonSnow'], s_, 0.01); check(m, f'last7 {z["key"]}', z['last7'], l7, 0.05); check(m, f'coming {z["key"]}', z['next7'], coming, 0.05)
 

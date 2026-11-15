@@ -74,6 +74,11 @@ function applySnowLevel() {
     d.hourly.rain = split.rain;
     d.daily.snowfall_sum = sumByDay(d, split.snow);
     d.daily.rain_sum = sumByDay(d, split.rain);
+    // The last-3-days series behind "fresh snow, last 24/72 hrs": same rule, so it agrees with the season series.
+    if (d.pastRaw) {
+      const ps = splitWithLevel(d.pastRaw.times, d.pastRaw.precip, d.pastRaw.temp, d.zone.ft, levels).snow;
+      d.pastSnow = d.pastRaw.times.map((t, k) => ({ t, v: ps[k] }));
+    }
   });
   (state.pre || []).forEach((z) => { z.snow = splitWithLevel(z.times, z.precip, z.temp, z.zone.ft, levels).snow; });
   if (state.elev) renderElevTable(state.elev);
@@ -598,6 +603,10 @@ async function loadElevation() {
     const pOff = (pd?.utc_offset_seconds || 0) * 1000;
     const pSnow = pd ? splitPrecip(pd.hourly.precipitation, pd.hourly.temperature_2m).snow : [];
     const pastSnow = pd ? pd.hourly.time.map((t, k) => ({ t: new Date(Date.parse(t + ':00Z') - pOff), v: pSnow[k] })) : [];
+    // Kept so applySnowLevel() can redo this split with the NWS snow level for the hours it covers, exactly as it
+    // does for the season series. (Until Nov 15 only the season series got it, so "fresh snow, last 24 hrs" came
+    // out differently when this request failed and the page fell back to that series: 0.34" vs 0.14" at Mission Ridge.)
+    const pastRaw = pd ? { times: pastSnow.map((x) => x.t), precip: pd.hourly.precipitation, temp: pd.hourly.temperature_2m } : null;
     // Snow and rain at this elevation, hour by hour and per day (replacing Open-Meteo's elevation-blind split).
     const split = splitPrecip(d.hourly.precipitation, d.hourly.temperature_2m);
     d.hourly.snowfall = split.snow;
@@ -608,7 +617,7 @@ async function loadElevation() {
     const off = d.utc_offset_seconds * 1000;
     const times = d.hourly.time.map((t) => new Date(Date.parse(t + ':00Z') - off));
     const flFt = d.hourly_units?.freezing_level_height === 'm' ? d.hourly.freezing_level_height.map((v) => v * 3.28084) : d.hourly.freezing_level_height;
-    return { zone: M.zones[i], ...d, times, flFt, pastSnow };
+    return { zone: M.zones[i], ...d, times, flFt, pastSnow, pastRaw };
   });
 }
 function renderElevTable(zones) {
@@ -1133,7 +1142,11 @@ function renderMountain(c) {
   const lineName = snowLine ? 'Snow level' : 'Freezing level';
   let bannerDrop = 0; // moves the falling-snow/rain marks down when the top-left label is shown
   const above = snowLine ? 'snow' : 'below freezing';
-  const below = snowLine ? (c.rain.cls === 'good' ? 'snow too' : 'rain') : 'above freezing';
+  // Below the snow level it rains, by definition. When the level is under the base the whole ski area gets snow,
+  // so the label says the rain is below the base. (Until Nov 15 this case read "snow too", which contradicted
+  // both the definition and the rain shading under the line.)
+  const belowShort = snowLine ? 'rain' : 'above freezing';
+  const below = snowLine && c.rain.cls === 'good' ? 'rain below base' : belowShort;
   if (lineFt != null && lineY > 18 && lineY < H - 18) {
     const ln = svgEl('g', {}, svg);
     svgEl('line', { x1: 0, x2: R, y1: lineY, y2: lineY, stroke: cssVar('--s1'), 'stroke-width': 2, 'stroke-dasharray': '6 5' }, ln);
@@ -1151,13 +1164,13 @@ function renderMountain(c) {
     } else if (cx2 != null) {
       // No room for three labels: one compact label on the line.
       pill(cx2, lineY - 9, cw, 18, ln);
-      T({ x: cx2 + 8, y: lineY + 4, 'font-size': 10.5, 'font-weight': 800 }, `${lineName} ${ftFmt(lineFt)} ft · ↑ ${above} · ↓ ${below}`, ln);
+      T({ x: cx2 + 8, y: lineY + 4, 'font-size': 10.5, 'font-weight': 800 }, `${lineName} ${ftFmt(lineFt)} ft · ↑ ${above} · ↓ ${belowShort}`, ln);
       avoid.push({ x: cx2, y: lineY - 9, w: cw, h: 18 });
     } else {
       // No room on the line at all (it runs right past the summit or a zone marker): label it in the open
       // sky at the top left instead. The dashed line still marks the height.
       // A dashed sample ties the label to the line; kept short so it clears the wind label.
-      const l1 = `${lineName} ${ftFmt(lineFt)} ft`, l2 = snowLine ? `↑ snow · ↓ ${below}` : '↑ below 32°F · ↓ above 32°F';
+      const l1 = `${lineName} ${ftFmt(lineFt)} ft`, l2 = snowLine ? `↑ snow · ↓ ${belowShort}` : '↑ below 32°F · ↓ above 32°F';
       const bw = Math.max(30 + l1.length * 6.3, l2.length * 5.8) + 14;
       svgEl('rect', { x: 4, y: 4, width: bw, height: 34, rx: 9, fill: cssVar('--surface'), opacity: 0.94 }, ln);
       svgEl('line', { x1: 12, x2: 30, y1: 14, y2: 14, stroke: cssVar('--s1'), 'stroke-width': 2, 'stroke-dasharray': '4 3' }, ln);

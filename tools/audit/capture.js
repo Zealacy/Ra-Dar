@@ -30,6 +30,17 @@ const HOSTS = /api\.weather\.gov|open-meteo\.com|wcc\.sc\.egov\.usda\.gov|api\.w
     await p.goto(`http://localhost:8765/?mtn=${m}`);
     await p.waitForFunction(() => /Updated/.test(document.getElementById('updated').textContent), null, { timeout: 120000 });
     await p.waitForTimeout(2000);
+    // RETRIES=n: when a source failed (the "Updated" line lists it after " · no "), press the page's own refresh
+    // button up to n times. The page keeps the Open-Meteo answers it already got, so each retry only asks for what
+    // is missing. Useful when this sandbox's shared address is refused by Open-Meteo on some requests.
+    for (let k = 0; k < Number(process.env.RETRIES || 0); k++) {
+      if (!/ · no /.test(await p.textContent('#updated'))) break;
+      await p.waitForTimeout(Number(process.env.RETRY_WAIT_MS || 6000));
+      await p.click('#refresh');
+      await p.waitForFunction(() => !/Updated/.test(document.getElementById('updated').textContent), null, { timeout: 5000 }).catch(() => {});
+      await p.waitForFunction(() => /Updated/.test(document.getElementById('updated').textContent), null, { timeout: 120000 });
+      await p.waitForTimeout(1500);
+    }
     const snap = await p.evaluate(() => {
       const P = state.pre ? computePreseason() : null;
       const est = typeof modelNow === 'function' && M.nowModel ? modelNow() : null;
