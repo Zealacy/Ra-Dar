@@ -36,7 +36,7 @@ Written for the first five mountains; it now follows each mountain's `skiHours`.
 |---|---|
 | `stations-near.py STATE lat,lon [lat,lon]` | Every NWS-listed station within 10 miles, with elevation and distance. |
 | `obs.py ID [ID ...]` | Freshness of each station's last 48 reports and which fields it actually sends (temperature, wind, gust, direction, humidity). |
-| `model-check-spokane.py`, `model-check-appalachian.py` | How far Open-Meteo's hourly temperature is from measured stations over 7 days (the evidence behind `nowModel: true`). Copy one and change the stations for a new mountain. |
+| `model-check-spokane.py`, `model-check-appalachian.py`, `model-check-beech.py` | How far Open-Meteo's hourly temperature is from measured stations over 7 days (the evidence behind `nowModel: true`). Copy one and change the stations for a new mountain. |
 
 ## preview/
 
