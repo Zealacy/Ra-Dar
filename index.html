@@ -22,6 +22,10 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-180.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" integrity="sha512-Zcn6bjR/8RZbLEpLIeOwNtzREBAJnUKESxces60Mpoj+2okopSAcSUIUOseddDm0cxnGQzxIR7vJgsLZbdLE3w==" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <!-- Opt in to page transitions when switching mountains. It must be in the page itself: on the live site
+       style.css can arrive just after the browser decides, which cancels the transition. The animations are in
+       style.css. Off for anyone who asks for reduced motion. -->
+  <style>@view-transition { navigation: auto; } @media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }</style>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>

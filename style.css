@@ -111,8 +111,8 @@ a { color: var(--accent); }
 
 /* Switching mountains: the browser's page transition (Chrome/Edge 126+, Safari 18.2+; others switch instantly).
    The header holds still and crossfades; on wider screens the white pill glides to the new mountain; the page
-   below fades out and the new mountain's page rises in. Off for anyone who asks for reduced motion. */
-@view-transition { navigation: auto; }
+   below fades out and the new mountain's page rises in. The opt-in (@view-transition, with its reduced-motion
+   switch-off) is in index.html's <head>: from here it could arrive too late on the live site. */
 .top { view-transition-name: top; }
 .mtn-switch a[aria-current="page"] { view-transition-name: mtn-pill; }
 ::view-transition-group(mtn-pill) { animation-duration: .5s; animation-timing-function: var(--ease); }
@@ -123,9 +123,6 @@ a { color: var(--accent); }
 ::view-transition-new(root) { animation: vt-in .45s var(--ease) .1s both; }
 @keyframes vt-out { to { opacity: 0; transform: translateY(-8px); } }
 @keyframes vt-in { from { opacity: 0; transform: translateY(16px); } }
-@media (prefers-reduced-motion: reduce) {
-  @view-transition { navigation: none; }
-}
 .jump { display: flex; gap: 4px; }
 .jump a { color: #d5e2ef; text-decoration: none; font-size: .85rem; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.07); transition: background .2s; }
 .jump a:hover { background: rgba(255,255,255,.16); }
