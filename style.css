@@ -45,8 +45,12 @@
 [hidden] { display: none !important; }
 html { scroll-behavior: smooth; scroll-padding-top: 76px; -webkit-text-size-adjust: 100%; }
 body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.45; }
-/* Never wider than the screen (no sideways page scroll; phones would zoom out). `clip` keeps the sticky header working. */
-body { overflow-x: clip; }
+/* Never wider than the screen (no sideways page scroll; phones would zoom out and cancel the switching transition).
+   On both html and body: on body alone it is handed to the window, which a phone still zooms out to fit. `clip`
+   (not `hidden`) keeps the sticky header working. Canvases start 300 px wide until Chart.js sizes them, which
+   pushed a phone's first paint to 513 px (Nov 14); keep them inside their box. */
+html, body { overflow-x: clip; }
+canvas { max-width: 100%; }
 .wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
 h1, h2, h3 { margin: 0; line-height: 1.2; }
 h2 { font-size: 1.05rem; }
