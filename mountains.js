@@ -1070,6 +1070,80 @@ const MOUNTAINS = {
     },
   },
 
+  beech: {
+    name: 'Beech Mountain',
+    region: 'Blue Ridge Mountains, Banner Elk · North Carolina, USA',
+    // A point on the slopes between the base area (about 36.195, -81.879) and the lift tops (about 36.185, -81.880),
+    // from OpenStreetMap's lift map. Researched 2026-11-14 (see CLAUDE.md).
+    lat: 36.190,
+    lon: -81.8795,
+    timezone: 'America/New_York',
+    // The resort's Mountain Stats page (checked 2026-11-14): peak 5,506 ft, base 4,675 ft, 830 ft vertical, "the highest
+    // ski area in Eastern America". It names no mid-mountain point, so "mid" is the halfway elevation.
+    zones: [
+      { key: 'base', name: 'Base area', short: 'Base', ft: 4675 },
+      { key: 'mid', name: 'Mid-mountain', short: 'Mid-mountain', ft: 5090 },
+      { key: 'summit', name: 'Summit', short: 'Summit', ft: 5506 },
+    ],
+    // Regular season (Dec 4 - Mar 7): Monday-Thursday 9am-9pm, Friday-Sunday 9am-10pm (Hours of Operation page).
+    // Owner's choice (Nov 14): use these all season. Opening Day to Dec 3 and the late season (Mar 8-20) run 9am-5pm
+    // daily, which `skiHours` (by weekday only) can't express, so those weeks show forecasts to 9 or 10pm.
+    skiHours: { default: [9, 21], 5: [9, 22], 6: [9, 22], 0: [9, 22] },
+    // The Watauga/Avery county line crosses the middle of the slopes: the base is in NWS Blacksburg's RNK/10,14,
+    // mid-mountain and the lift tops in Greenville-Spartanburg's cell below. Both average 4,925 ft; neither publishes a
+    // snow level (rain vs. snow comes from each elevation's model temperature, as at Appalachian). GSP covers most of
+    // the slopes, so it's used, with its forecast discussion.
+    nws: { office: 'GSP', officeName: 'Greenville-Spartanburg', x: 77, y: 104 },
+    // No reputable live station on or near the ski area (checked 2026-11-14): the stations on Beech Mountain in the NWS
+    // feed are amateur (CWOP/APRS: FW4626 at the Pinnacle Inn, WB4ROX AX345), left out as at Appalachian; NWS COOP
+    // "Fred's Store" reports daily by hand, outside the observation feed. The resort's own weather box is
+    // OpenWeatherMap (a model). Owner decision (Nov 14): labeled model estimates in Right now. Checked over Nov 8-15,
+    // hourly, at each station's own point and height: average miss 1.6°F (FW4626) and 1.1°F (AX345), 1.7°F at Boone's
+    // KTNB; yardstick Stevens Pass Tye Mill 1.8°F (tools/research/model-check-beech.py).
+    stations: [],
+    stationMaxAgeHours: 3,
+    nowModel: true,
+    snowZone: 'mid',
+    // No SNOTEL in North Carolina; the resort reports its base depth by hand (Conditions & Maps page).
+    snotel: [],
+    // The resort's cams are on resortcams.com (as at Appalachian): public stills, each stamped with its own date and
+    // time (Eastern), refreshed slowly at night. Seen at 1-1:30am Eastern on 2026-11-15 only: re-check in daylight.
+    // The 5506' cam is the resort's summit cam; the Base Cam showed the lit slope with snow guns running. Town cams
+    // (Beech Mountain Club, Buckeye Lake) are left out: they show nothing of the ski area. No snow stake cam.
+    // The first camera is the one shown large at the top in preseason.
+    cams: [
+      { name: 'Summit (5,506 ft)', why: 'The resort\'s summit cam: snow and visibility at the top of the mountain. The picture carries its own date and time. Tap for live video.', src: 'https://preview.resortcams.com/thumbnail?application=live&streamname=beechsummit.stream&size=1280x720', video: 'https://www.resortcams.com/webcams/beech-mountain-summit/', caption: 'Summit cam (resort), time-stamped. This resort has no snow stake cam.' },
+      { name: 'Base area', why: 'The resort\'s base cam, looking at the lower slope: snow cover, and snowmaking when the guns are running. Tap for live video.', src: 'https://preview.resortcams.com/thumbnail?application=live&streamname=beechbase.stream&size=1280x720', video: 'https://www.resortcams.com/webcams/beech-base-cam/' },
+      { name: 'Sledding Hill', why: 'Beech Mountain\'s sledding hill, near the resort: snow on the ground and snowmaking in town. Tap for live video.', src: 'https://preview.resortcams.com/thumbnail?application=live&streamname=beechsledding.stream&size=1280x720', video: 'https://www.resortcams.com/webcams/beech-mountain-sledding-hill/' },
+      { name: 'Beech Mountain Parkway (town)', why: 'The town on the Beech Mountain Parkway (NC 184), the road up to the resort: snow on the ground and the road. Tap for live video.', src: 'https://preview.resortcams.com/thumbnail?application=live&streamname=beechparkway.stream&size=1280x720', video: 'https://www.resortcams.com/webcams/beech-parkway/' },
+    ],
+    // Hours of Operation page (checked 2026-11-14): "Our projected opening date for the 2026 – 2027 winter season is
+    // November 21, 2026." Closing Day Saturday, March 20, 2027.
+    season: { openingDay: '2026-11-21', projected: true, checked: '2026-11-14' },
+    liftStatusUrl: 'https://www.beechmountainresort.com/mountain/winter-trail-map/',
+    // The resort's pages send "X-Frame-Options: SAMEORIGIN", so the board can only be linked.
+    liftStatusEmbed: false,
+    liftStatusLinkWhy: 'linked; the resort\'s Conditions & Maps page, with every lift and trail, base depth and snowmaking',
+    features: { liftEstimate: false },
+    links: [
+      { label: 'Official conditions, lifts & trails (base depth, snowmaking)', url: 'https://www.beechmountainresort.com/mountain/winter-trail-map/' },
+      { label: 'Official web cameras', url: 'https://www.beechmountainresort.com/mountain/webcams/' },
+      { label: 'Official hours of operation', url: 'https://www.beechmountainresort.com/hours-of-operation-winter/' },
+      { label: 'Official mountain stats', url: 'https://www.beechmountainresort.com/mountain/mountain-stats/' },
+    ],
+    afdWords: ['high country', 'northern mountains', 'mountains', 'blue ridge', 'beech', 'banner elk', 'avery', 'watauga', 'grandfather', 'northwest flow', 'upslope', 'tennessee border'],
+    text: {
+      liveLead: 'No public weather station this site can use on the ski area, and no snow-depth sensor (there are no SNOTEL stations in North Carolina). The resort reports its base depth by hand on its Conditions & Maps page.',
+      stationsNote: 'No reputable public weather station on the ski area: the stations on Beech Mountain in the National Weather Service network are amateur, and the official observer in town reports once a day by hand. Right now shows model estimates, labeled.',
+      snowDepthNote: 'No snow-depth sensor on the ski area; the cams show the ground, and the resort reports its base depth by hand. Most of the snow here is made by the resort.',
+      regionalWhy: 'away from the ski area',
+      camsSource: 'Beech Mountain Resort and the town of Beech Mountain (resortcams.com)',
+      camsNote: 'Latest stills from the resort\'s and the town\'s cams, each stamped with its date and time; tap for live video. They refresh slowly at night. This resort has no snow stake cam.',
+      radarNote: 'Radar coverage over the mountains is limited by terrain, so light snow can be missed.',
+      footer: 'Cams © Beech Mountain Resort and the Town of Beech Mountain, via resortcams.com. Official source: the Beech Mountain Resort Conditions & Maps page.',
+    },
+  },
+
   appalachian: {
     name: 'Appalachian Ski Mtn.',
     region: 'Blue Ridge Mountains, Blowing Rock · North Carolina, USA',

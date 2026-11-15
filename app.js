@@ -1662,7 +1662,7 @@ const AFD_GLOSSARY = {
   'upper low': 'A closed low-pressure system high in the atmosphere. Often slow-moving, with showers.',
   'zonal flow': 'West-to-east winds aloft. Weather systems move through quickly.',
   'southwest flow': 'Winds aloft from the southwest. Often mild and moist, with high snow levels.',
-  'northwest flow': 'Winds aloft from the northwest. Often colder, with showery snow in the Cascades.',
+  'northwest flow': 'Winds aloft from the northwest. Often colder, with showery snow on mountain slopes facing it.',
   'onshore flow': 'Wind from the ocean toward land, bringing moisture and clouds.',
   'offshore flow': 'Wind from land toward the ocean. Usually dry and clear.',
   'atmospheric river': 'A long, narrow plume of deep moisture from the tropics. Heavy precipitation, often with high snow levels.',

@@ -118,7 +118,7 @@ a { color: var(--accent); }
 .mm-group + .mm-group { margin-top: 9px; }
 .mm-h { margin: 0 4px 5px; font-size: .68rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); }
 .mm-items { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-.mm-items a { display: block; padding: 8px 10px; border-radius: 11px; background: var(--surface-2); color: var(--text); text-decoration: none; font-size: .84rem; font-weight: 650; line-height: 1.25; transition: background .2s, transform .2s var(--ease); }
+.mm-items a { display: block; padding: 7px 10px; border-radius: 11px; background: var(--surface-2); color: var(--text); text-decoration: none; font-size: .84rem; font-weight: 650; line-height: 1.25; transition: background .2s, transform .2s var(--ease); }
 .mm-items a:active { transform: scale(.97); }
 .mm-items a[aria-current="page"] { background: var(--accent); color: #fff; }
 /* Each state's group eases in a moment after the one above it. */
