@@ -24,11 +24,11 @@ cd <repo> && setsid nohup python3 -m http.server 8765 > /dev/null 2>&1 &
 
 ## audit/ (the Nov 10 data audit; re-run after any change to how numbers are computed)
 
-1. `node tools/audit/capture.js <outDir> [mtn,mtn]`: loads each mountain locally, saves every raw response and a snapshot of what the page computed.
+1. `node tools/audit/capture.js <outDir> [mtn,mtn]`: loads each mountain locally, saves every raw response and a snapshot of what the page computed. `RETRIES=10` presses the page's refresh button until every source has loaded (use it when Open-Meteo refuses some of the sandbox's requests).
 2. `python3 -I tools/audit/audit.py <outDir> [mtn ...]`: recomputes every displayed number independently from the raw responses and prints `MISMATCH` lines (anything else is information).
 3. `python3 -I tools/audit/meta.py <outDir>`: checks the facts in `mountains.js` (station/SNOTEL/ECCC elevations, NWS cells, distances) against each source's own records.
 
-Written for the first five mountains; it now follows each mountain's `skiHours`. Mountains added later (Mission Ridge onward) were verified at build time but not through this audit; run it on them before trusting it blindly, and fix the audit (not the site) if it doesn't understand a newer setting.
+Run on all fifteen mountains on Nov 15, 2026 (no mismatches after two site fixes). It follows each mountain's `skiHours`, the bounded "coming" snow, the station max age for wind and the NWS snow level for past snow. When the site's rules change on purpose, update the audit to match; when they differ by accident, fix the site.
 
 ## research/
 
