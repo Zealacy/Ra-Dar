@@ -141,6 +141,106 @@ const MOUNTAINS = {
     },
   },
 
+  whitepass: {
+    name: 'White Pass',
+    region: 'US-12 at the Cascade crest, SE of Mt. Rainier · Washington, USA',
+    // A point on the ski area between the base and Pigtail Peak. Researched 2026-11-14 (see CLAUDE.md).
+    lat: 46.630,
+    lon: -121.390,
+    timezone: 'America/Los_Angeles',
+    // The resort publishes no base or summit elevation (checked 2026-11-14). Base 4,500 ft matches NWAC's base
+    // station; summit 6,500 ft (top of Paradise Basin) is Wikipedia's figure, confirmed against terrain data
+    // (Open-Meteo elevation service, 2026-11-14: top of the Paradise Basin lift that ends below Hogback Mountain
+    // 6,476 ft; base 4,475 ft; the Pigtail Peak SNOTEL 5,807 ft vs its record 5,800). Mid-mountain is Pigtail Peak, the top of
+    // the Great White Express, where NWAC's Pigtail Peak station stands (5,970 ft; base 4,500 + the lift's
+    // 1,500 ft of vertical = 6,000).
+    zones: [
+      { key: 'base', name: 'Base area', short: 'Base', ft: 4500 },
+      { key: 'mid', name: 'Pigtail Peak (top of Great White)', short: 'Pigtail Peak', ft: 5970 },
+      { key: 'summit', name: 'Top of Paradise Basin', short: 'Summit', ft: 6500 },
+    ],
+    // Base-area lifts 8:45am-4pm daily (Paradise Basin closes 3:15pm), so the default 9am-4pm fits. Night skiing
+    // (4-8pm) runs only on listed dates, which `skiHours` can't express by day of week.
+    // National Weather Service Seattle. This cell holds NWAC's Upper station and averages 5,463 ft; the base is in
+    // 145,17 (4,623 ft). The Cascade crest runs through the ski area: Pigtail Peak's station falls in Pendleton's
+    // 56,159 (5,827 ft). All publish snow level, visibility and snowfall.
+    nws: { office: 'SEW', officeName: 'Seattle', x: 145, y: 16 },
+    // Northwest Avalanche Center stations on the ski area, read through the NWS network (hourly). Checked
+    // 2026-11-14, 7pm, against NWAC's own table: Upper 33.5°F = 34, Base 37.7°F = 38. Pigtail Peak measures wind
+    // only; Upper and Base measure temperature and humidity. WSDOT's road sensor at the pass (TWHIT, beside the
+    // base) had not reported for 33 hours on 2026-11-14; it shows as offline until it reports again.
+    stations: [
+      { id: 'WPS60', name: 'Pigtail Peak', operator: 'Northwest Avalanche Center', ft: 5970, where: 'at the top of the Great White Express, 0.9 mi S of the base' },
+      { id: 'WPS58', name: 'White Pass Upper', operator: 'Northwest Avalanche Center', ft: 5800, where: 'upper mountain, just south of Pigtail Peak, 1.1 mi S of the base' },
+      { id: 'WPS45', name: 'White Pass Base', operator: 'Northwest Avalanche Center', ft: 4500, where: 'base area, by the lodge' },
+      { id: 'TWHIT', name: 'US-12 at White Pass', operator: 'Washington DOT', ft: 4498, where: 'US-12 at the pass, beside the base area', road: 'US-12 at White Pass', sheltered: 'road level' },
+    ],
+    stationMaxAgeHours: 3,
+    snowZone: 'mid',
+    windHoldLifts: 'Great White, Couloir Express and Basin Quad',
+    // Measured snow on the ground: the Pigtail Peak SNOTEL, on the ski area beside the top of the Great White
+    // Express (OpenStreetMap lift map), 5,800 ft. Owner decision (2026-11-14): "use pigtail peak". Last season
+    // (Nov 15, 2025 - Apr 15, 2026): depth in 94% of hours, longest gap 13 h, peak 133" on Mar 13. On 2026-11-14
+    // it read 3" (1.5" of water: a dense early-season pack) while NWAC's Upper sensor read 6".
+    snowSensor: { id: '692:WA:SNTL', name: 'Pigtail Peak', operator: 'USDA NRCS SNOTEL', ft: 5800, mi: 0.6, where: 'on the ski area, beside the top of the Great White Express', maxAgeHours: 6 },
+    // Regional reference only (collapsed in Live readings); never feeds the summary. White Pass E.S. is close
+    // (0.9 mi from this point) but across US-12 by Leech Lake, off the ski area.
+    snotel: [
+      // Distances from this mountain's point above (measured 2026-11-14 from the NRCS station records).
+      { id: '863:WA:SNTL', name: 'White Pass E.S.', ft: 4440, mi: 0.9 },
+      { id: '502:WA:SNTL', name: 'Green Lake', ft: 5920, mi: 11.9 },
+      { id: '375:WA:SNTL', name: 'Bumping Ridge', ft: 4600, mi: 12.8 },
+    ],
+    // The resort's cams are live video on Brownrice's player (as at Stevens Pass); each has a public snapshot
+    // image. `video` is the player page, opened in a new tab. Only seen at night so far (2026-11-14, 8:20pm):
+    // check each in daylight and describe what it shows. Names are the resort's (Mountain Cams page).
+    snowStake: {
+      name: 'Snow stake (5,800 ft)',
+      ft: 5800,
+      src: 'https://player.brownrice.com/snapshot/whitepasssnowstake',
+      video: 'https://player.brownrice.com/embed/whitepasssnowstake',
+      note: 'Resort snow stake, numbered in inches; its sign reads "White Pass 5800\'". Lit at night. The resort doesn\'t say when the board is cleared.',
+      caption: 'Measured: snow stake cam (resort), 5,800 ft',
+    },
+    cams: [
+      { name: 'High Camp (resort cam)', why: 'Resort camera at High Camp, the mid-mountain lodge: snow on the ground and visibility mid-mountain. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/whitepasshighcamp', video: 'https://player.brownrice.com/embed/whitepasshighcamp', heavy: true },
+      { name: 'Pigtail Peak (resort cam)', why: 'Resort camera at Pigtail Peak, the top of the Great White Express, with a long view out: upper-mountain visibility. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/pigtailpeak', video: 'https://player.brownrice.com/embed/pigtailpeak' },
+      { name: 'Couloir Express (resort cam)', why: 'Resort camera named for the Couloir Express in Paradise Basin, with a long view out: upper-mountain visibility. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/couloir', video: 'https://player.brownrice.com/embed/couloir' },
+      { name: 'Base Area (resort cam)', why: 'Resort camera looking across US-12 at the base area and its lifts: snow at the bottom of the mountain and the road. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/whitepasslive', video: 'https://player.brownrice.com/embed/whitepasslive' },
+      { name: 'US 12 at White Pass summit', why: 'Highway 12 at the pass (4,500 ft), by the base area: the road and what is falling at base level. © WSDOT.', src: 'https://images.wsdot.wa.gov/sc/012vc15095.jpg', small: true },
+      { name: 'Nordic Center (resort cam)', why: 'Resort camera at the Nordic Center, across US-12 from the ski area: snow at base level. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/whitepassnordic', video: 'https://player.brownrice.com/embed/whitepassnordic' },
+    ],
+    // Snow report (2026-11-13): "White Pass typically opens for daily operation late November or early December.
+    // Watch this page for updates." No date; the ski area is closed to all access until then.
+    season: { openingDay: null, closed: true, checked: '2026-11-14' },
+    liftStatusUrl: 'https://skiwhitepass.com/the-mountain/hours-and-lifts',
+    // The resort's pages send "X-Frame-Options: SAMEORIGIN", so the board can only be linked. Its lift table read
+    // "OPEN" for every lift on 2026-11-14 while the area was closed, so the snow report is linked too.
+    liftStatusEmbed: false,
+    liftStatusLinkWhy: 'linked; before the season its lift list may not be current, so check the snow report too',
+    features: { liftEstimate: false },
+    links: [
+      { label: 'Official snow report', url: 'https://skiwhitepass.com/the-mountain/snow-report' },
+      { label: 'Official hours & lifts', url: 'https://skiwhitepass.com/the-mountain/hours-and-lifts' },
+      { label: 'Official mountain cams', url: 'https://skiwhitepass.com/mountain-cams' },
+      { label: 'Northwest Avalanche Center: White Pass forecast', url: 'https://nwac.us/forecasts/avalanche/white-pass' },
+      { label: 'NWAC White Pass stations (every hour, incl. snow depth)', url: 'https://nwac.us/weather/stations/white-pass' },
+      { label: 'Pigtail Peak SNOTEL', url: 'https://wcc.sc.egov.usda.gov/nwcc/site?sitenum=692' },
+      { label: 'WSDOT mountain pass reports (White Pass, US 12)', url: 'https://wsdot.com/travel/real-time/mountainpasses' },
+    ],
+    afdWords: ['cascades?', 'cascade crest', 'white pass', 'us 12', 'highway 12', 'packwood', 'rainier', 'passes', 'east winds?', 'snow levels?'],
+    text: {
+      liveLead: 'Live readings from the Northwest Avalanche Center\'s stations on the ski area (Pigtail Peak, the upper mountain and the base), Washington DOT\'s road sensor at the pass, and the federal snow station at Pigtail Peak.',
+      stationsNote: 'Northwest Avalanche Center stations on the ski area, reporting hourly, and Washington DOT\'s road sensor at the pass (wind sheltered at road level), read through the National Weather Service network. Pigtail Peak measures wind only; the upper and base stations measure temperature. Offline stations are ignored.',
+      snowDepthNote: 'Measured snow depth comes from the Pigtail Peak snow station on the ski area (5,800 ft). NWAC also measures depth at its upper station, on its own site only (see Links).',
+      regionalWhy: 'off the ski area or in other valleys, so their snow differs from the ski area\'s',
+      camsSource: 'White Pass (live video, Brownrice); Washington State DOT',
+      camsNote: 'Resort cams show a current snapshot; tap for live video on the resort\'s player. Road camera © WSDOT. The stake is the best on-mountain check of new snow.',
+      radarNote: 'Radar coverage over the Cascades is limited by terrain, so light snow can be missed.',
+      footer: 'Webcams © White Pass Ski Area, via Brownrice. Road camera © WSDOT. Official sources: the White Pass snow report and the Northwest Avalanche Center forecast.',
+    },
+  },
+
   skibowl: {
     name: 'Mt. Hood Skibowl',
     region: 'Government Camp, Mt. Hood, US-26 · Oregon, USA',

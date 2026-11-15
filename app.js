@@ -461,6 +461,8 @@ function stationStats(obs) {
     // Any wind sensor at all; some stations report gusts but never a sustained speed (Alpine's Ward Peak).
     hasWind: obs.some((o) => o.wind != null || o.gust != null),
     hasSpeed: obs.some((o) => o.wind != null),
+    // Any thermometer at all in the period; some stations measure wind only (White Pass's Pigtail Peak).
+    hasTemp: obs.some((o) => o.temp != null),
     hi24: temps.length ? Math.max(...temps) : null, lo24: temps.length ? Math.min(...temps) : null,
     gust24: gusts.length ? Math.max(...gusts) : null,
   };
@@ -1438,18 +1440,18 @@ function renderNow(c) {
     const wind = !x.fresh ? '' : !x.hasWind ? 'no wind sensor' : x.wind != null ? `${arrow}${compass(x.dir)} ${r0(x.wind)}${x.gustNow ? `, gust ${r0(x.gustNow)}` : ''} mph` : x.gustNow ? `gust ${r0(x.gustNow)} mph` : 'no recent wind report';
     return `<div class="now-row ${x.fresh ? '' : 'offline'}" style="animation-delay:${i * 0.08}s" data-i="${i}">
       <div class="nm">${esc(s.name)}<small>${esc(s.operator)} · ${ftFmt(s.ft)} ft${s.offSite ? ` · <b class="off">${esc(s.offSite)}</b>` : ''} · ${x.fresh ? ageText(x.ageH) + (x.temp != null && x.tempAgeH - x.ageH > 0.5 ? ` (temp ${ageText(x.tempAgeH)})` : '') + (x.wind != null && x.windAgeH - x.ageH > 0.5 ? ` (wind ${ageText(x.windAgeH)})` : '') : x.last ? `offline, last report ${ageText(x.ageH)}` : 'offline, no reports in 48 hrs'}</small></div>
-      <div class="tv">${!x.fresh ? 'Offline' : x.temp != null ? `${r0(x.temp)}°` : '<span class="na">no temp<br>in 3 hrs</span>'}</div>
+      <div class="tv">${!x.fresh ? 'Offline' : x.temp != null ? `${r0(x.temp)}°` : !x.hasTemp ? '<span class="na">wind<br>only</span>' : '<span class="na">no temp<br>in 3 hrs</span>'}</div>
       <div class="wv">${wind}</div></div>`;
   }).join('') + sensorRow;
   const sRow = list.querySelector('.now-row[data-sensor]');
   if (sRow) bindTip(sRow, sOk
-    ? `${M.snowSensor.name} (${M.snowSensor.operator}), ${M.snowSensor.where}. Snow depth ${r0(sx.depth)}", water content ${r1(sx.swe)}". Measured hourly at base level; nothing measures snow depth higher on the mountain.`
+    ? `${M.snowSensor.name} (${M.snowSensor.operator}), ${M.snowSensor.where}. Snow depth ${r0(sx.depth)}", water content ${r1(sx.swe)}", measured hourly. ${M.text.snowDepthNote || ''}`
     : `${M.snowSensor.name} has no recent snow-depth report, so it's left out.`);
   list.querySelectorAll('.now-row[data-i]').forEach((row) => {
     const s = sts[row.dataset.i];
     const x = s.stats;
     bindTip(row, x.fresh
-      ? `${s.name}, ${s.where}${s.offSite ? ' (not at the ski area)' : ''}. 24 hrs: high ${r0(x.hi24)}°F, low ${r0(x.lo24)}°F${x.hasWind ? `, max gust ${r0(x.gust24)} mph` : ''}. Humidity ${r0(x.rh)}%.`
+      ? `${s.name}, ${s.where}${s.offSite ? ' (not at the ski area)' : ''}. 24 hrs: ${x.hasTemp ? `high ${r0(x.hi24)}°F, low ${r0(x.lo24)}°F` : 'no thermometer (wind only)'}${x.hasWind ? `, max gust ${r0(x.gust24)} mph` : ''}.${x.rh != null ? ` Humidity ${r0(x.rh)}%.` : ''}`
       : `${s.name} hasn't reported since ${x.last ? fmtTime(x.last.t, { month: 'short', day: 'numeric', hour: 'numeric' }) : 'the start of the period'}, so it's left out.`);
   });
   const live = c.now.live.length + (sOk ? 1 : 0), total = sts.length + (M.snowSensor ? 1 : 0);
@@ -1544,8 +1546,10 @@ function drawMeasuredCharts() {
       return hours.map((h) => m.get(h) ?? null);
     };
     const labels = hours.map((h) => hourLabel(new Date(h)));
-    const vars = ['--s1', '--s2', '--s3'];
-    drawChart('c-stemp', { type: 'line', data: { labels, datasets: sts.map((s, k) => lineDs(`${s.name} (${ftFmt(s.ft)}′${s.offSite ? ', not at the ski area' : ''})`, bucket(s.obs, 'temp'), vars[k % 3])) }, options: chartOpts({ refLines: [{ y: 32, label: '32°F freezing' }] }) });
+    // Only stations with a thermometer (White Pass's Pigtail Peak measures wind only), one palette color each.
+    const vars = ['--s1', '--s2', '--s3', '--s4'];
+    const tSts = sts.filter((s) => s.stats.hasTemp);
+    drawChart('c-stemp', { type: 'line', data: { labels, datasets: tSts.map((s, k) => lineDs(`${s.name} (${ftFmt(s.ft)}′${s.offSite ? ', not at the ski area' : ''})`, bucket(s.obs, 'temp'), vars[k % vars.length])) }, options: chartOpts({ refLines: [{ y: 32, label: '32°F freezing' }] }) });
     const ws = sts.filter((s) => s.stats.hasSpeed).sort((a, b) => b.ft - a.ft)[0];
     if (ws) {
       $('wind-station-name').textContent = `${ws.name} (${ftFmt(ws.ft)} ft${offSiteNote(ws)}${ws.sheltered ? `, ${ws.sheltered}` : ''})`;
@@ -2035,7 +2039,7 @@ function renderSources() {
       ? ['Live station readings', M.stations.map((s) => `${s.name} (${s.operator}, ${ftFmt(s.ft)} ft${offSiteNote(s)})`).join('; '), 'Measured', M.text.stationsNote]
       : ['Live station readings', 'None', '–', M.text.stationsNote],
     M.nowModel && ['Right now', 'Open-Meteo model estimates at each elevation', 'Model', `Only because no public station on the mountain reports. Labeled "${NOW_MODEL_TAG}" everywhere it appears.`],
-    sn && ['Measured snow depth', `${sn.name} (${sn.operator}, ${ftFmt(sn.ft)} ft, ${sn.where})`, 'Measured', 'Hourly snow depth and water content at base level, checked against the resort\'s reported base depth. Nothing measures snow depth higher on the mountain.'],
+    sn && ['Measured snow depth', `${sn.name} (${sn.operator}, ${ftFmt(sn.ft)} ft, ${sn.where})`, 'Measured', `Hourly snow depth and water content. ${M.text.snowDepthNote || ''}`],
     sd && ['Measured snow (daily)', `${sd.operator} climate stations: ${sd.stations.map((s) => `${s.name} (${ftFmt(s.ft)} ft)`).join(', ')}`, 'Measured', 'Snow on the ground and new snow, read by hand once a day. In season only, with a delay of a day or more; each value shows its date.'],
     M.stationGraphic && ['Lift-top stations graphic', M.name, 'Measured', 'The resort\'s own summit, lift-top and base sensors. Image only.'],
     [M.snowStake ? 'Webcams & snow stake' : 'Webcams', M.text.camsSource, 'Live image', M.text.camsNote],
@@ -2100,7 +2104,8 @@ function setupMountain() {
   $('fig-sp-measured').hidden = !sn;
   if (sn) {
     $('sdepth-name').textContent = $('sp-measured-name').textContent = `${sn.name} (${ftFmt(sn.ft)} ft, ${sn.where})`;
-    $('sdepth-note').textContent = 'Hourly readings from the federal snow station at base level. Nothing measures snow depth higher on the mountain.';
+    // Each mountain's own wording: its sensor may be at the base (Willamette) or high on the mountain (White Pass).
+    $('sdepth-note').textContent = `Hourly readings from the federal snow station. ${M.text.snowDepthNote || ''}`;
   }
   const mi = (M.snotel || []).map((x) => x.mi), ft = (M.snotel || []).map((x) => x.ft);
   $('snotel-summary').textContent = sn ? `Snow stations (SNOTEL): ${sn.name} at the ski area, plus regional reference` : 'Regional snow stations (SNOTEL) · reference only';
