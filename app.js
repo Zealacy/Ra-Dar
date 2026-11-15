@@ -2064,6 +2064,44 @@ function renderSources() {
 }
 
 // ================================================================ Mountain switcher and per-mountain wording
+// Phones: a button opens every mountain grouped by state or province (owner's choice, Nov 14: with 14 mountains
+// the sideways-scrolling row hid most of them off screen). Wider screens keep the row of pills (CSS shows one or
+// the other by data-device). Links are the same ?mtn=key links, so switching still works without this script.
+function setupMountainMenu() {
+  const btn = $('mtn-menu-btn'), list = $('mtn-menu-list'), scrim = $('mtn-menu-scrim');
+  // "Oregon, USA" -> "Oregon"; other countries keep their name ("British Columbia, Canada").
+  const area = (m) => m.region.split('·').pop().trim().replace(/, USA$/, '');
+  const groups = new Map();
+  Object.entries(MOUNTAINS).forEach(([key, m]) => {
+    const a = area(m);
+    if (!groups.has(a)) groups.set(a, []);
+    groups.get(a).push([key, m]);
+  });
+  // US states alphabetically, then other countries' provinces alphabetically; mountains alphabetically within each.
+  const order = [...groups.keys()].sort((a, b) => (a.includes(',') - b.includes(',')) || a.localeCompare(b, 'en'));
+  list.innerHTML = order.map((a, i) => `<div class="mm-group" style="--i:${i}"><div class="mm-h">${esc(a)}</div><div class="mm-items">${groups.get(a)
+    .sort(([, x], [, y]) => x.name.localeCompare(y.name, 'en'))
+    .map(([key, m]) => `<a href="?mtn=${encodeURIComponent(key)}"${key === MTN_KEY ? ' aria-current="page"' : ''}>${esc(m.name)}</a>`).join('')}</div></div>`).join('');
+  // Everything above comes from mountains.js (our own settings): names and areas escaped, keys URL-encoded, i a counter.
+  $('mtn-menu-name').textContent = M.name;
+  $('mtn-menu-area').textContent = area(M);
+  $('mtn-menu-count').textContent = `All ${Object.keys(MOUNTAINS).length}`;
+  const isOpen = () => btn.getAttribute('aria-expanded') === 'true';
+  const setOpen = (open) => {
+    // Use all the room between the header and the bottom of the screen (the list scrolls only if that's not enough).
+    if (open) list.style.maxHeight = `${Math.max(200, window.innerHeight - document.querySelector('.top').getBoundingClientRect().bottom - 12)}px`;
+    btn.setAttribute('aria-expanded', String(open));
+    list.classList.toggle('open', open);
+    scrim.classList.toggle('open', open);
+    list.inert = !open; // closed: not reachable by keyboard or screen readers
+  };
+  setOpen(false);
+  btn.addEventListener('click', () => setOpen(!isOpen()));
+  scrim.addEventListener('click', () => setOpen(false));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && isOpen()) { setOpen(false); btn.focus(); } });
+  // Coming back with the browser's Back button can restore the page as it was left: show it closed.
+  window.addEventListener('pageshow', () => setOpen(false));
+}
 function setupMountain() {
   // One link per mountain. The address carries the choice (?mtn=key), so a link can be shared.
   const sw = $('mtn-switch');
@@ -2089,6 +2127,7 @@ function setupMountain() {
   // The header's other items change width as the page loads (the "Updated" time), so check again then.
   if ('ResizeObserver' in window) new ResizeObserver(() => requestAnimationFrame(fit)).observe(row.querySelector('.top-actions'));
   requestAnimationFrame(fit);
+  setupMountainMenu();
   document.title = `${M.name} · Ra-Dar Ski Weather`;
   $('mtn-name').textContent = `${M.name} ski weather`;
   document.querySelectorAll('.mtn-name-text').forEach((el) => { el.textContent = M.name; });

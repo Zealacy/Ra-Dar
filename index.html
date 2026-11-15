@@ -32,6 +32,12 @@
         <h1 id="mtn-name" class="sr-only">Ski weather</h1>
       </div>
       <nav class="mtn-switch" id="mtn-switch" aria-label="Choose a mountain"></nav>
+      <!-- Phones: one button opens every mountain, grouped by state or province (filled in by app.js). -->
+      <button type="button" class="mtn-menu-btn" id="mtn-menu-btn" aria-expanded="false" aria-controls="mtn-menu-list">
+        <span class="mm-now"><span class="mm-name" id="mtn-menu-name"></span><span class="mm-area" id="mtn-menu-area"></span></span>
+        <span class="mm-all"><span id="mtn-menu-count">All</span><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <nav class="mtn-menu-list" id="mtn-menu-list" aria-label="All mountains"></nav>
       <nav class="jump" aria-label="Sections">
         <a href="#call">Today</a>
         <a href="#cams">Cams</a>
@@ -46,6 +52,7 @@
       </div>
     </div>
   </header>
+  <div class="mtn-menu-scrim" id="mtn-menu-scrim" aria-hidden="true"></div>
 
   <main class="wrap">
     <!-- Shown when a data source is taking longer than usual (refreshData in app.js). -->
