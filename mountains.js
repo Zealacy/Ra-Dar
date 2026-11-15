@@ -192,8 +192,11 @@ const MOUNTAINS = {
       { id: '375:WA:SNTL', name: 'Bumping Ridge', ft: 4600, mi: 12.8 },
     ],
     // The resort's cams are live video on Brownrice's player (as at Stevens Pass); each has a public snapshot
-    // image. `video` is the player page, opened in a new tab. Only seen at night so far (2026-11-14, 8:20pm):
-    // check each in daylight and describe what it shows. Names are the resort's (Mountain Cams page).
+    // image. `video` is the player page, opened in a new tab. Names are the resort's (Mountain Cams page). Checked in
+    // daylight on 2026-11-15, 12:18pm: all six live (changing between downloads a minute apart) and matching the text
+    // below: stake board with a trace of snow; High Camp lodge on snow-dusted ground; Pigtail Peak's long view over a
+    // forested valley; Paradise Basin's snow-covered upper slopes (Couloir); the base area across US-12, bare; the
+    // Nordic Center's yurts, bare. WSDOT's cam carried a 12:16pm stamp.
     snowStake: {
       name: 'Snow stake (5,800 ft)',
       ft: 5800,
@@ -205,7 +208,7 @@ const MOUNTAINS = {
     cams: [
       { name: 'High Camp (resort cam)', why: 'Resort camera at High Camp, the mid-mountain lodge: snow on the ground and visibility mid-mountain. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/whitepasshighcamp', video: 'https://player.brownrice.com/embed/whitepasshighcamp', heavy: true },
       { name: 'Pigtail Peak (resort cam)', why: 'Resort camera at Pigtail Peak, the top of the Great White Express, with a long view out: upper-mountain visibility. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/pigtailpeak', video: 'https://player.brownrice.com/embed/pigtailpeak' },
-      { name: 'Couloir Express (resort cam)', why: 'Resort camera named for the Couloir Express in Paradise Basin, with a long view out: upper-mountain visibility. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/couloir', video: 'https://player.brownrice.com/embed/couloir' },
+      { name: 'Couloir Express (resort cam)', why: 'Resort camera in Paradise Basin, named for the Couloir Express: snow cover on the upper slopes, and upper-mountain visibility. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/couloir', video: 'https://player.brownrice.com/embed/couloir' },
       { name: 'Base Area (resort cam)', why: 'Resort camera looking across US-12 at the base area and its lifts: snow at the bottom of the mountain and the road. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/whitepasslive', video: 'https://player.brownrice.com/embed/whitepasslive' },
       { name: 'US 12 at White Pass summit', why: 'Highway 12 at the pass (4,500 ft), by the base area: the road and what is falling at base level. © WSDOT.', src: 'https://images.wsdot.wa.gov/sc/012vc15095.jpg', small: true },
       { name: 'Nordic Center (resort cam)', why: 'Resort camera at the Nordic Center, across US-12 from the ski area: snow at base level. Tap for live video on the resort\'s player.', src: 'https://player.brownrice.com/snapshot/whitepassnordic', video: 'https://player.brownrice.com/embed/whitepassnordic' },
@@ -370,13 +373,16 @@ const MOUNTAINS = {
       { id: '351:OR:SNTL', name: 'Blazed Alder', ft: 3660, mi: 9.8 },
     ],
     // The resort's own cams: public stills on its site, 720x480, each with an on-image date and time, updated every
-    // minute or two (checked 2026-11-14, in fog). Names are the resort's (its webcams page). The resort's snow
-    // stake cam (/snowcameras/snowstake.jpg) showed "No signal ... timeout" all afternoon on 2026-11-14, so it is
-    // left out for now; when it works, add it as `snowStake`. Re-check every cam in clear daylight.
+    // minute or two (checked 2026-11-14 in fog, and in daylight on 2026-11-15, 12:18pm). Names are the resort's (its
+    // webcams page). The resort's snow stake cam (/snowcameras/snowstake.jpg) showed "No signal ... timeout" on
+    // 2026-11-14 and again at midday on 2026-11-15, so it is left out for now; when it works, add it as `snowStake`.
+    // On 2026-11-15 the Summit Pass cam showed the same "No signal" card (it worked the day before); it stays in,
+    // since the resort stamps the card with the time. The "Magic Mile" cam shows a lift terminal building in the
+    // forest; which lift is still not confirmed from the picture.
     // The first camera is the one shown large at the top in preseason.
     cams: [
-      { name: 'Pucci', why: 'Resort camera at the Pucci chair, just below the lodge: snow cover on the runs. Date and time are on the picture.', src: 'https://timberlinelodge.com/snowcameras/pucci.jpg', caption: 'Pucci cam (resort), time-stamped. The resort\'s snow stake cam was offline when checked (Nov 14).' },
-      { name: 'Jeff Flood', why: 'Resort camera on the Jeff Flood chair, looking along the lift line: snow cover on the lower mountain.', src: 'https://timberlinelodge.com/snowcameras/FloodSouth.jpg' },
+      { name: 'Pucci', why: 'Resort camera at the Pucci chair, just below the lodge: snow cover on the runs. Date and time are on the picture.', src: 'https://timberlinelodge.com/snowcameras/pucci.jpg', caption: 'Pucci cam (resort), time-stamped. The resort\'s snow stake cam was offline when checked (Nov 14 and 15).' },
+      { name: 'Jeff Flood', why: 'Resort camera at the top of the Jeff Flood chair, looking down the lift line: snow cover on the lower mountain and the cloud below.', src: 'https://timberlinelodge.com/snowcameras/FloodSouth.jpg' },
       { name: 'Palmer / Silcox', why: 'Resort camera by Silcox Hut at the bottom of Palmer (about 7,000 ft): upper-mountain visibility. White means cloud.', src: 'https://timberlinelodge.com/snowcameras/palmerbottom.jpg' },
       { name: 'Magic Mile (resort\'s name)', why: 'A chairlift terminal and lift building in the trees. The resort calls this its Magic Mile camera; its exact spot isn\'t confirmed.', src: 'https://timberlinelodge.com/snowcameras/FloodEast.jpg' },
       { name: 'Bruno\'s', why: 'Resort camera at the Bruno\'s chair, the beginner area beside the lodge, looking toward the parking lot.', src: 'https://timberlinelodge.com/snowcameras/brunotop.jpg' },
@@ -409,7 +415,7 @@ const MOUNTAINS = {
       snowDepthNote: 'Measured snow depth comes from the Mt Hood Test Site snow station on the lower mountain (5,380 ft, 600 ft below the lodge). NWAC also measures depth at the lodge, on its own site only (see Links).',
       regionalWhy: 'lower and on other slopes of Mt. Hood, so their snow differs from the ski area\'s',
       camsSource: 'Timberline Lodge',
-      camsNote: 'Official resort cameras, each with its own date and time on the picture. The resort\'s snow stake cam was offline when checked (Nov 14), so it isn\'t shown.',
+      camsNote: 'Official resort cameras, each with its own date and time on the picture. The resort\'s snow stake cam was offline when checked (Nov 14 and 15), so it isn\'t shown.',
       radarNote: 'Radar coverage over the Cascades is limited by terrain, so light snow can be missed.',
       footer: 'Webcams © Timberline Lodge. Official sources: the Timberline conditions page and the Northwest Avalanche Center forecast.',
     },
@@ -1108,7 +1114,9 @@ const MOUNTAINS = {
     // No SNOTEL in North Carolina; the resort reports its base depth by hand (Conditions & Maps page).
     snotel: [],
     // The resort's cams are on resortcams.com (as at Appalachian): public stills, each stamped with its own date and
-    // time (Eastern), refreshed slowly at night. Seen at 1-1:30am Eastern on 2026-11-15 only: re-check in daylight.
+    // time (Eastern), refreshed every few minutes by day and slowly at night. Seen at 1-1:30am Eastern on 2026-11-15,
+    // and at 3:18pm that day in thick cloud (all four stamped within two minutes; the summit lens iced over), so
+    // what each shows in clear weather is still to be described.
     // The 5506' cam is the resort's summit cam; the Base Cam showed the lit slope with snow guns running. Town cams
     // (Beech Mountain Club, Buckeye Lake) are left out: they show nothing of the ski area. No snow stake cam.
     // The first camera is the one shown large at the top in preseason.
