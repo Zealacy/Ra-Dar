@@ -797,11 +797,12 @@ const MOUNTAINS = {
       { name: 'Midway', why: 'Resort camera at the bottom of a chairlift beside a building deck, looking up the slope: snow on the ground mid-mountain. Tap for live video (YouTube).', youtube: 'AlJPPPl1yIw' },
       { name: 'Mimi', why: 'Resort camera looking up a lower run toward the upper mountain: snow on the lower slopes. Tap for live video (YouTube).', youtube: 'TERghSgEi_o' },
     ],
-    // The resort's Operating Schedule page (screenshot from the owner, 2026-11-11) lists "Open – 2 Chairs
-    // Planned" for Fri Nov 27, Sat Nov 28 and Sun Nov 29, 2026, then "Open – 3 Chairs Planned" from Dec 4.
-    // Its own word is "planned". The resort's site blocks this sandbox (Cloudflare), so re-check it through
-    // the owner. Past openings: Dec 4, 2025 (delayed by a warm November); Nov 23, 2024; Nov 25, 2023.
-    season: { openingDay: '2026-11-27', word: 'planned', checked: '2026-11-11' },
+    // The resort's Operating Schedule page: on 2026-11-11 (owner's screenshot) Fri Nov 27 - Sun Nov 29 read "Open –
+    // 2 Chairs Planned"; by 2026-11-14 (read directly; the site no longer blocked this sandbox) those days were
+    // retitled "Possible Open", with "Open – 3 Chairs Planned" from Dec 4 and "Open – All Chairs Planned" from Dec 18.
+    // The resort's own word for Nov 27 is now "possible" (owner: "fix and publish", Nov 14). Past openings: Dec 4,
+    // 2025 (delayed by a warm November); Nov 23, 2024; Nov 25, 2023.
+    season: { openingDay: '2026-11-27', word: 'possible', checked: '2026-11-14' },
     liftStatusUrl: 'https://www.missionridge.com/mountain-report/',
     // Not confirmed whether the resort's pages allow framing (its site blocks this sandbox), so the
     // board is linked, not embedded.

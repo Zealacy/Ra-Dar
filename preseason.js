@@ -221,9 +221,12 @@ function renderSnowfallBars(p) {
     T({ x: 34, y: yv(v) + 3.5, 'text-anchor': 'end' }, `${v}"`);
   }
   const since = new Date(p.start + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  T({ x: 40, y: 13, 'font-weight': 700, fill: cssVar('--text') }, `Snowfall since ${since} (inches, model)`);
+  // Say on the graphic that this is snow that fell, not depth on the ground (the two are easily confused: on
+  // 2026-11-14 Timberline's model total was 47" while 2" lay on the ground after early-season melting).
+  T({ x: 40, y: 13, 'font-weight': 700, fill: cssVar('--text') }, `Snow that fell since ${since} (inches, model)`);
   svgEl('rect', { x: 40, y: 18, width: 11, height: 9, rx: 2, fill: cssVar('--s1') }, svg); T({ x: 55, y: 26 }, 'so far');
   svgEl('rect', { x: 98, y: 18, width: 11, height: 9, rx: 2, fill: 'none', stroke: cssVar('--s1'), 'stroke-width': 1.5, 'stroke-dasharray': '3 2' }, svg); T({ x: 113, y: 26 }, '+ next 7 days');
+  T({ x: 186, y: 26 }, '· melting not counted');
   const colW = (W - 60) / p.zones.length;
   p.zones.forEach((z, i) => {
     const cx = 52 + colW * i + colW / 2, bw = 46;
