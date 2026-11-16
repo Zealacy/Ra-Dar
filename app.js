@@ -889,11 +889,12 @@ function drawLiftsTab() {
   $('lift-official').href = M.liftStatusUrl;
   if (M.liftStatusEmbed) embedOfficialBoard();
   else {
-    // The resort blocks its pages from being shown inside other sites, so the same slot links out.
+    // The board isn't embedded, so the same slot links out. Reasons differ by resort (`liftStatusLinkWhy`): some block
+    // embedding, others load their lift list by script or deep in a long page, so this sentence doesn't claim a reason.
     const box = $('board-frame');
     box.classList.add('linked');
     $('lift-official').hidden = true; // the box below carries the one link
-    box.innerHTML = `<div class="board-linked"><p><b>${esc(M.name)} doesn't allow its lift board to be shown inside other sites</b>, so it opens in its own tab.</p><a class="pill official" href="${esc(M.liftStatusUrl)}" target="_blank" rel="noopener">Open the official lifts &amp; trails page ↗</a></div>`;
+    box.innerHTML = `<div class="board-linked"><p><b>${esc(M.name)}'s official lift board</b> opens on the resort's own site, in a new tab.</p><a class="pill official" href="${esc(M.liftStatusUrl)}" target="_blank" rel="noopener">Open the official lifts &amp; trails page ↗</a></div>`;
   }
   if (!M.features?.liftEstimate) return; // shelved
   if (!L) return;
@@ -1437,7 +1438,8 @@ function renderNow(c) {
   const sts = c.now?.stations || [];
   if (!sts.length && !M.snowSensor) {
     // A mountain with no public station says so; one whose stations failed to load says that.
-    list.innerHTML = `<div class="lbl">${M.stations.length ? 'Station data unavailable right now.' : 'No public weather station on the ski area. The cams show conditions.'}</div>`;
+    // `text.noStationNow`: a mountain's own wording (Sugar: where its resort posts its own thermometer readings).
+    list.innerHTML = `<div class="lbl">${M.stations.length ? 'Station data unavailable right now.' : esc(M.text.noStationNow || 'No public weather station on the ski area. The cams show conditions.')}</div>`;
     $('now-cap').textContent = '';
     if (!M.stations.length) { tag.textContent = 'No station'; tag.className = 'src'; tag.title = 'No public weather station measures conditions on this ski area'; }
     return;

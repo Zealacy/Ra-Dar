@@ -134,7 +134,9 @@ function computePreseason() {
 // The big picture beside the snowfall chart (set once the cams start loading; see startCams in app.js).
 function setHeroCam() {
   if (document.documentElement.dataset.mode !== 'preseason') return;
-  $('pre-stake').src = camUrl(camStill(heroCam()));
+  // A live player with no still picture (Sugar's cams) has nothing to show here: leave the picture empty.
+  const still = camStill(heroCam());
+  if (still) $('pre-stake').src = camUrl(still); else $('pre-stake').removeAttribute('src');
 }
 function renderPreseason() {
   const box = $('pre');
@@ -169,7 +171,7 @@ function renderPreseason() {
     ? `<span class="pn-h">Right now <span class="src m">Measured</span></span>${snowNow}${live.map((st) => `<span class="pn"><b>${r0(st.stats.temp)}°F</b> ${esc(st.name)} · ${ftFmt(st.ft)} ft${st.offSite ? ` · <b class="off">${esc(st.offSite)}</b>` : ''} · ${ageText(st.stats.tempAgeH ?? st.stats.ageH)}</span>`).join('')}`
     : est?.zones.some((z) => z.temp != null)
       ? `<span class="pn-h">Right now <span class="src e" title="Model: a computer-model estimate for this hour, not a measurement">${esc(NOW_MODEL_TAG)}</span></span>${est.zones.filter((z) => z.temp != null).map((z) => `<span class="pn"><b>${r0(z.temp)}°F</b> ${esc(zShort(z))} · ${ftFmt(z.ft)} ft</span>`).join('')}<span class="pn">${esc(noStationNote())}.</span>`
-      : `<span class="pn-h">Right now</span><span class="pn">${M.stations.length || M.snowSensor ? 'No live station readings available.' : 'No public weather station on the ski area. The cams show conditions.'}</span>`;
+      : `<span class="pn-h">Right now</span><span class="pn">${M.stations.length || M.snowSensor ? 'No live station readings available.' : esc(M.text.noStationNow || 'No public weather station on the ski area. The cams show conditions.')}</span>`;
   const fig = document.querySelector('.pre-fig');
   if (!p) {
     $('pre-depth-svg').innerHTML = '';

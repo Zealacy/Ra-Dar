@@ -90,7 +90,7 @@ a { color: var(--accent); }
 /* Phones: one button opens every mountain grouped by state (app.js setupMountainMenu). Hidden on wider screens,
    which keep the row of pills above. The list hangs below the header (.top is the positioned ancestor). */
 .mtn-menu-list, .mtn-menu-scrim { display: none; }
-.mtn-menu-btn { display: none; order: 5; flex: 1 0 100%; align-items: center; gap: 10px; min-height: 40px; padding: 5px 5px 5px 16px; border: 0; border-radius: 999px; background: rgba(255,255,255,.1); color: #fff; font: inherit; text-align: left; cursor: pointer; transition: background .2s; }
+.mtn-menu-btn { display: none; order: 5; flex: 1 0 100%; min-width: 0; align-items: center; gap: 10px; min-height: 40px; padding: 5px 5px 5px 16px; border: 0; border-radius: 999px; background: rgba(255,255,255,.1); color: #fff; font: inherit; text-align: left; cursor: pointer; transition: background .2s; }
 .mtn-menu-btn:active { background: rgba(255,255,255,.18); }
 [data-device="mobile"] .mtn-switch { display: none; }
 [data-device="mobile"] .mtn-menu-btn { display: flex; }
@@ -106,21 +106,31 @@ a { color: var(--accent); }
   html:not([data-device]) .updated { max-width: 96px; font-size: .7rem; }
   html:not([data-device]) .mtn-menu-btn { display: flex; }
 }
-.mm-now { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.mm-name { font-size: .95rem; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mm-area { font-size: .78rem; color: #9fb0c2; white-space: nowrap; }
-.mm-all { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: #fff; color: #0b1a2b; font-size: .8rem; font-weight: 750; white-space: nowrap; }
+/* On a narrow phone a long name + state ("Sugar Mountain North Carolina", 320 px iPhone SE) would push the "All"
+   button off the screen: the state shortens with "…" (the name keeps its full width; it gets "…" only if it alone is
+   too wide: a shrinkable name lost a fraction of a pixel and showed "Sugar Mount…"). */
+.mm-now { display: flex; align-items: baseline; gap: 8px; min-width: 0; overflow: hidden; }
+.mm-name { flex: 0 0 auto; max-width: 100%; font-size: .95rem; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mm-area { flex: 0 1 auto; min-width: 0; font-size: .78rem; color: #9fb0c2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mm-all { flex-shrink: 0; margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: #fff; color: #0b1a2b; font-size: .8rem; font-weight: 750; white-space: nowrap; }
 .mm-all svg { transition: transform .35s var(--ease); }
 .mtn-menu-btn[aria-expanded="true"] .mm-all svg { transform: rotate(180deg); }
 [data-device="mobile"] .mtn-menu-list { display: block; position: absolute; left: 8px; right: 8px; top: calc(100% - 2px); max-height: calc(100dvh - 130px); overflow-y: auto; overscroll-behavior: contain; padding: 10px; border-radius: 18px; background: var(--surface); color: var(--text); box-shadow: 0 18px 44px rgba(0,0,0,.3); visibility: hidden; opacity: 0; transform: translateY(-10px) scale(.97); transform-origin: top center; transition: opacity .2s var(--ease), transform .4s var(--ease), visibility 0s linear .4s; }
 [data-device="mobile"] .mtn-menu-list.open { visibility: visible; opacity: 1; transform: none; transition: opacity .2s var(--ease), transform .4s var(--ease), visibility 0s; }
-/* Compact enough that all 14 mountains fit on an iPhone-sized screen without scrolling the list. */
+/* Compact enough that all 16 mountains fit on an iPhone-sized screen without scrolling the list. */
 .mm-group + .mm-group { margin-top: 9px; }
 .mm-h { margin: 0 4px 5px; font-size: .68rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); }
 .mm-items { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
 .mm-items a { display: block; padding: 7px 10px; border-radius: 11px; background: var(--surface-2); color: var(--text); text-decoration: none; font-size: .84rem; font-weight: 650; line-height: 1.25; transition: background .2s, transform .2s var(--ease); }
 .mm-items a:active { transform: scale(.97); }
 .mm-items a[aria-current="page"] { background: var(--accent); color: #fff; }
+/* Short phones (iPhone SE, 568 px tall): slightly tighter, so all 16 still fit without scrolling the list. */
+@media (max-height: 600px) {
+  [data-device="mobile"] .mtn-menu-list { padding: 8px 10px; }
+  .mm-group + .mm-group { margin-top: 6px; }
+  .mm-h { margin-bottom: 3px; }
+  .mm-items a { padding: 6px 10px; }
+}
 /* Each state's group eases in a moment after the one above it. */
 .mtn-menu-list.open .mm-group { animation: mm-in .45s var(--ease) both; animation-delay: calc(var(--i) * 45ms); }
 @keyframes mm-in { from { opacity: 0; transform: translateY(-8px); } }

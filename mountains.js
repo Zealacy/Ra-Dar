@@ -1077,6 +1077,81 @@ const MOUNTAINS = {
     },
   },
 
+  sugar: {
+    name: 'Sugar Mountain',
+    region: 'Blue Ridge Mountains, Banner Elk · North Carolina, USA',
+    // A point on the slopes between the base area (lodge and lift bottoms about 36.1305, -81.8585) and the lift tops
+    // (about 36.1252, -81.8751, beside the GNIS peak), from OpenStreetMap's lift map. Researched 2026-11-16.
+    lat: 36.1275,
+    lon: -81.868,
+    timezone: 'America/New_York',
+    // The resort's Stats page (checked 2026-11-16): summit 5,300 ft, base 4,100 ft, 1,200 ft vertical (the most in North
+    // Carolina). It names no mid-mountain point, so "mid" is the halfway elevation.
+    zones: [
+      { key: 'base', name: 'Base area', short: 'Base', ft: 4100 },
+      { key: 'mid', name: 'Mid-mountain', short: 'Mid-mountain', ft: 4700 },
+      { key: 'summit', name: 'Summit', short: 'Summit', ft: 5300 },
+    ],
+    // Day session 9am-4:30pm and night session 6-10pm, daily (lifts closed 4:30-6pm). Owner's choice (Nov 16): 9am-10pm,
+    // covering night skiing, as at Appalachian and Beech.
+    skiHours: { default: [9, 22] },
+    // National Weather Service Greenville-Spartanburg. This one cell (averages 4,498 ft) covers the base, mid-mountain
+    // and the summit. No snow level (rain vs. snow from each elevation's model temperature); visibility and snowfall yes.
+    nws: { office: 'GSP', officeName: 'Greenville-Spartanburg', x: 78, y: 101 },
+    // No public station on or near the ski area (checked 2026-11-16): Banner Elk's BEKN7 is a rain gauge, and Grandfather
+    // Meadows and the COOP observers send nothing through the NWS feed. The resort's home page shows its own base and
+    // summit thermometers (credited AveryWeather.com), written into its HTML with no public feed: cross-check only.
+    // Model estimates in Right now (nowModel) were checked against them before building and left OFF: at 2:22-2:40am
+    // on Nov 16 Open-Meteo read 4.7°F too warm at the base (31.8 vs 27.1°F; the base sits in a hollow where cold air
+    // pools) and 2.4°F at the summit. They were recommended to the owner only if this check passed (Beech and
+    // Appalachian, where they are on, miss by about 1-2°F). Re-check by day; turn on with `nowModel: true` if it holds up.
+    stations: [],
+    stationMaxAgeHours: 3,
+    snowZone: 'mid',
+    // No SNOTEL in North Carolina; the resort reports its depth by hand ("Average depth 10" - 30"" on Nov 16).
+    snotel: [],
+    // The resort's seven cams are live streams on Castr with no still picture, so they are tap-to-play live players
+    // (`embed`), as at Skibowl West. Castr's official embed player (player.castr.com, the one ResortCams uses for the
+    // "Sugar Ski & Country Club" cam) reported no domain restriction on any of them (`__domainWhitelists = false`,
+    // no frame-blocking header) and every stream was live (checked 2026-11-16, 3am Eastern). Names are the resort's
+    // cams-page tabs; stream titles agree. The Tubing/Ice Skating cam is left out (nothing about the slopes). Not yet
+    // seen in daylight: the sandbox's Chromium can't decode the video, so describe each view when seen.
+    // The first camera is the one shown first in the cam viewer. No snow stake cam.
+    cams: [
+      { name: 'Summit (resort, live)', why: 'The resort\'s live summit cam (5,300 ft): snow and visibility at the top. No still picture: tap to play the live stream.', embed: 'https://player.castr.com/live_da100dd0d3b211f089454b7c25f2965f', link: 'https://skisugar.com/cams/', caption: 'Summit cam (resort, live stream). This resort has no snow stake cam.' },
+      { name: 'Oma\'s Top Lift (resort, live)', why: 'The resort\'s live cam at the top of Oma\'s lift, near the top of the mountain, looking out over Oma\'s Meadow. Tap to play the live stream.', embed: 'https://player.castr.com/live_6e6c0df06f2e11f1862cc590260dd311', link: 'https://skisugar.com/cams/' },
+      { name: 'Oma\'s (resort, live)', why: 'The resort\'s live cam on Oma\'s. Tap to play the live stream.', embed: 'https://player.castr.com/live_c3cb3b10cfbd11f094eff94566b39e7c', link: 'https://skisugar.com/cams/' },
+      { name: 'Easy Street (resort, live)', why: 'The resort\'s live cam on Easy Street, a lower-mountain slope. Tap to play the live stream.', embed: 'https://player.castr.com/live_7603aa40cecb11f093049346b8bbe416', link: 'https://skisugar.com/cams/' },
+      { name: 'Base (resort, live)', why: 'The resort\'s live base-area cam (4,100 ft): snow at the bottom of the mountain. Tap to play the live stream.', embed: 'https://player.castr.com/live_fe980e10d22b11f0affbc9f04d80c8bf', link: 'https://skisugar.com/cams/' },
+      { name: 'Grandfather View (resort, live)', why: 'The resort\'s live cam looking toward Grandfather Mountain: visibility and the cloud deck. Tap to play the live stream.', embed: 'https://player.castr.com/live_f373e500cfbe11f0b06b595bb3be6c70', link: 'https://skisugar.com/cams/' },
+    ],
+    // Already open: the Stats page records "Opening: November 15, 2026" and the home page said "We're Open!" on Nov 16.
+    season: { openingDay: '2026-11-15', checked: '2026-11-16' },
+    // The lift and slope board ("See What's Open") is on the home page. Its pages send "X-Frame-Options: SAMEORIGIN".
+    liftStatusUrl: 'https://skisugar.com/',
+    liftStatusEmbed: false,
+    liftStatusLinkWhy: 'linked; the resort\'s home page lists every lift and slope, open or closed, with snowmaking and its own base and summit temperatures',
+    features: { liftEstimate: false },
+    links: [
+      { label: 'Official conditions, lifts & slopes (home page; incl. the resort\'s own base & summit temperatures)', url: 'https://skisugar.com/' },
+      { label: 'Official live cams', url: 'https://skisugar.com/cams/' },
+      { label: 'Official hours & mountain info', url: 'https://skisugar.com/mountain-info/' },
+      { label: 'Official stats (incl. past opening dates)', url: 'https://skisugar.com/sugar-mountain-stats/' },
+    ],
+    afdWords: ['high country', 'northern mountains', 'mountains', 'blue ridge', 'sugar', 'banner elk', 'avery', 'grandfather', 'northwest flow', 'upslope', 'tennessee border'],
+    text: {
+      liveLead: 'No public weather station on the ski area, and no snow-depth sensor (there are no SNOTEL stations in North Carolina). The resort posts its own base and summit thermometer readings and its hand-reported snow depth on its home page (see Links).',
+      stationsNote: 'No public weather station on the ski area. The resort posts its own base and summit thermometer readings on its home page; they aren\'t available as public data, so they aren\'t shown here.',
+      noStationNow: 'No public weather station on the ski area. The resort posts its own base and summit thermometer readings on its home page (see Links); the live cams show conditions.',
+      snowDepthNote: 'No snow-depth sensor on the ski area; the resort reports its depth by hand on its home page. Nearly all the snow here is made by the resort.',
+      regionalWhy: 'away from the ski area',
+      camsSource: 'Sugar Mountain Resort (live streams via Castr)',
+      camsNote: 'The resort\'s cams are live streams with no still picture: tap one to play it. This resort has no snow stake cam.',
+      radarNote: 'Radar coverage over the mountains is limited by terrain, so light snow can be missed.',
+      footer: 'Live cams © Sugar Mountain Resort, via Castr. Official source: the Sugar Mountain Resort home page (conditions, lifts and slopes).',
+    },
+  },
+
   beech: {
     name: 'Beech Mountain',
     region: 'Blue Ridge Mountains, Banner Elk · North Carolina, USA',
